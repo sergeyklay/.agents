@@ -12,9 +12,6 @@ description: >
   Saves the review to .reviews/Review-impl-{slug}.md.
   Do NOT use for specification review (use review-spec) or spec-vs-implementation
   verification (use verify-spec).
-disable-model-invocation: true
-context: fork
-agent: arch-review
 argument-hint: <task description or issue reference>
 metadata:
   author: Serghei Iakovlev
@@ -26,7 +23,7 @@ metadata:
 
 ## Task
 
-**What was implemented:** $ARGUMENTS
+**What was implemented:** Provided by the user as a task description or GitHub issue reference.
 
 ## Process
 

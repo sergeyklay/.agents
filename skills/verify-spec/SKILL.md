@@ -14,9 +14,6 @@ description: >
   Saves to .reviews/Review-{spec-name}.md.
   Do NOT use for general code review (use review-impl) or spec design review
   (use review-spec).
-disable-model-invocation: true
-context: fork
-agent: arch-review
 argument-hint: <path/to/spec>
 metadata:
   author: Serghei Iakovlev
@@ -36,7 +33,7 @@ The specification is the product of deliberate architectural work. Every footnot
 
 ## Input
 
-**Specification file:** $ARGUMENTS
+**Specification file:** Provided by the user as a path to a markdown file. This file is the authoritative source of truth for what the implementation must do. It may define interfaces, data structures, algorithms, state machines, error handling, concurrency contracts, and more. Your review will be measured against this document — if the code does not meet the spec, that is a failure of the implementation, not the spec.
 
 Read the specification file in its entirety before proceeding.
 

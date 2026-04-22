@@ -13,9 +13,6 @@ description: >
   .reviews/Review-{spec-name}.md.
   Do NOT use for implementation review (use review-impl) or spec-vs-code
   verification (use verify-spec).
-disable-model-invocation: true
-context: fork
-agent: arch-review
 argument-hint: <task-name> <path/to/spec>
 metadata:
   author: Serghei Iakovlev
@@ -27,7 +24,7 @@ metadata:
 
 Conduct an in-depth architectural review of the specification described below.
 
-**Input from the user:** $ARGUMENTS
+**Input from the user:** Provided by the user as a task name and a path to the specification file. The task name is a brief description of the feature or capability the spec defines (e.g. "Implement worker attempt function" or "Design auth service"). The specification file is a markdown document that defines the architecture, design, or technical approach for implementing that feature.
 
 The first argument is the task or feature name (or a GitHub issue reference). The second argument is the path to the specification file. Read that file carefully — it is the primary subject of this review.
 
