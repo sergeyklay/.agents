@@ -1,0 +1,24 @@
+.agents
+Copyright 2026 Serghei Iakovlev <oss@serghei.pl>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+---
+
+This repository is a personal collection of Agent Skills, rules, prompts,
+instructions, and hooks for Claude Code and other agent platforms.
+
+"Claude", "Claude Code", and "Anthropic" are trademarks of Anthropic, PBC.
+Use of these names in this repository is for identification and
+interoperability purposes only and does not imply endorsement by or
+affiliation with Anthropic.
