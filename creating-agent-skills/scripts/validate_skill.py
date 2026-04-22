@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Serghei Iakovlev
+# SPDX-License-Identifier: Apache-2.0
 """
 Validate an Agent Skill directory against the agentskills.io specification.
 

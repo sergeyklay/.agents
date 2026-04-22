@@ -9,6 +9,10 @@ description: >
   "what's next". Do NOT use for architecture decisions (use managing-adrs), for
   changelog entries (use changelog-maintenance), or for creating implementation
   plans from specs (use the Planner agent).
+metadata:
+  author: Serghei Iakovlev
+  version: "1.0"
+  category: planning
 ---
 
 # Roadmap Management

@@ -11,13 +11,17 @@ description: >
   each to implementation code, and classifies as PASS/DRIFT/PARTIAL/MISSING/
   CONFLICT with evidence. Produces conformance metrics, a verdict
   (CONFORMANT / CHANGES REQUIRED / NON-CONFORMANT), and a remediation plan.
-  Saves to .reviews/Review-<spec-name>.md.
+  Saves to .reviews/Review-{spec-name}.md.
   Do NOT use for general code review (use review-impl) or spec design review
   (use review-spec).
 disable-model-invocation: true
 context: fork
 agent: arch-review
 argument-hint: <path/to/spec>
+metadata:
+  author: Serghei Iakovlev
+  version: "1.0"
+  category: verification
 ---
 
 # Spec-vs-Implementation Verification Review
@@ -255,7 +259,7 @@ After all fixes:
 
 Write the full review to a markdown file in the `.reviews/` directory. Create the directory if it does not exist.
 
-The filename follows the pattern `Review-<spec-name>.md`, where `<spec-name>` is derived from the specification filename. If the spec filename starts with `Spec-`, strip that prefix. Examples:
+The filename follows the pattern `Review-{spec-name}.md`, where `{spec-name}` is derived from the specification filename. If the spec filename starts with `Spec-`, strip that prefix. Examples:
 - `.specs/Spec-6.4-Worker-Attempt-Function.md` → `.reviews/Review-6.4-Worker-Attempt-Function.md`
 - `specs/auth-service.md` → `.reviews/Review-auth-service.md`
 

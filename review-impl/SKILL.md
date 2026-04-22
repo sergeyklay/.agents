@@ -9,13 +9,17 @@ description: >
   GitHub issue URL, or issue shorthand (owner/repo#123, #123) as input.
   Produces a structured review with severity-rated findings, code evidence,
   and a verdict (Block / Request changes / Approve with notes / Approve).
-  Saves the review to .reviews/Review-impl-<slug>.md.
+  Saves the review to .reviews/Review-impl-{slug}.md.
   Do NOT use for specification review (use review-spec) or spec-vs-implementation
   verification (use verify-spec).
 disable-model-invocation: true
 context: fork
 agent: arch-review
 argument-hint: <task description or issue reference>
+metadata:
+  author: Serghei Iakovlev
+  version: "1.0"
+  category: review
 ---
 
 # Implementation Review
@@ -120,7 +124,7 @@ For each changed file, assess:
 
 ## Save the Review
 
-Write the review to `.reviews/Review-impl-<slug>.md`, where `<slug>` is a short kebab-case slug derived from the task description (3-5 words max).
+Write the review to `.reviews/Review-impl-{slug}.md`, where `{slug}` is a short kebab-case slug derived from the task description (3-5 words max).
 
 Create the `.reviews/` directory if it does not exist. If the file already exists, append a numeric index: `-2`, `-3`, etc.
 

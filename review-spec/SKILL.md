@@ -10,13 +10,17 @@ description: >
   Grounds the review in codebase reality by studying project docs, existing
   patterns, and module structure before evaluating alignment, feasibility,
   risks, completeness, and tradeoffs. Produces a structured review saved to
-  .reviews/Review-<spec-name>.md.
+  .reviews/Review-{spec-name}.md.
   Do NOT use for implementation review (use review-impl) or spec-vs-code
   verification (use verify-spec).
 disable-model-invocation: true
 context: fork
 agent: arch-review
 argument-hint: <task-name> <path/to/spec>
+metadata:
+  author: Serghei Iakovlev
+  version: "1.0"
+  category: review
 ---
 
 ## Task
@@ -86,7 +90,7 @@ Be thorough. Be direct. Ground every finding in evidence from the spec and the c
 
 Write the full review to a markdown file in the `.reviews/` directory. Create the directory if it does not exist.
 
-The filename follows the pattern `Review-<spec-name>.md`, where `<spec-name>` is derived from the specification filename. If the spec filename starts with `Spec-`, strip that prefix. Examples:
+The filename follows the pattern `Review-{spec-name}.md`, where `{spec-name}` is derived from the specification filename. If the spec filename starts with `Spec-`, strip that prefix. Examples:
 - `specs/Spec-6.4-Worker-Attempt-Function.md` → `.reviews/Review-6.4-Worker-Attempt-Function.md`
 - `specs/auth-service.md` → `.reviews/Review-auth-service.md`
 

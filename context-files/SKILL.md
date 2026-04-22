@@ -8,6 +8,10 @@ description: >
   golden-rule validation, and platform-specific formatting.
   Do NOT use for creating Agent Skills (use creating-agent-skills instead)
   or .instructions.md files (use agent-customization instead).
+metadata:
+  author: Serghei Iakovlev
+  version: "1.0"
+  category: configuration
 ---
 
 # Context File Generator
