@@ -19,11 +19,6 @@ Each skill is self-contained (`SKILL.md` plus optional `scripts/`, `references/`
 
 No bootstrapper. Clone the repo, then symlink (or copy) what you need into the directory your agent reads from. For Claude Code that is typically `~/.claude/skills/`. Skills with `disable-model-invocation: true` are meant to be triggered explicitly (for example via a slash command), not auto-invoked.
 
-## Related Projects
-
-- [dotfiles](https://github.com/sergeyklay/dotfiles) - shell configuration
-- [.emacs.d](https://github.com/sergeyklay/.emacs.d) - GNU Emacs configuration
-
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution and trademark notes.
