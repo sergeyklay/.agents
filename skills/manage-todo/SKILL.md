@@ -32,6 +32,23 @@ Manage TODO.md — the sequenced project roadmap that drives all implementation 
 | "Defer this to the roadmap" / "Triage this into TODO.md" | **Triage** |
 | "Check TODO.md for problems" / "Validate the roadmap" | **Validate** |
 
+## Running scripts bundled with this skill
+
+Script paths in this document (e.g. `scripts/validate_roadmap.py`) are resolved
+relative to this SKILL.md file, not to your current working directory. If a
+relative command fails to resolve, prefix it with the path your platform
+loaded this SKILL.md from — typically one of:
+
+- `.claude/skills/<skill-name>/` (Claude Code, project scope)
+- `.agents/skills/<skill-name>/` (Codex, Gemini, generic cross-platform)
+- `.gemini/skills/<skill-name>/` (Gemini CLI, project scope)
+- `.github/skills/<skill-name>/` (GitHub Copilot / VS Code)
+- `~/.claude/skills/<skill-name>/`, `~/.agents/skills/<skill-name>/`, etc. (user scope)
+
+**Fallback.** If `python3` is not installed or the script cannot be located,
+every procedure in this skill provides a manual alternative — follow those
+steps instead.
+
 ## Operations
 
 ### Status — Progress Report

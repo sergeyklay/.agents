@@ -31,6 +31,23 @@ skill-name/
 
 Only SKILL.md is required. Delete unused directories.
 
+## Running scripts bundled with this skill
+
+Script paths in this document (e.g. `scripts/init_skill.py`) are resolved
+relative to this SKILL.md file, not to your current working directory. If a
+relative command fails to resolve, prefix it with the path your platform
+loaded this SKILL.md from — typically one of:
+
+- `.claude/skills/<skill-name>/` (Claude Code, project scope)
+- `.agents/skills/<skill-name>/` (Codex, Gemini, generic cross-platform)
+- `.gemini/skills/<skill-name>/` (Gemini CLI, project scope)
+- `.github/skills/<skill-name>/` (GitHub Copilot / VS Code)
+- `~/.claude/skills/<skill-name>/`, `~/.agents/skills/<skill-name>/`, etc. (user scope)
+
+**Fallback.** If `python3` is not installed or the script cannot be located,
+every procedure in this skill provides a manual alternative — follow those
+steps instead.
+
 ## Workflow
 
 ### Phase 1: Understand Intent
@@ -54,7 +71,9 @@ Scaffold the directory:
 python3 scripts/init_skill.py <skill-name> --path <output-directory>
 ```
 
-This creates the directory structure with a SKILL.md template. If the script is unavailable or `python3` is not installed, create file manually: a directory matching the skill name, containing a SKILL.md file and all necessary subdirectories/files.
+This creates the directory structure with a SKILL.md template.
+
+**Fallback.** If the script is unavailable or `python3` is missing, create the directory manually: a folder matching the skill name containing a SKILL.md (use the template shown in Phase 3) plus any subdirectories you actually need (`scripts/`, `references/`, `assets/`).
 
 ### Phase 3: Write the Frontmatter
 
@@ -179,10 +198,18 @@ fix(reports): correct date formatting in timezone conversion
 Run validation against the agentskills.io specification:
 
 ```bash
-python scripts/validate_skill.py
+python3 scripts/validate_skill.py <path-to-skill-dir>
 ```
 
 This checks frontmatter fields, name format, description constraints, body size, reference depth, and directory structure.
+
+**Fallback.** If the script is unavailable or `python3` is missing, verify manually:
+
+- **Frontmatter**: valid YAML with `name` (lowercase, hyphens, ≤64 chars, no reserved words like `anthropic`/`claude`) and `description` (≤1024 chars, third person, no XML tags) — full field reference in [references/frontmatter-fields.md](references/frontmatter-fields.md)
+- **Name matches directory**: directory name equals the `name` field
+- **Body size**: SKILL.md under 500 lines (split excess into `references/`)
+- **Reference depth**: files in `references/` are one level deep — no nested subfolders
+- **Path separators**: forward slashes only; no Windows-style backslashes
 
 ### Phase 7: Test and Iterate
 

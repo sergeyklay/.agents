@@ -4,7 +4,7 @@ My personal collection of artifacts for AI coding agents: skills, rules, prompts
 
 ## Contents
 
-- `.skills/` - standalone agent skills, each in its own subdirectory. Each skill is self-contained (`SKILL.md` plus optional `scripts/`, `references/`, and `assets/`) and follows the agentskills.io specification.
+- **`.skills/`** - standalone agent skills, each in its own subdirectory. Each skill is self-contained (`SKILL.md` plus optional `scripts/`, `references/`, and `assets/`) and follows the [agentskills.io specification](https://agentskills.io). The skills are agent-agnostic and location-agnostic: they are not tied to any specific agent (Claude, Copilot, Cursor, etc.) or to a fixed path on disk. Place them wherever your agent expects skills to live.
 
 ## Install
 
