@@ -1,6 +1,6 @@
 ---
 name: manage-todo
-description: "Read, update, validate, and report on the project roadmap (TODO.md). Use when asked to add tasks, mark tasks complete, check roadmap status, find what to work on next, triage deferred items into the roadmap, validate TODO.md format, reorder or renumber tasks, or edit milestone descriptions. Also use when the user mentions \"roadmap\", \"TODO\", \"backlog\", \"milestone\", \"task list\", or asks \"what's next\". Do NOT use for architecture decisions (use managing-adrs), for changelog entries (use changelog-maintenance), or for creating implementation plans from specs (use the Planner agent)."
+description: "Read, update, validate, and report on the project roadmap (TODO.md). Use when asked to add tasks, mark tasks complete, check roadmap status, find what to work on next, triage deferred items into the roadmap, validate TODO.md format, reorder or renumber tasks, or edit milestone descriptions. Also use when the user mentions 'roadmap', 'TODO', 'backlog', 'milestone', 'task list', or asks 'what's next'. Do NOT use for architecture decisions, for changelog entries, or for creating implementation plans from specs."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"

@@ -1,6 +1,6 @@
 ---
 name: context-files
-description: "Create or validate project context files (AGENTS.md, CLAUDE.md, GEMINI.md). Use when bootstrapping a new project, initializing agent configuration, writing a context file, or when asked to create, review, audit, or validate an existing context file. Handles codebase archaeology, user interviews, golden-rule validation, and platform-specific formatting. Do NOT use for creating Agent Skills (use creating-agent-skills instead) or .instructions.md files (use agent-customization instead)."
+description: "Create or validate project context files (AGENTS.md, CLAUDE.md, GEMINI.md). Use when bootstrapping a new project, initializing agent configuration, writing a context file, or when asked to create, review, audit, or validate an existing context file. Handles codebase archaeology, user interviews, golden-rule validation, and platform-specific formatting. Do NOT use for creating Agent Skills, rules or .instructions.md files."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
