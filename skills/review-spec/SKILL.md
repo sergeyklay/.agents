@@ -1,18 +1,6 @@
 ---
 name: review-spec
-description: >
-  Conduct a deep architectural review of a specification or design document.
-  Use when evaluating a spec before implementation begins, reviewing an
-  architecture proposal, assessing a technical design document, or when asked to
-  'review this spec', 'evaluate this design', 'is this spec implementable',
-  'check this architecture proposal', or 'review the design for feature X'.
-  Accepts a task name (or GitHub issue reference) and a path to the spec file.
-  Grounds the review in codebase reality by studying project docs, existing
-  patterns, and module structure before evaluating alignment, feasibility,
-  risks, completeness, and tradeoffs. Produces a structured review saved to
-  .reviews/Review-{spec-name}.md.
-  Do NOT use for implementation review (use review-impl) or spec-vs-code
-  verification (use verify-spec).
+description: "Conduct a deep architectural review of a specification or design document. Use when evaluating a spec before implementation begins, reviewing an architecture proposal, assessing a technical design document, or when asked to 'review this spec', 'evaluate this design', 'is this spec implementable', 'check this architecture proposal', or 'review the design for feature X'. Accepts a task name (or GitHub issue reference) and a path to the spec file. Grounds the review in codebase reality by studying project docs, existing patterns, and module structure before evaluating alignment, feasibility, risks, completeness, and tradeoffs. Produces a structured review saved to .reviews/Review-{spec-name}.md. Do NOT use for implementation review (use review-impl) or spec-vs-code verification (use verify-spec)."
 argument-hint: <task-name> <path/to/spec>
 metadata:
   author: Serghei Iakovlev

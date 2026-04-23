@@ -20,8 +20,7 @@ Open with the destination, not the journey: "In this tutorial, we will build a w
 
 Every step must produce something the reader can see, run, or verify. The gap between "do something" and "see something happen" must be short. Rapid, repeated, meaningful results build confidence and momentum.
 
-**Good:** After each step, the reader runs the code and sees output.
-**Bad:** Ten steps of configuration before anything runs.
+**Good:** After each step, the reader runs the code and sees output. **Bad:** Ten steps of configuration before anything runs.
 
 ### 3. Maintain a Narrative of the Expected
 

@@ -1,10 +1,6 @@
 ---
 name: git-commit
-description: >
-  Use when asked to commit, save, or persist changes to Git.
-  Handles atomic commits, branch safety, Conventional Commits format,
-  and project style matching. Do NOT use for pushing, creating PRs,
-  or branch management beyond safety checks.
+description: "Use when asked to commit, save, or persist changes to Git. Handles atomic commits, branch safety, Conventional Commits format, and project style matching. Do NOT use for pushing, creating PRs, or branch management beyond safety checks."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -42,8 +38,7 @@ git branch --show-current
 
 Protected branches: `main`, `master`, `develop`, `release/*`, `hotfix/*`.
 
-**STOP if on a protected branch.** Do not commit. Do not proceed to Step 3.
-Instead:
+**STOP if on a protected branch.** Do not commit. Do not proceed to Step 3. Instead:
 
 1. Inform the user: "Cannot commit to `<branch>` — it is a protected branch."
 2. Create a feature branch: `git checkout -b <type>/<kebab-description>`
@@ -70,8 +65,7 @@ Format: `<type>/<kebab-case-description>`
 git log --format="%s" -20
 ```
 
-Identify vocabulary, detail level, scope patterns. Mimic the project's
-phrasing while following Conventional Commits format.
+Identify vocabulary, detail level, scope patterns. Mimic the project's phrasing while following Conventional Commits format.
 
 See `references/commit-format.md` for type table, rules, and anti-patterns.
 
@@ -88,12 +82,9 @@ For multi-line messages:
 git commit -m "<subject>" -m "<body>"
 ```
 
-Subject line: imperative mood, under 72 chars, no period, English only.
-Body (if needed): wrap at 72 chars, explain what and why.
+Subject line: imperative mood, under 72 chars, no period, English only. Body (if needed): wrap at 72 chars, explain what and why.
 
-Do not reference `docs/architecture.md`, `docs/decisions/`, section numbers,
-or ADR numbers in commit messages. Those belong in specs and plans,
-not in the git history.
+Do not reference `docs/architecture.md`, `docs/decisions/`, section numbers, or ADR numbers in commit messages. Those belong in specs and plans, not in the git history.
 
 ### Step 5: Verify
 
@@ -114,5 +105,4 @@ Report: commit hash, files changed, insertions/deletions.
 
 ## Handoff
 
-If the user also asked to create a PR, invoke the `creating-pr` skill after
-committing. Do not hand-roll `gh pr create` — the skill has a required template.
+If the user also asked to create a PR, invoke the `creating-pr` skill after committing. Do not hand-roll `gh pr create` — the skill has a required template.

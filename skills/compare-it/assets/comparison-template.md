@@ -54,9 +54,7 @@ This document evaluates whether [Solution A] should replace, complement, or be r
 
 ### 3.1 [Solution A name]
 
-**Type:** [Cloud SaaS | Local tool | Framework | Library]
-**Launch:** [Date and maturity: beta, GA, version]
-**Vendor:** [Company name, funding stage, relevant context]
+**Type:** [Cloud SaaS | Local tool | Framework | Library] **Launch:** [Date and maturity: beta, GA, version] **Vendor:** [Company name, funding stage, relevant context]
 
 **Mechanism:** [2-4 sentences describing how it works at a high level.]
 
@@ -76,8 +74,7 @@ This document evaluates whether [Solution A] should replace, complement, or be r
 
 ### 3.2 [Solution B name]
 
-**Type:** [Match the same field structure as 3.1]
-**Maturity:** [Match field]
+**Type:** [Match the same field structure as 3.1] **Maturity:** [Match field]
 
 **Mechanism:** [Match level of detail to 3.1.]
 

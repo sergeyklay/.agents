@@ -1,14 +1,6 @@
 ---
 name: manage-todo
-description: >
-  Read, update, validate, and report on the project roadmap (TODO.md). Use when
-  asked to add tasks, mark tasks complete, check roadmap status, find what to
-  work on next, triage deferred items into the roadmap, validate TODO.md format,
-  reorder or renumber tasks, or edit milestone descriptions. Also use when the
-  user mentions "roadmap", "TODO", "backlog", "milestone", "task list", or asks
-  "what's next". Do NOT use for architecture decisions (use managing-adrs), for
-  changelog entries (use changelog-maintenance), or for creating implementation
-  plans from specs (use the Planner agent).
+description: "Read, update, validate, and report on the project roadmap (TODO.md). Use when asked to add tasks, mark tasks complete, check roadmap status, find what to work on next, triage deferred items into the roadmap, validate TODO.md format, reorder or renumber tasks, or edit milestone descriptions. Also use when the user mentions \"roadmap\", \"TODO\", \"backlog\", \"milestone\", \"task list\", or asks \"what's next\". Do NOT use for architecture decisions (use managing-adrs), for changelog entries (use changelog-maintenance), or for creating implementation plans from specs (use the Planner agent)."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -34,10 +26,7 @@ Manage TODO.md — the sequenced project roadmap that drives all implementation 
 
 ## Running scripts bundled with this skill
 
-Script paths in this document (e.g. `scripts/validate_roadmap.py`) are resolved
-relative to this SKILL.md file, not to your current working directory. If a
-relative command fails to resolve, prefix it with the path your platform
-loaded this SKILL.md from — typically one of:
+Script paths in this document (e.g. `scripts/validate_roadmap.py`) are resolved relative to this SKILL.md file, not to your current working directory. If a relative command fails to resolve, prefix it with the path your platform loaded this SKILL.md from — typically one of:
 
 - `.claude/skills/<skill-name>/` (Claude Code, project scope)
 - `.agents/skills/<skill-name>/` (Codex, Gemini, generic cross-platform)
@@ -45,9 +34,7 @@ loaded this SKILL.md from — typically one of:
 - `.github/skills/<skill-name>/` (GitHub Copilot / VS Code)
 - `~/.claude/skills/<skill-name>/`, `~/.agents/skills/<skill-name>/`, etc. (user scope)
 
-**Fallback.** If `python3` is not installed or the script cannot be located,
-every procedure in this skill provides a manual alternative — follow those
-steps instead.
+**Fallback.** If `python3` is not installed or the script cannot be located, every procedure in this skill provides a manual alternative — follow those steps instead.
 
 ## Operations
 

@@ -1,8 +1,6 @@
 # TODO.md Format Specification
 
-Exact structural rules for the Sortie project roadmap file. This specification
-is derived from the established conventions in the existing TODO.md and the
-project's AGENTS.md requirements. All agents writing to TODO.md must conform.
+Exact structural rules for the Sortie project roadmap file. This specification is derived from the established conventions in the existing TODO.md and the project's AGENTS.md requirements. All agents writing to TODO.md must conform.
 
 ## Contents
 
@@ -31,8 +29,7 @@ project's AGENTS.md requirements. All agents writing to TODO.md must conform.
 
 **Title line:** `# Sortie Roadmap` — single H1, never changed.
 
-**Intro paragraph:** 1-2 lines wrapped at 90 characters describing the overall
-project. Ends with a blank line.
+**Intro paragraph:** 1-2 lines wrapped at 90 characters describing the overall project. Ends with a blank line.
 
 ## Milestone Format
 
@@ -96,11 +93,9 @@ No other states exist. There is no "in progress" checkbox state.
 
 ## Numbering Scheme
 
-**Milestone numbers:** Sequential integers starting at 0.
-`Milestone 0`, `Milestone 1`, ..., `Milestone 10`.
+**Milestone numbers:** Sequential integers starting at 0. `Milestone 0`, `Milestone 1`, ..., `Milestone 10`.
 
-**Task numbers:** `{milestone_number}.{sequence}` where sequence starts at 1
-within each milestone and increments by 1.
+**Task numbers:** `{milestone_number}.{sequence}` where sequence starts at 1 within each milestone and increments by 1.
 
 Examples: `0.1`, `0.2`, ..., `6.1`, `6.2`, ..., `6.13`, `10.1`, `10.13`.
 
@@ -119,15 +114,9 @@ Rules:
 | Code blocks within verify | No wrapping | May exceed limits |
 | Lines with inline code | 90 characters | No hard limit |
 
-Target 90 characters per line. The hard limit of 96 accommodates continuation
-lines where breaking mid-word would reduce readability. Lines containing inline
-code (backtick-wrapped identifiers, commands, paths) may exceed the hard limit
-because breaking them harms copy-paste usability.
+Target 90 characters per line. The hard limit of 96 accommodates continuation lines where breaking mid-word would reduce readability. Lines containing inline code (backtick-wrapped identifiers, commands, paths) may exceed the hard limit because breaking them harms copy-paste usability.
 
-The limit applies to the visual line including leading whitespace. For the first
-line of a task, this includes `- [ ] N.M ` prefix (~12-16 chars) plus
-description text. For continuation lines, this includes the 6-space indent plus
-text.
+The limit applies to the visual line including leading whitespace. For the first line of a task, this includes `- [ ] N.M ` prefix (~12-16 chars) plus description text. For continuation lines, this includes the 6-space indent plus text.
 
 ## Indentation Rules
 
@@ -139,8 +128,7 @@ text.
 | Task continuation | 6 spaces (aligns with description start after `- [x] `) |
 | Verify line | 6 spaces + `**Verify:**` |
 
-The 6-space indent aligns continuation text with the start of the description
-on the first task line:
+The 6-space indent aligns continuation text with the start of the description on the first task line:
 
 ```
 - [x] 0.1 Description starts here and may continue onto
@@ -152,11 +140,9 @@ Counting: `- [x] ` = 6 characters, so continuation starts at column 7 (6 spaces)
 
 ## Verify Section
 
-Every task MUST have a `**Verify:**` section. This is a non-negotiable
-requirement — tasks without verification criteria cannot be accepted.
+Every task MUST have a `**Verify:**` section. This is a non-negotiable requirement — tasks without verification criteria cannot be accepted.
 
-The verify section describes HOW to confirm the task is complete. Valid
-verification methods:
+The verify section describes HOW to confirm the task is complete. Valid verification methods:
 
 | Method | Example |
 |---|---|
@@ -166,21 +152,14 @@ verification methods:
 | Build verification | "`go run ./cmd/sortie` prints version and exits 0" |
 | Observable outcome | "document exists with endpoint references and auth requirements" |
 
-The verify text follows the same wrapping and indentation rules as the task
-description.
+The verify text follows the same wrapping and indentation rules as the task description.
 
 ## Ordering Invariants
 
-1. **Milestones are dependency-ordered.** Milestone N depends on Milestone N-1.
-   Never reorder milestones.
-2. **Tasks within a milestone are dependency-ordered.** Earlier tasks are
-   foundational; later tasks build on them.
-3. **Completed before incomplete.** Within a milestone, all `[x]` tasks precede
-   all `[ ]` tasks. This is a natural consequence of sequential execution —
-   not an artificial sorting rule.
-4. **Fundamental to specific.** Within a milestone, tasks progress from
-   infrastructure/types/interfaces to concrete implementations to integration
-   to verification.
+1. **Milestones are dependency-ordered.** Milestone N depends on Milestone N-1. Never reorder milestones.
+2. **Tasks within a milestone are dependency-ordered.** Earlier tasks are foundational; later tasks build on them.
+3. **Completed before incomplete.** Within a milestone, all `[x]` tasks precede all `[ ]` tasks. This is a natural consequence of sequential execution — not an artificial sorting rule.
+4. **Fundamental to specific.** Within a milestone, tasks progress from infrastructure/types/interfaces to concrete implementations to integration to verification.
 
 ## Complete Grammar (Pseudo-BNF)
 

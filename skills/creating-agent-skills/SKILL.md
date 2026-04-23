@@ -33,10 +33,7 @@ Only SKILL.md is required. Delete unused directories.
 
 ## Running scripts bundled with this skill
 
-Script paths in this document (e.g. `scripts/init_skill.py`) are resolved
-relative to this SKILL.md file, not to your current working directory. If a
-relative command fails to resolve, prefix it with the path your platform
-loaded this SKILL.md from — typically one of:
+Script paths in this document (e.g. `scripts/init_skill.py`) are resolved relative to this SKILL.md file, not to your current working directory. If a relative command fails to resolve, prefix it with the path your platform loaded this SKILL.md from — typically one of:
 
 - `.claude/skills/<skill-name>/` (Claude Code, project scope)
 - `.agents/skills/<skill-name>/` (Codex, Gemini, generic cross-platform)
@@ -44,9 +41,7 @@ loaded this SKILL.md from — typically one of:
 - `.github/skills/<skill-name>/` (GitHub Copilot / VS Code)
 - `~/.claude/skills/<skill-name>/`, `~/.agents/skills/<skill-name>/`, etc. (user scope)
 
-**Fallback.** If `python3` is not installed or the script cannot be located,
-every procedure in this skill provides a manual alternative — follow those
-steps instead.
+**Fallback.** If `python3` is not installed or the script cannot be located, every procedure in this skill provides a manual alternative — follow those steps instead.
 
 ## Workflow
 
@@ -294,8 +289,7 @@ npx skills add <owner>/<repo> --skill "skill-name"
 
 To make a skill distributable via https://skills.sh, publish it to a GitHub repository following the standard directory structure. For details see: https://skills.sh/docs/cli
 
-**Via .skill package** (Claude-specific):
-A `.skill` file is a zip archive with `.skill` extension containing the skill directory. Users upload it in Claude.ai Settings > Features.
+**Via .skill package** (Claude-specific): A `.skill` file is a zip archive with `.skill` extension containing the skill directory. Users upload it in Claude.ai Settings > Features.
 
 **Via Claude Code Plugin marketplace**:
 ```bash

@@ -120,25 +120,18 @@ When Agent Skills became an open standard in December 2025, a narrative emerged:
 
 Ask these questions:
 
-1. **Does this require live access to external state?**
-   Yes → MCP (or equivalent tool access)
+1. **Does this require live access to external state?** Yes → MCP (or equivalent tool access)
 
-2. **Does this require teaching a procedure or convention?**
-   Yes → Skill
+2. **Does this require teaching a procedure or convention?** Yes → Skill
 
-3. **Does this require authentication across a team?**
-   Yes → MCP (centralized credential management)
+3. **Does this require authentication across a team?** Yes → MCP (centralized credential management)
 
-4. **Should this apply to every session automatically?**
-   Yes → Custom Instructions
+4. **Should this apply to every session automatically?** Yes → Custom Instructions
 
-5. **Is this project context the agent needs at startup?**
-   Yes → AGENTS.md
+5. **Is this project context the agent needs at startup?** Yes → AGENTS.md
 
-6. **Is this a user-triggered template?**
-   Yes → Prompt file / Command
+6. **Is this a user-triggered template?** Yes → Prompt file / Command
 
-7. **Can existing CLI tools accomplish this?**
-   Yes → Consider skill teaching CLI usage instead of MCP server
+7. **Can existing CLI tools accomplish this?** Yes → Consider skill teaching CLI usage instead of MCP server
 
 Most production environments use a hybrid: MCP for essential integrations, skills for team-specific procedures.
