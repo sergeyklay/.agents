@@ -1,15 +1,25 @@
 # `.agents`
 
-My personal collection of artifacts for AI coding agents: skills, rules, prompts, instructions, and hooks. Right now it's Agent Skills only. More kinds will land here over time. I port this around alongside my dotfiles, so the same capabilities follow me between machines.
+My personal, curated set of artifacts for AI coding agents that I actually use day-to-day. Right now it's Agent Skills and agents only. More kinds will land here over time. I port this around alongside my dotfiles, so the same capabilities follow me between machines.
+
+## Scope
+
+Let's be clear about what this is **not**:
+
+- an "awesome-*" list,
+- a dump of AI slop scraped off the internet,
+- a showcase of every trending prompt the algorithm pushed this week.
+
+Everything here earns its place by being something I actually reach for in daily work. When something stops pulling its weight, it gets deleted - no sentimentality, no "maybe later." Borrow what's useful, but don't mistake this for a general recommendation: it reflects my workflow, not yours.
 
 ## Contents
 
 - **`.skills/`** - standalone agent skills, each in its own subdirectory. Each skill is self-contained (`SKILL.md` plus optional `scripts/`, `references/`, and `assets/`) and follows the [agentskills.io specification](https://agentskills.io). The skills are agent-agnostic and location-agnostic: they are not tied to any specific agent (Claude, Copilot, Cursor, etc.) or to a fixed path on disk. Place them wherever your agent expects skills to live.
+- **`agents/`** - my collection of "agents" I find useful in daily work. Strictly speaking these are not agents but system prompts (personas, role definitions, operating instructions) for real agents - GitHub Copilot, Claude Code, Gemini, Cursor, and the like. Each file defines a focused mode of work (e.g. a deep-research investigator) that orchestrates the relevant skills and constrains how the underlying agent should behave. Drop them into whatever location your host expects custom agents/modes/personas to live (e.g. `.github/agents/`, `.claude/agents/`, etc), or load them manually as a system prompt.
 
 ## Install
 
-No bootstrapper. Clone the repo, then symlink (or copy) what you need into the directory your agent reads from. 
-For details on the Agents Skills see my blogpost: [Agent Skills 101: a practical guide for engineers](https://blog.serghei.pl/posts/agent-skills-101/).
+No bootstrapper. Clone the repo, then symlink (or copy) what you need into the directory your agent reads from. For details on the Agents Skills see my blogpost: [Agent Skills 101: a practical guide for engineers](https://blog.serghei.pl/posts/agent-skills-101/).
 
 ## License
 
