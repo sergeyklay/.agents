@@ -1,5 +1,5 @@
 ---
-name: comparing-solutions
+name: compare-it
 description: Produce structured architectural comparison documents that evaluate two tools, technologies, or solutions against weighted criteria. Use when asked to compare tools, evaluate alternatives, write a technology assessment, create a build-vs-buy analysis, or produce a recommendation report. Also use when someone says 'which should we use', 'should we adopt X or keep Y', 'compare X vs Y', 'evaluate X against Y', or 'is X better than Y'. Handles evaluation framework design, weighted scoring, cost analysis, risk assessment, gap analysis, and actionable recommendations with reversal conditions.
 metadata:
   author: Serghei Iakovlev
