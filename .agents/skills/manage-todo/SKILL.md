@@ -9,7 +9,7 @@ metadata:
 
 # Roadmap Management
 
-Manage TODO.md — the sequenced project roadmap that drives all implementation work. TODO.md is the **sequencing authority**: milestones are deliberately ordered and each depends on the previous. Every mutation must preserve this invariant.
+Manage TODO.md - the sequenced project roadmap that drives all implementation work. TODO.md is the **sequencing authority**: milestones are deliberately ordered and each depends on the previous. Every mutation must preserve this invariant.
 
 > **Authoritative format:** See [references/format-specification.md](references/format-specification.md) for the exact structural rules, naming conventions, line widths, indentation, and numbering scheme. Load this reference before any write operation.
 
@@ -26,7 +26,7 @@ Manage TODO.md — the sequenced project roadmap that drives all implementation 
 
 ## Running scripts bundled with this skill
 
-Script paths in this document (e.g. `scripts/validate_roadmap.py`) are resolved relative to this SKILL.md file, not to your current working directory. If a relative command fails to resolve, prefix it with the path your platform loaded this SKILL.md from — typically one of:
+Script paths in this document (e.g. `scripts/validate_roadmap.py`) are resolved relative to this SKILL.md file, not to your current working directory. If a relative command fails to resolve, prefix it with the path your platform loaded this SKILL.md from - typically one of:
 
 - `.claude/skills/<skill-name>/` (Claude Code, project scope)
 - `.agents/skills/<skill-name>/` (Codex, Gemini, generic cross-platform)
@@ -34,30 +34,30 @@ Script paths in this document (e.g. `scripts/validate_roadmap.py`) are resolved 
 - `.github/skills/<skill-name>/` (GitHub Copilot / VS Code)
 - `~/.claude/skills/<skill-name>/`, `~/.agents/skills/<skill-name>/`, etc. (user scope)
 
-**Fallback.** If `python3` is not installed or the script cannot be located, every procedure in this skill provides a manual alternative — follow those steps instead.
+**Fallback.** If `python3` is not installed or the script cannot be located, every procedure in this skill provides a manual alternative - follow those steps instead.
 
 ## Operations
 
-### Status — Progress Report
+### Status - Progress Report
 
 1. Read `TODO.md` completely.
 2. For each milestone, count completed (`[x]`) vs total tasks.
-3. Identify the **active milestone** — the first milestone with incomplete tasks.
+3. Identify the **active milestone** - the first milestone with incomplete tasks.
 4. Report:
    - Overall progress (completed / total tasks, percentage)
    - Per-milestone breakdown (completed / total)
    - Active milestone name and remaining tasks
    - Any tasks that appear blocked (reference other incomplete tasks)
 
-### Next — Determine What to Work On
+### Next - Determine What to Work On
 
 1. Read `TODO.md`.
 2. Find the active milestone (first with incomplete tasks).
-3. Within that milestone, find the first `- [ ]` task — this is the next task because milestones are sequential and tasks within them are ordered by dependency.
+3. Within that milestone, find the first `- [ ]` task - this is the next task because milestones are sequential and tasks within them are ordered by dependency.
 4. Return the task ID, description, and verify criteria.
 5. If the task references architecture sections, note them so the implementer knows what to read first.
 
-### Add — Insert a New Task
+### Add - Insert a New Task
 
 1. Read `TODO.md` and [references/format-specification.md](references/format-specification.md).
 2. Determine the correct milestone based on the task's theme and dependencies. Fundamental infrastructure goes earlier; feature-specific work goes later.
@@ -70,7 +70,7 @@ Script paths in this document (e.g. `scripts/validate_roadmap.py`) are resolved 
 5. Insert after the last task in the target milestone, before the next milestone heading.
 6. Validate the result (see Validate operation).
 
-**Example — well-formed task:**
+**Example - well-formed task:**
 
 ```markdown
 - [ ] 6.14 Implement dispatch rate limiting: enforce a maximum number of
@@ -82,7 +82,7 @@ Script paths in this document (e.g. `scripts/validate_roadmap.py`) are resolved 
       of 5 when config field is absent.
 ```
 
-**Example — task that violates conventions (do NOT produce this):**
+**Example - task that violates conventions (do NOT produce this):**
 
 ```markdown
 - [ ] Add rate limiting
@@ -90,7 +90,7 @@ Script paths in this document (e.g. `scripts/validate_roadmap.py`) are resolved 
 
 Why this fails: no task number, no milestone context, not self-contained, no verify criteria, description is vague.
 
-### Update — Modify Existing Tasks
+### Update - Modify Existing Tasks
 
 1. Read `TODO.md`.
 2. Locate the task by its ID (e.g., `6.10`).
@@ -100,17 +100,17 @@ Why this fails: no task number, no milestone context, not self-contained, no ver
    - **Move task:** Only within the same milestone. Renumbering across milestones breaks external references (plans, specs, PRs).
 4. Validate the result.
 
-### Triage — Add Deferred Item from Review or Discussion
+### Triage - Add Deferred Item from Review or Discussion
 
 Triage applies three filters before adding. A concern that fails any filter is not added.
 
-1. **Architecture conflict gate.** Read the relevant section of architecture documentation (if present). If the suggestion contradicts the spec's design intent, explain why and stop — do not add it.
-2. **Redundancy check.** Scan TODO.md for an existing task that covers this concern. If found, note the task ID and stop — do not create duplicates.
+1. **Architecture conflict gate.** Read the relevant section of architecture documentation (if present). If the suggestion contradicts the spec's design intent, explain why and stop - do not add it.
+2. **Redundancy check.** Scan TODO.md for an existing task that covers this concern. If found, note the task ID and stop - do not create duplicates.
 3. **Roadmap horizon test.** Would this matter before the last defined milestone ships? If not, mention it as a future consideration but do not add it.
 
 If all filters pass, follow the **Add** operation. Place the task in the milestone whose theme most closely relates to the concern.
 
-### Validate — Check Structural Integrity
+### Validate - Check Structural Integrity
 
 1. Run the validation script [scripts/validate_roadmap.py](scripts/validate_roadmap.py) with `TODO.md` as input
 2. If `python3` is unavailable, verify manually against [references/format-specification.md](references/format-specification.md) using this checklist:
@@ -123,7 +123,7 @@ If all filters pass, follow the **Add** operation. Place the task in the milesto
    - [ ] Every task has a `**Verify:**` section
    - [ ] Continuation lines use exactly 6-space indent
    - [ ] No line exceeds 96 characters (target 90, hard limit 96; inline code exempt)
-   - [ ] Tasks are self-contained — description alone is enough to implement
+   - [ ] Tasks are self-contained - description alone is enough to implement
    - [ ] Ordering is fundamental-to-specific within each milestone
    - [ ] Completed tasks (`[x]`) precede incomplete tasks (`[ ]`) within a milestone (no interleaving)
 3. Report all violations with line numbers and suggested fixes.

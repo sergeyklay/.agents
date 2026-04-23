@@ -10,7 +10,7 @@ metadata:
 
 # Spec-vs-Implementation Verification Review
 
-You are conducting a **forensic verification** — a systematic, evidence-based comparison of the implemented code against its authoritative technical specification. This is not a general code review. You are answering one question: **does the implementation faithfully realize every requirement, constraint, design decision, interface contract, algorithm, and invariant defined in the specification?**
+You are conducting a **forensic verification** - a systematic, evidence-based comparison of the implemented code against its authoritative technical specification. This is not a general code review. You are answering one question: **does the implementation faithfully realize every requirement, constraint, design decision, interface contract, algorithm, and invariant defined in the specification?**
 
 ## Why This Matters
 
@@ -20,15 +20,15 @@ The specification is the product of deliberate architectural work. Every footnot
 
 ## Input
 
-**Specification file:** Provided by the user as a path to a markdown file. This file is the authoritative source of truth for what the implementation must do. It may define interfaces, data structures, algorithms, state machines, error handling, concurrency contracts, and more. Your review will be measured against this document — if the code does not meet the spec, that is a failure of the implementation, not the spec.
+**Specification file:** Provided by the user as a path to a markdown file. This file is the authoritative source of truth for what the implementation must do. It may define interfaces, data structures, algorithms, state machines, error handling, concurrency contracts, and more. Your review will be measured against this document - if the code does not meet the spec, that is a failure of the implementation, not the spec.
 
 Read the specification file in its entirety before proceeding.
 
 ---
 
-## Phase 0 — Build Project Context
+## Phase 0 - Build Project Context
 
-Before you can verify anything, you must understand the system the specification lives within. This is mandatory — do not skip to Phase 1.
+Before you can verify anything, you must understand the system the specification lives within. This is mandatory - do not skip to Phase 1.
 
 ### 0a. Project Documentation
 
@@ -36,9 +36,9 @@ Search for and read all architectural and project documentation:
 
 - `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `CURSOR.md` (project context files)
 - `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`
-- `docs/` or `doc/` directories — especially architecture, design, and ADR documents
-- Build/dependency manifests (`package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`, etc.) — to understand the tech stack
-- `.env.example`, `docker-compose.yml`, `Makefile` — to understand the runtime model
+- `docs/` or `doc/` directories - especially architecture, design, and ADR documents
+- Build/dependency manifests (`package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`, etc.) - to understand the tech stack
+- `.env.example`, `docker-compose.yml`, `Makefile` - to understand the runtime model
 
 ### 0b. Codebase Structure
 
@@ -54,11 +54,11 @@ Search for any code review instructions, standards, or guidelines the project de
 
 ---
 
-## Phase 1 — Exhaustive Requirement Extraction
+## Phase 1 - Exhaustive Requirement Extraction
 
 **Objective:** Build a complete, numbered inventory of every verifiable obligation the specification imposes on the implementation.
 
-Read the specification **in its entirety**, from the first line to the last. Do not skim. Do not summarize sections as "standard boilerplate." The specification has no filler — every sentence potentially encodes a requirement.
+Read the specification **in its entirety**, from the first line to the last. Do not skim. Do not summarize sections as "standard boilerplate." The specification has no filler - every sentence potentially encodes a requirement.
 
 For each requirement you extract, record:
 
@@ -70,35 +70,35 @@ For each requirement you extract, record:
 | **Category** | One of: `interface-contract`, `struct-layout`, `algorithm`, `state-transition`, `error-handling`, `safety-invariant`, `concurrency`, `persistence`, `configuration`, `naming`, `boundary` |
 | **Criticality** | `must` (violation = defect), `should` (violation = concern), `note` (informational intent) |
 
-**Extraction guidance — what counts as a requirement:**
+**Extraction guidance - what counts as a requirement:**
 
 - Interface/function signatures, parameter types, return types
 - Data structure fields, types, annotations, zero-value semantics
-- Algorithm steps (especially numbered/ordered steps — each step is a separate requirement)
+- Algorithm steps (especially numbered/ordered steps - each step is a separate requirement)
 - State machine transitions and their guard conditions
 - Error categories and how they must be handled (retry vs terminal vs propagate)
 - Concurrency contracts (thread safety, context propagation, lifecycle management)
 - Safety invariants (validation, sanitization, containment rules)
 - Schema definitions, query patterns, transaction boundaries
 - Naming conventions and module boundary rules
-- Diagrams encode behavioral flow — each arrow and decision node is a requirement
-- Risk mitigations — each mitigation implies a requirement on the implementation
-- "Verify" or "ensure" conditions — each is a testable obligation
-- Comments, notes, and parenthetical remarks — these are often critical edge cases
+- Diagrams encode behavioral flow - each arrow and decision node is a requirement
+- Risk mitigations - each mitigation implies a requirement on the implementation
+- "Verify" or "ensure" conditions - each is a testable obligation
+- Comments, notes, and parenthetical remarks - these are often critical edge cases
 
-**Completeness check:** After extraction, count your requirements. For a 400-line spec, expect 30-60 requirements. For an 800-line spec, expect 60-120. If your count is significantly below this range, you missed requirements — re-read the spec.
+**Completeness check:** After extraction, count your requirements. For a 400-line spec, expect 30-60 requirements. For an 800-line spec, expect 60-120. If your count is significantly below this range, you missed requirements - re-read the spec.
 
 Output this phase as a numbered requirements table before proceeding.
 
 ---
 
-## Phase 2 — Implementation Discovery
+## Phase 2 - Implementation Discovery
 
 **Objective:** Identify every source file that constitutes the implementation of this specification.
 
 1. Use the spec's file structure section (if present) and your own analysis to identify all files the spec says should be created or modified.
 2. Search the codebase for these files. Read each one completely.
-3. If the spec references interfaces or types from other modules, read those too — you need them to verify contract conformance.
+3. If the spec references interfaces or types from other modules, read those too - you need them to verify contract conformance.
 4. If a file the spec says should exist does not exist, record this immediately as a `MISSING` finding.
 
 Build a file inventory:
@@ -108,7 +108,7 @@ Build a file inventory:
 
 ---
 
-## Phase 3 — Requirement-by-Requirement Verification
+## Phase 3 - Requirement-by-Requirement Verification
 
 **Objective:** For each requirement from Phase 1, determine whether the implementation satisfies it.
 
@@ -122,7 +122,7 @@ For **every single requirement** (no exceptions, no batching, no "the rest are f
 |---|---|
 | `PASS` | Implementation matches the requirement |
 | `DRIFT` | Implementation works but deviates from the spec in a way that changes behavior |
-| `PARTIAL` | Requirement is partially implemented — some aspects present, others missing |
+| `PARTIAL` | Requirement is partially implemented - some aspects present, others missing |
 | `MISSING` | No corresponding implementation found |
 | `CONFLICT` | Implementation contradicts the requirement |
 
@@ -132,7 +132,7 @@ For **every single requirement** (no exceptions, no batching, no "the rest are f
    - A precise explanation of the discrepancy
    - Severity: `critical` (safety/correctness), `major` (behavioral), `minor` (naming/style)
 
-**Anti-bias protocol:** Do not rationalize discrepancies. If the spec says X and the code does Y, that is a finding — even if Y seems reasonable. The spec is the authority. If the spec is wrong, that is a separate concern to flag, but it does not excuse the implementation divergence.
+**Anti-bias protocol:** Do not rationalize discrepancies. If the spec says X and the code does Y, that is a finding - even if Y seems reasonable. The spec is the authority. If the spec is wrong, that is a separate concern to flag, but it does not excuse the implementation divergence.
 
 **Attention discipline:** After completing verification, explicitly re-read the last 20% of the spec to counter recency bias. Check whether any requirements from the middle sections were evaluated too leniently.
 
@@ -140,7 +140,7 @@ Output this phase as a detailed findings table with evidence.
 
 ---
 
-## Phase 4 — Cross-Cutting Verification
+## Phase 4 - Cross-Cutting Verification
 
 **Objective:** Check properties that span multiple requirements and are easy to miss in line-by-line review.
 
@@ -159,7 +159,7 @@ Skip any checks that are not relevant to the project's tech stack or the spec's 
 
 ---
 
-## Phase 5 — Self-Verification
+## Phase 5 - Self-Verification
 
 **Objective:** Reduce false positives by independently verifying each non-PASS finding.
 
@@ -174,7 +174,7 @@ This step is mandatory. Initial code review findings have a 15-30% false positiv
 
 ---
 
-## Phase 6 — Verdict and Remediation
+## Phase 6 - Verdict and Remediation
 
 ### 6a. Review Summary
 
@@ -198,10 +198,10 @@ This step is mandatory. Initial code review findings have a 15-30% false positiv
 **Generate this section ONLY if there are critical or major findings.**
 
 The remediation plan must be:
-- **Self-contained** — an implementer should not need to re-read the full spec to understand what to fix
-- **Precise** — reference exact files, line numbers, and the specific change needed
-- **Ordered** — list fixes in dependency order (fix type definitions before functions that use them)
-- **Verifiable** — each fix has a clear "done when" condition
+- **Self-contained** - an implementer should not need to re-read the full spec to understand what to fix
+- **Precise** - reference exact files, line numbers, and the specific change needed
+- **Ordered** - list fixes in dependency order (fix type definitions before functions that use them)
+- **Verifiable** - each fix has a clear "done when" condition
 
 Format:
 
@@ -235,8 +235,8 @@ After all fixes:
 
 - **The spec has no filler.** Every section, note, risk mitigation, and diagram encodes requirements. Treat the entire document as load-bearing.
 - **Quote before judging.** Always extract the exact spec text before evaluating code against it. This prevents drift between what you think the spec says and what it actually says.
-- **Absence is a finding.** If the spec defines a behavior and the implementation has no corresponding code, that is `MISSING` — not "probably handled elsewhere."
-- **The spec is the authority.** If the code does something sensible that the spec doesn't require, that's fine. If the code does something different from what the spec requires, that's a defect — even if the code's approach seems better.
+- **Absence is a finding.** If the spec defines a behavior and the implementation has no corresponding code, that is `MISSING` - not "probably handled elsewhere."
+- **The spec is the authority.** If the code does something sensible that the spec doesn't require, that's fine. If the code does something different from what the spec requires, that's a defect - even if the code's approach seems better.
 - **No severity inflation.** `critical` = safety violations, data loss, behavioral contradictions. `major` = correctness bugs, missing functionality. `minor` = naming and style divergence.
 
 ## Output

@@ -10,13 +10,13 @@
 
 How much investigation is the right amount? This file calibrates effort to question complexity, derived from Anthropic's published heuristics for their multi-agent research system and from the GAIA / BrowseComp benchmark literature.
 
-The headline finding from Anthropic's analysis of BrowseComp (2025): **token usage by itself explains 80% of the variance** in research success. Investigation effort — not cleverness — is the dominant factor in answer quality. Within that, parallelism explains most of the rest. Calibrate accordingly.
+The headline finding from Anthropic's analysis of BrowseComp (2025): **token usage by itself explains 80% of the variance** in research success. Investigation effort - not cleverness - is the dominant factor in answer quality. Within that, parallelism explains most of the rest. Calibrate accordingly.
 
 ## The three tiers
 
 Pick the tier *before* searching. The tier controls scope, parallelism, and stop conditions.
 
-### Tier 1 — Lookup
+### Tier 1 - Lookup
 
 **Profile.** A single fact, value, or definition. The answer is a number, a name, a yes/no, or a short description. The user likely could find it themselves but is delegating the lookup.
 
@@ -29,7 +29,7 @@ Pick the tier *before* searching. The tier controls scope, parallelism, and stop
 **Effort.**
 
 - 3–10 tool calls
-- Serial is fine — there is one thing to find
+- Serial is fine - there is one thing to find
 - One authoritative source is acceptable if the source is tier 1 (official docs, source code, the spec)
 - Triangulation is *recommended* but not *required* for trivial facts
 
@@ -37,7 +37,7 @@ Pick the tier *before* searching. The tier controls scope, parallelism, and stop
 
 **Failure mode.** Spending 30 tool calls on a tier-1 question. If this is happening, either the question is actually tier 2 (you under-classified) or you are searching the wrong source type.
 
-### Tier 2 — Mechanism / Comparison
+### Tier 2 - Mechanism / Comparison
 
 **Profile.** Explaining how something works, or comparing two things, or answering "why is X built this way". The answer is a paragraph or two of explanation grounded in evidence.
 
@@ -61,7 +61,7 @@ Pick the tier *before* searching. The tier controls scope, parallelism, and stop
 
 **Failure mode 2.** Stopping after one source. The first source frames the problem; the second source confirms or refutes the framing.
 
-### Tier 3 — Investigation / Forensic
+### Tier 3 - Investigation / Forensic
 
 **Profile.** Open-ended investigation requiring decomposition into sub-questions, synthesis across many sources, and explicit uncertainty reporting. The answer may be a structured document.
 
@@ -75,13 +75,13 @@ Pick the tier *before* searching. The tier controls scope, parallelism, and stop
 **Effort.**
 
 - 15–30+ tool calls, occasionally more
-- **Heavy parallelism** — every independent sub-question runs in parallel
+- **Heavy parallelism** - every independent sub-question runs in parallel
 - Decompose into ≥4 sub-questions before searching
 - Each sub-question gets its own evidence chain and triangulation
 - Synthesise only after the sub-questions have answers (not during)
 - Conflicts and unknowns named explicitly in the output
 
-**Stop condition.** Each sub-question has either a triangulated answer or a named dead end, AND the synthesis hangs together as a coherent answer to the original question, AND further investigation is producing diminishing returns (Anthropic reports a roughly logarithmic pass-rate curve against tool-call count — at some point each new call adds <1% to expected accuracy).
+**Stop condition.** Each sub-question has either a triangulated answer or a named dead end, AND the synthesis hangs together as a coherent answer to the original question, AND further investigation is producing diminishing returns (Anthropic reports a roughly logarithmic pass-rate curve against tool-call count - at some point each new call adds <1% to expected accuracy).
 
 **Failure mode 1.** Skipping the decomposition step and searching as if it were tier 2. Tier-3 questions that are not decomposed produce sprawling, anchor-biased answers.
 
@@ -164,4 +164,4 @@ These end the investigation regardless of completeness:
 
 Multi-step investigation burns tokens. Anthropic reports research agents using ~4× the tokens of chat interactions, and multi-agent systems ~15×. This is the cost of doing the job properly.
 
-The trade is real but well understood: **for tasks where the value of correctness is high, the token cost is worth it**. For tasks where any plausible answer suffices, this skill is the wrong tool — those tasks should not be invoking deep research at all.
+The trade is real but well understood: **for tasks where the value of correctness is high, the token cost is worth it**. For tasks where any plausible answer suffices, this skill is the wrong tool - those tasks should not be invoking deep research at all.

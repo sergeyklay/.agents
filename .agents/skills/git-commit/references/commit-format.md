@@ -30,7 +30,7 @@ Conventional Commits specification: https://www.conventionalcommits.org/en/v1.0.
 
 ## Rules
 
-- Imperative mood: "Add", "Fix", "Update" — not "Added", "Fixing"
+- Imperative mood: "Add", "Fix", "Update" - not "Added", "Fixing"
 - Subject line under 72 characters, no trailing period
 - Body: wrap at 72 chars, explain what and why (not how)
 - Breaking changes: `feat!: description` or `BREAKING CHANGE:` footer

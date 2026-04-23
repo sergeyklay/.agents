@@ -311,12 +311,12 @@ Scripts run via bash without loading into context. Only their output enters the 
 
 ### Making script commands portable across agents
 
-Agents run Bash from the user's working directory — typically the project root — not from the skill directory. A bare `python scripts/foo.py` in a SKILL.md stored at `.claude/skills/my-skill/` fails to resolve for Copilot, Codex, Cursor, or Gemini users, because their platforms store the same skill at a different path (`.github/skills/...`, `.agents/skills/...`, `.cursor/skills/...`, `.gemini/skills/...`).
+Agents run Bash from the user's working directory - typically the project root - not from the skill directory. A bare `python scripts/foo.py` in a SKILL.md stored at `.claude/skills/my-skill/` fails to resolve for Copilot, Codex, Cursor, or Gemini users, because their platforms store the same skill at a different path (`.github/skills/...`, `.agents/skills/...`, `.cursor/skills/...`, `.gemini/skills/...`).
 
 Two rules for cross-platform script commands:
 
 1. **Declare the path convention once**, near the top of SKILL.md, under a heading like `## Running scripts bundled with this skill`. State that script paths are relative to SKILL.md and list the common storage locations. See the parent `creating-agent-skills` skill's SKILL.md for the canonical wording.
-2. **Always pair each script command with a manual fallback.** If `python3` is missing or the script cannot be found, the agent must still be able to complete the task. The fallback lives next to each script reference, not only in one central place — agents that have jumped to a specific section may miss a preamble-only fallback.
+2. **Always pair each script command with a manual fallback.** If `python3` is missing or the script cannot be found, the agent must still be able to complete the task. The fallback lives next to each script reference, not only in one central place - agents that have jumped to a specific section may miss a preamble-only fallback.
 
 ### Execute pattern (most common)
 
@@ -342,7 +342,7 @@ Exit code: 0 = pass, 1 = conflicts found
 for fields whose x/y ranges intersect.
 ```
 
-### Read as reference (rare — only when the agent needs to understand the algorithm)
+### Read as reference (rare - only when the agent needs to understand the algorithm)
 
 ```markdown
 See scripts/scoring.py for the ranking algorithm.

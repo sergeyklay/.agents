@@ -15,7 +15,7 @@ How to verify what you find, weight conflicting sources, and calibrate the uncer
 
 ## Why triangulation is the core discipline
 
-A single source supporting a claim is not evidence — it is a hypothesis about evidence. Independent confirmation is what turns a hypothesis into a fact you can responsibly state in the output.
+A single source supporting a claim is not evidence - it is a hypothesis about evidence. Independent confirmation is what turns a hypothesis into a fact you can responsibly state in the output.
 
 The discipline matters because:
 
@@ -30,10 +30,10 @@ Two sources are independent only if **one being wrong does not imply the other i
 | Apparently two sources | Actually one source if… |
 |---|---|
 | Two blog posts | Both cite the same primary source uncritically |
-| A Wikipedia article and a Medium post | The Medium post was written by paraphrasing the Wikipedia article (common, hard to detect — check publication dates) |
+| A Wikipedia article and a Medium post | The Medium post was written by paraphrasing the Wikipedia article (common, hard to detect - check publication dates) |
 | Two Stack Overflow answers | Both reference the same older answer or the same official doc page |
 | The official docs and a vendor blog post | Same publisher; not independent |
-| Source code and the project README | Both maintained by the same authors; partially independent — the README can lie about the code, but the code cannot lie about itself |
+| Source code and the project README | Both maintained by the same authors; partially independent - the README can lie about the code, but the code cannot lie about itself |
 
 **Strong independence** comes from sources with different authorship, different incentives, and different time periods. A 2018 academic paper plus a 2024 reverse-engineering write-up by an outside party plus the current source code is strong triangulation.
 
@@ -75,7 +75,7 @@ When deciding how much weight to give a source, walk this checklist:
 - [ ] **Author has a track record on this specific topic.** Generalist content farms have many bylines on many topics with no specialisation.
 - [ ] **Publication date is visible.** Undated posts about technology that changes are uncitable.
 - [ ] **Code examples actually work.** AI-generated tutorials often have subtly broken examples. If a code example references methods that do not exist in the current API, the article is likely AI-generated and untrustworthy.
-- [ ] **Citations to primary sources exist.** A confident technical article that cites nothing is reciting received wisdom — useful as a pointer, not as evidence.
+- [ ] **Citations to primary sources exist.** A confident technical article that cites nothing is reciting received wisdom - useful as a pointer, not as evidence.
 
 ### For source code
 
@@ -92,13 +92,13 @@ When deciding how much weight to give a source, walk this checklist:
 
 ## Mitigating known LLM-investigation failure modes
 
-These failure modes are documented in the literature on LLM-driven research (Anthropic engineering, OpenAI's Deep Research write-up, the GAIA benchmark literature). They are not theoretical — they are predictable ways the present investigation will fail unless actively defended against.
+These failure modes are documented in the literature on LLM-driven research (Anthropic engineering, OpenAI's Deep Research write-up, the GAIA benchmark literature). They are not theoretical - they are predictable ways the present investigation will fail unless actively defended against.
 
 ### Hallucinated citations
 
 **Symptom.** Plausible-looking links and titles that do not actually exist when fetched.
 
-**Defence.** Only cite URLs that have been actually fetched in the current session. Only cite files that have actually been read. If a citation cannot be verified by re-fetching it now, do not cite it — find a real one or drop the claim.
+**Defence.** Only cite URLs that have been actually fetched in the current session. Only cite files that have actually been read. If a citation cannot be verified by re-fetching it now, do not cite it - find a real one or drop the claim.
 
 ### Confidence miscalibration
 
@@ -106,9 +106,9 @@ These failure modes are documented in the literature on LLM-driven research (Ant
 
 **Defence.** Use **explicit uncertainty markers** for every claim that is not triangulated:
 
-- "Per [source], …" — single source, hedge implied by the citation
-- "Based on the [source], my best inference is …" — derivation, not direct evidence
-- "I could not find authoritative confirmation of …" — explicit unknown
+- "Per [source], …" - single source, hedge implied by the citation
+- "Based on the [source], my best inference is …" - derivation, not direct evidence
+- "I could not find authoritative confirmation of …" - explicit unknown
 
 The reader does not need everything answered. The reader needs to know which answers they can build on and which they should verify themselves.
 
@@ -130,13 +130,13 @@ Detection heuristics for content farms:
 
 **Symptom.** The first source's vocabulary, framing, and biases shape every follow-up search query, narrowing the investigation to confirmation of the first source's worldview.
 
-**Defence.** After the first source, deliberately search using **different vocabulary** — synonyms, the opposing-camp terminology, the academic term if the first source was a blog post (or vice versa). The second search should not look like a refinement of the first.
+**Defence.** After the first source, deliberately search using **different vocabulary** - synonyms, the opposing-camp terminology, the academic term if the first source was a blog post (or vice versa). The second search should not look like a refinement of the first.
 
 ### Snippet summarisation
 
 **Symptom.** Building an answer from the 2-line previews shown in search results, without ever loading the full pages.
 
-**Defence.** Fetch and read full pages before citing. If full content is not available (paywalled, deleted, hostile bot detection), explicitly note this — do not silently substitute a snippet.
+**Defence.** Fetch and read full pages before citing. If full content is not available (paywalled, deleted, hostile bot detection), explicitly note this - do not silently substitute a snippet.
 
 ## Calibrated uncertainty in the output
 
@@ -146,16 +146,16 @@ The reader needs to know which parts of the output are bedrock and which parts a
 |---|---|
 | Plain assertion with citation | Triangulated; multiple independent sources |
 | "Per [source], …" | Single-sourced from a tier-1 or tier-2 source |
-| "According to [source], … — I could not independently confirm this." | Single-sourced from a lower tier |
+| "According to [source], … - I could not independently confirm this." | Single-sourced from a lower tier |
 | "The available sources disagree: [X] says …, while [Y] says …" | Conflict reported honestly |
 | "I could not find authoritative information on …" | Explicit unknown |
 
 Avoid:
 
-- "It is well known that…" — citationless assertion
-- "Studies have shown…" — unspecified studies
-- "Most experts agree…" — unspecified experts
-- "It is widely believed that…" — vague consensus claim
+- "It is well known that…" - citationless assertion
+- "Studies have shown…" - unspecified studies
+- "Most experts agree…" - unspecified experts
+- "It is widely believed that…" - vague consensus claim
 
 These are **evasions**. They make the output look authoritative while hiding the absence of evidence.
 

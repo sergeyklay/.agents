@@ -1,6 +1,6 @@
 ---
 name: research-it
-description: "Investigate a technical question with a detective's discipline — gathering evidence from primary sources, cross-referencing independent confirmations, and never accepting the first plausible answer. Use when asked to investigate, research, fact-check, verify, deep-dive, or \"find out the truth\" about a technology, claim, system, or behaviour. Also use before any explanation of a real-world system, library, or protocol that depends on external facts. Establishes source priority, scales effort to question complexity, triangulates every implementation claim across at least two independent sources, reports conflicts between sources, and refuses to cite training data as evidence. Do NOT use for opinion questions, code generation independent of external facts, internal refactoring, or trivial lookups the user could do themselves."
+description: "Investigate a technical question with a detective's discipline - gathering evidence from primary sources, cross-referencing independent confirmations, and never accepting the first plausible answer. Use when asked to investigate, research, fact-check, verify, deep-dive, or \"find out the truth\" about a technology, claim, system, or behaviour. Also use before any explanation of a real-world system, library, or protocol that depends on external facts. Establishes source priority, scales effort to question complexity, triangulates every implementation claim across at least two independent sources, reports conflicts between sources, and refuses to cite training data as evidence. Do NOT use for opinion questions, code generation independent of external facts, internal refactoring, or trivial lookups the user could do themselves."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -58,7 +58,7 @@ You do not stop investigating because the first plausible answer appeared. You d
 
 ## Workflow
 
-### Phase 1 — Scope the investigation
+### Phase 1 - Scope the investigation
 
 Before any tool call, classify the question:
 
@@ -70,7 +70,7 @@ Before any tool call, classify the question:
 | **Investigative** | "Why did project X switch from Y to Z in 2024?" | Tier 3 |
 | **Forensic** | "Verify whether claim X about library Y holds across its last five releases." | Tier 3 |
 
-Effort tiers are calibrated in [references/effort-scaling.md](references/effort-scaling.md). Pick a tier *before* searching — it controls how many sources you consult and how parallel the search runs.
+Effort tiers are calibrated in [references/effort-scaling.md](references/effort-scaling.md). Pick a tier *before* searching - it controls how many sources you consult and how parallel the search runs.
 
 Then write down, internally:
 
@@ -78,26 +78,26 @@ Then write down, internally:
 2. The list of factual claims that must be confirmed before answering.
 3. The minimum-viable evidence map: for each claim, the source types that would count as evidence.
 
-### Phase 2 — Inventory available tools
+### Phase 2 - Inventory available tools
 
 Before searching, examine what tools and sources are actually available in the current environment. Tool availability differs across platforms and sessions:
 
-- Web search and web fetch — almost always available
-- `context7` MCP server — for library and framework docs (when present)
-- `github` MCP server, `github_repo` tool, or web fetch of `github.com` — for source code, issues, PRs, discussions
-- Project-local source code via filesystem tools — when working inside a workspace
-- Database query tools — when an MCP server or tool exposes them
-- Specialised MCP servers (arxiv, slack, internal knowledge bases) — when configured
+- Web search and web fetch - almost always available
+- `context7` MCP server - for library and framework docs (when present)
+- `github` MCP server, `github_repo` tool, or web fetch of `github.com` - for source code, issues, PRs, discussions
+- Project-local source code via filesystem tools - when working inside a workspace
+- Database query tools - when an MCP server or tool exposes them
+- Specialised MCP servers (arxiv, slack, internal knowledge bases) - when configured
 
 Match the tool to the source type. Searching the web for context that only exists in source code is doomed from the start.
 
 See [references/source-catalog.md](references/source-catalog.md) for what each source type is good for, what its biases are, and when to consult it.
 
-### Phase 3 — Gather evidence
+### Phase 3 - Gather evidence
 
 Apply the **start wide, then narrow** principle (Anthropic, 2025):
 
-1. Begin with **short, broad queries** to map what is available. Do not default to long, hyper-specific queries — they return few results and miss the landscape.
+1. Begin with **short, broad queries** to map what is available. Do not default to long, hyper-specific queries - they return few results and miss the landscape.
 2. Evaluate the landscape. Identify the most authoritative-looking candidates.
 3. Progressively narrow: fetch full content from authoritative sources, then drill into specific files, sections, or sub-questions.
 
@@ -105,7 +105,7 @@ For tier 2 and tier 3 investigations, **issue searches in parallel** whenever th
 
 Read full content. **Do not summarise from search-result snippets.** One thoroughly read page is worth more than ten snippet glances.
 
-### Phase 4 — Triangulate
+### Phase 4 - Triangulate
 
 For each claim you intend to make in the output:
 
@@ -117,7 +117,7 @@ For each claim you intend to make in the output:
 
 Detailed protocols, including how to weight sources, recognise content farms, and detect AI-generated SEO content, live in [references/triangulation-and-bias.md](references/triangulation-and-bias.md).
 
-### Phase 5 — Synthesise and report
+### Phase 5 - Synthesise and report
 
 Write the output. Use the `explaining-technical-concepts` skill for the writing itself. Two additional rules from the investigation side:
 
@@ -135,32 +135,32 @@ When sources conflict and one must be weighted higher, use this hierarchy.
 | 1 | **Official documentation** | First-party docs hosted by the project or vendor |
 | 2 | **Design documents and decisions** | ADRs, design docs, RFC discussion threads, KEPs, PEPs |
 | 2 | **Author and core-contributor writing** | Blog posts and talks by the people who built the thing |
-| 3 | **Peer-reviewed academic literature** | arXiv (with caveats — see catalogue), conference proceedings, journals |
+| 3 | **Peer-reviewed academic literature** | arXiv (with caveats - see catalogue), conference proceedings, journals |
 | 3 | **Engineering blog posts from credible organisations** | Anthropic Engineering, OpenAI research index, Google Research, AWS Architecture, Cloudflare Engineering |
 | 4 | **High-quality community content** | Well-reasoned Stack Overflow answers with code, thorough independent technical blogs |
-| 5 | **Wikipedia** | Useful as an entry point and reference index, never as the final source — follow its citations |
-| 6 | **General-purpose forums** | Reddit, Hacker News — useful for sentiment and pointers to primary sources, never as primary evidence |
+| 5 | **Wikipedia** | Useful as an entry point and reference index, never as the final source - follow its citations |
+| 6 | **General-purpose forums** | Reddit, Hacker News - useful for sentiment and pointers to primary sources, never as primary evidence |
 | 7 | **Training data** | The starting point for investigation direction. Never the final answer. |
 
 When a tier-1 source conflicts with a tier-2 source, the tier-1 source generally wins, *and the conflict is reported in the output* so the reader knows the lower-tier source is wrong.
 
-When two tier-1 sources conflict (e.g. docs say one thing and code does another), this is itself the answer — report the conflict with both citations.
+When two tier-1 sources conflict (e.g. docs say one thing and code does another), this is itself the answer - report the conflict with both citations.
 
-## Effort scaling — quick reference
+## Effort scaling - quick reference
 
 Full table in [references/effort-scaling.md](references/effort-scaling.md). Quick version, derived from Anthropic's published heuristics for their multi-agent research system:
 
 | Tier | Pattern | Tool calls | Parallelism |
 |---|---|---|---|
-| 1 — Lookup | Single targeted search, single fetch, confirm | 3–10 | Serial |
-| 2 — Mechanism / Comparison | 2–4 lines of inquiry, each followed independently, then synthesised | 10–15 | Parallel where independent |
-| 3 — Investigation / Forensic | Decomposed into ≥4 sub-questions, each with its own evidence chain | 15–30+ | Heavy parallelism |
+| 1 - Lookup | Single targeted search, single fetch, confirm | 3–10 | Serial |
+| 2 - Mechanism / Comparison | 2–4 lines of inquiry, each followed independently, then synthesised | 10–15 | Parallel where independent |
+| 3 - Investigation / Forensic | Decomposed into ≥4 sub-questions, each with its own evidence chain | 15–30+ | Heavy parallelism |
 
 If you find yourself doing 30+ tool calls on what should be a tier-1 question, stop and reclassify. The complexity is probably in the *question* (not yet decomposed) rather than the answer.
 
 ## Investigation checklist
 
-For tier-2 and tier-3 investigations, copy the checklist from [assets/investigation-checklist.md](assets/investigation-checklist.md) into your reasoning trace and tick items off as you go. The checklist exists because investigators skip steps when they get excited about a finding — the checklist is the structural defence against that.
+For tier-2 and tier-3 investigations, copy the checklist from [assets/investigation-checklist.md](assets/investigation-checklist.md) into your reasoning trace and tick items off as you go. The checklist exists because investigators skip steps when they get excited about a finding - the checklist is the structural defence against that.
 
 ## Known failure modes to mitigate
 
@@ -176,7 +176,7 @@ Detailed mitigation patterns in [references/triangulation-and-bias.md](reference
 
 ## When this skill is one half of the job
 
-If the task involves both investigating *and* explaining the result, this skill governs the investigation. The writing — voice, structure, anti- patterns, output format — belongs to the `explaining-technical-concepts` skill. Load both.
+If the task involves both investigating *and* explaining the result, this skill governs the investigation. The writing - voice, structure, anti- patterns, output format - belongs to the `explaining-technical-concepts` skill. Load both.
 
 ## References
 

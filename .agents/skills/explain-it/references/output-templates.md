@@ -23,7 +23,7 @@ Read this file before writing the first broad-question response in a session.
 | Mechanism ("how does X work?") | TL;DR + full investigation |
 | Conceptual ("what is X?") | TL;DR + full investigation |
 | Architectural ("when should I use X?") | Direct recommendation, then conditions and reversal triggers |
-| Diagnostic ("why is X behaving this way?") | Hypothesis-led — most likely cause first, then alternatives, then verification step |
+| Diagnostic ("why is X behaving this way?") | Hypothesis-led - most likely cause first, then alternatives, then verification step |
 
 ## Narrow question template
 
@@ -88,7 +88,7 @@ The TL;DR is not a summary of the article. It is a **standalone orientation** fo
 
 Three sentences typically suffice:
 
-1. **What it is.** A precise one-sentence identification — not a category ("a JavaScript framework"), but a specific function ("a JavaScript framework for building UIs from declarative components").
+1. **What it is.** A precise one-sentence identification - not a category ("a JavaScript framework"), but a specific function ("a JavaScript framework for building UIs from declarative components").
 2. **What problem it solves.** The motivation, in one sentence.
 3. **The core mechanism.** The one idea that, if grasped, makes the rest of the article easier to read.
 
@@ -101,7 +101,7 @@ If the topic genuinely needs five sentences, use five. Never more. If you need a
 > that re-creating the entire DOM on every state change would be far too
 > slow for interactive UIs. React solves this by maintaining an in-memory
 > tree of "what the UI should look like", diffing it against the previous
-> version, and applying only the minimal set of DOM mutations needed —
+> version, and applying only the minimal set of DOM mutations needed -
 > using component identity and `key` props as hints to match nodes between
 > the old and new trees.
 
@@ -112,9 +112,9 @@ Three sentences. Each carries a load. Together they orient the reader.
 For software topics, every broad-question response ends with a runnable experiment. The experiment must satisfy four constraints:
 
 1. **Runnable in under five minutes** with tools the reader already has, or with one obvious install command.
-2. **Concrete enough to copy-paste** — exact commands, exact code, exact inputs.
-3. **The expected output is named** — so the reader can confirm success without further investigation.
-4. **One observation confirms understanding** — name what to look for, not "play around with it".
+2. **Concrete enough to copy-paste** - exact commands, exact code, exact inputs.
+3. **The expected output is named** - so the reader can confirm success without further investigation.
+4. **One observation confirms understanding** - name what to look for, not "play around with it".
 
 ### Worked "Try it"
 
@@ -134,7 +134,7 @@ For software topics, every broad-question response ends with a runnable experime
 > ```
 >
 > You should see ten `gc N @…s …%` lines in stderr. The middle column shows
-> the heap size *before* and *after* each GC cycle — confirm that the
+> the heap size *before* and *after* each GC cycle - confirm that the
 > "after" number drops back to a small baseline each time. That drop is the
 > sweep phase reclaiming the 10 MiB allocation.
 

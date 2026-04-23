@@ -20,9 +20,9 @@ This single fact shapes every calibration choice below. The reader is not fragil
 
 ## Precision
 
-Call things by their actual names. When introducing a new term, define it once and use it consistently afterwards. Do not paraphrase a defined term later in the text — that is not graceful variation, it is a working-memory tax on the reader.
+Call things by their actual names. When introducing a new term, define it once and use it consistently afterwards. Do not paraphrase a defined term later in the text - that is not graceful variation, it is a working-memory tax on the reader.
 
-**Precision in vocabulary is how you respect the reader's ability to form accurate mental models.** Vague language does not protect a confused reader — it gives them false confidence that they understood something they did not.
+**Precision in vocabulary is how you respect the reader's ability to form accurate mental models.** Vague language does not protect a confused reader - it gives them false confidence that they understood something they did not.
 
 ### Examples
 
@@ -52,13 +52,13 @@ A good analogy maps specific properties from a familiar domain to the unfamiliar
 When you use an analogy, do exactly three things:
 
 1. **Name what maps.** "X is like Y in the sense that [specific property Z]."
-2. **Name where it breaks.** "Unlike Y, X does not [property where the analogy fails] — and that difference matters because…"
+2. **Name where it breaks.** "Unlike Y, X does not [property where the analogy fails] - and that difference matters because…"
 3. **Move on.** Do not build on the analogy further. Return to direct explanation.
 
 ### Worked example
 
 > A Go channel is like a Unix pipe in the sense that one goroutine writes
-> bytes (well — values) and another reads them in order. Unlike a pipe, a
+> bytes (well - values) and another reads them in order. Unlike a pipe, a
 > channel is typed and can be closed by either side, and the language has
 > built-in syntax (`select`) for waiting on multiple channels at once. That
 > last difference is the reason `select` exists: pipes need `epoll` or
@@ -68,7 +68,7 @@ After this paragraph, return to direct explanation. Do not say "imagine the pipe
 
 ### When to skip the analogy
 
-If you cannot bound the analogy cleanly — if you cannot name where it breaks — do not use it. Direct explanation is always available as a fallback, and direct explanation never misleads.
+If you cannot bound the analogy cleanly - if you cannot name where it breaks - do not use it. Direct explanation is always available as a fallback, and direct explanation never misleads.
 
 A single well-bounded analogy can illuminate a non-obvious relationship. Three analogies in sequence bury the actual explanation under metaphor noise. **When in doubt, explain directly. Precision beats cleverness.**
 
@@ -86,23 +86,23 @@ These signal patronising framing. Cut them on sight.
 - "Just…"
 - "Obviously…"
 - "Of course…"
-- "It's easy — you just…"
+- "It's easy - you just…"
 - "Don't worry about the details…"
 
 The word **"just"** is the most common offender. Search every draft for it. Each occurrence likely hides a skipped explanation or a value judgement about how easy something should feel. Replace or remove every one.
 
 ### What replaces them
 
-Nothing. The sentence after "Simply put, X is Y" usually works fine on its own as "X is Y". Patronising framing does not ease learning — it adds noise and signals to the reader that they need to be managed.
+Nothing. The sentence after "Simply put, X is Y" usually works fine on its own as "X is Y". Patronising framing does not ease learning - it adds noise and signals to the reader that they need to be managed.
 
 ### Acceptable warmth
 
-The ban on patronising framing is not a ban on warmth or personality. It is fine — and good — to write with voice, to acknowledge that something is non-obvious, to flag when a topic has well-known footguns. The line is between *acknowledging the reader's intelligence* (warmth) and *managing their feelings* (patronising).
+The ban on patronising framing is not a ban on warmth or personality. It is fine - and good - to write with voice, to acknowledge that something is non-obvious, to flag when a topic has well-known footguns. The line is between *acknowledging the reader's intelligence* (warmth) and *managing their feelings* (patronising).
 
 | Patronising | Acknowledging |
 |---|---|
-| "Don't worry, this is simpler than it looks!" | "This is one of the parts that took me a while to internalise — here is the move that made it click." |
-| "Great question — many people get confused here!" | "This is genuinely confusing because the docs name two different things 'context'." |
+| "Don't worry, this is simpler than it looks!" | "This is one of the parts that took me a while to internalise - here is the move that made it click." |
+| "Great question - many people get confused here!" | "This is genuinely confusing because the docs name two different things 'context'." |
 | "Easy: just call `defer cleanup()`." | "Use `defer cleanup()`. The subtle part is that `defer` runs in LIFO order, so the order of `defer` statements matters." |
 
 ## Vocabulary pacing
@@ -112,9 +112,9 @@ Each new domain-specific term is a chunk in working memory. Stack five in a sent
 ### Rules
 
 - **One new term per sentence.** Two if absolutely necessary, never three.
-- **Define each term once, on first use.** The definition can be parenthetical, a short clause, or a full sentence — but it must be there.
+- **Define each term once, on first use.** The definition can be parenthetical, a short clause, or a full sentence - but it must be there.
 - **Reuse the defined term consistently.** Do not switch to a synonym to avoid repetition. Repetition reduces working-memory load; synonym variation increases it.
-- **Order terms by dependency.** If understanding term B requires understanding term A, introduce A first — even if B is more important to the conclusion.
+- **Order terms by dependency.** If understanding term B requires understanding term A, introduce A first - even if B is more important to the conclusion.
 
 ### Counter-example to avoid
 
@@ -125,9 +125,9 @@ This sentence introduces six terms with no definitions and no order. It teaches 
 
 ### Reworked
 
-> JavaScript runtimes process work in **macrotasks** — coarse-grained units
+> JavaScript runtimes process work in **macrotasks** - coarse-grained units
 > like "run this script" or "handle this network event". After each macrotask
-> finishes, the runtime drains a separate queue of **microtasks** — finer
+> finishes, the runtime drains a separate queue of **microtasks** - finer
 > work like resolving a promise. This means a promise's `.then` handler
 > always runs before the next `setTimeout` callback, even if the timeout is
 > set to zero.
@@ -141,14 +141,14 @@ Once you understand something, you cannot fully imagine what it was like not to 
 Symptoms:
 
 - Unexplained acronyms ("Configure the IAM role")
-- Missing "why" ("Just add the middleware" — why? what does it do?)
-- Skipped prerequisites ("Set up the webhook" — the reader has never created a webhook)
-- Minimising language ("Simply run the migration" — there is nothing simple about it for someone who has never done it)
+- Missing "why" ("Just add the middleware" - why? what does it do?)
+- Skipped prerequisites ("Set up the webhook" - the reader has never created a webhook)
+- Minimising language ("Simply run the migration" - there is nothing simple about it for someone who has never done it)
 
 Countermeasures:
 
 - Search every draft for "just", "simply", "obviously", "of course", "easy", "straightforward". Each occurrence likely hides a skipped explanation.
-- Write for your past self six months ago — the version of you that had never seen this technology before.
+- Write for your past self six months ago - the version of you that had never seen this technology before.
 - Ask before each sentence: "What would I have needed to know before this sentence made sense?"
 
 ## Calibration checklist
@@ -159,6 +159,6 @@ Before publishing an explanation, walk this checklist:
 - [ ] Each new technical term has a one-sentence definition on first use.
 - [ ] No sentence introduces more than two new terms.
 - [ ] No analogies appear without a "this is where it breaks" sentence.
-- [ ] Search results for "just", "simply", "obviously", "of course", "straightforward" return zero matches — or each occurrence has been reviewed and justified.
+- [ ] Search results for "just", "simply", "obviously", "of course", "straightforward" return zero matches - or each occurrence has been reviewed and justified.
 - [ ] No sentence states an implementation detail that was not verified against source code or authoritative documentation.
-- [ ] The closing paragraph names a tradeoff, a failure mode, or a runnable experiment — not a triumphant summary.
+- [ ] The closing paragraph names a tradeoff, a failure mode, or a runnable experiment - not a triumphant summary.

@@ -27,8 +27,8 @@ Each commit = one logical change. Split unrelated changes into separate commits.
 | New feature + unrelated config fix | 2 commits |
 | Multiple files for one feature     | 1 commit  |
 
-- If user says "commit all" — group into logical atomic commits
-- If ambiguous — ask which files and grouping
+- If user says "commit all" - group into logical atomic commits
+- If ambiguous - ask which files and grouping
 
 ### Step 2: Check branch safety (BLOCKING)
 
@@ -40,7 +40,7 @@ Protected branches: `main`, `master`, `develop`, `release/*`, `hotfix/*`.
 
 **STOP if on a protected branch.** Do not commit. Do not proceed to Step 3. Instead:
 
-1. Inform the user: "Cannot commit to `<branch>` — it is a protected branch."
+1. Inform the user: "Cannot commit to `<branch>` - it is a protected branch."
 2. Create a feature branch: `git checkout -b <type>/<kebab-description>`
 3. Only then continue to Step 3.
 
@@ -105,4 +105,4 @@ Report: commit hash, files changed, insertions/deletions.
 
 ## Handoff
 
-If the user also asked to create a PR, invoke the `creating-pr` skill after committing. Do not hand-roll `gh pr create` — the skill has a required template.
+If the user also asked to create a PR, invoke the `creating-pr` skill after committing. Do not hand-roll `gh pr create` - the skill has a required template.

@@ -14,7 +14,7 @@
 
 Eight failure modes that show up repeatedly in technical writing. Each one includes a symptom, an example of the broken form, and the structural fix.
 
-If you catch yourself doing any of these, stop writing and restructure. They are not stylistic preferences — they are predictable ways an explanation fails to land.
+If you catch yourself doing any of these, stop writing and restructure. They are not stylistic preferences - they are predictable ways an explanation fails to land.
 
 ## 1. The Textbook Dump
 
@@ -33,8 +33,8 @@ The reader has not yet been told *what problem any of this solves*.
 **Fix.** Open with the **why**. What problem motivated the thing? What is the first concrete situation where someone would reach for it? History, features, and comparisons can appear later, but only after the reader has a working mental model of why the thing exists.
 
 > When you have one service producing events and many services that need
-> to consume them — possibly at different rates, possibly hours later, possibly
-> after a restart — you need somewhere durable to put the events that lets
+> to consume them - possibly at different rates, possibly hours later, possibly
+> after a restart - you need somewhere durable to put the events that lets
 > consumers read at their own pace. Kafka is that "somewhere durable".
 
 ## 2. The Expert Blind Spot
@@ -54,7 +54,7 @@ That "naturally" is doing enormous work. The reader who does not already know wh
 **Fix.** Surface the bridge explicitly.
 
 > While the marker is walking the heap, the program keeps running and may
-> rewrite pointers — for example, an old object can suddenly start pointing
+> rewrite pointers - for example, an old object can suddenly start pointing
 > to a brand-new object the marker has not visited yet. If the marker
 > finishes its walk without knowing about that new pointer, it will treat
 > the new object as garbage and free memory the program is still using.
@@ -140,7 +140,7 @@ The reader asked one question. They got an essay.
 
 **Fix.** Answer the question asked, at the depth the question warrants. Surrounding context belongs only when it is *load-bearing* for the answer. Follow-up questions exist; they are how dialogue works.
 
-If the surrounding context is genuinely required, name it explicitly as prerequisite ("this answer assumes you know that WebSocket runs over a TCP connection initially upgraded from HTTP — if not, [link]") rather than expanding the scope of the answer itself.
+If the surrounding context is genuinely required, name it explicitly as prerequisite ("this answer assumes you know that WebSocket runs over a TCP connection initially upgraded from HTTP - if not, [link]") rather than expanding the scope of the answer itself.
 
 ## 8. The Unverified Survey
 
@@ -160,6 +160,6 @@ For active ecosystems, prefer pointing the reader at the authoritative index (th
 
 ## Cross-cutting principle
 
-Six of the eight anti-patterns above (1, 2, 4, 5, 7, 8) share a single root cause: **the writer skipped a verification step or a synthesis step and shipped the result anyway**. Anti-patterns 3 and 6 are calibration failures in the opposite direction — over-explaining or talking down.
+Six of the eight anti-patterns above (1, 2, 4, 5, 7, 8) share a single root cause: **the writer skipped a verification step or a synthesis step and shipped the result anyway**. Anti-patterns 3 and 6 are calibration failures in the opposite direction - over-explaining or talking down.
 
 The defence against the first group is the **investigation discipline** of the `conducting-deep-research` skill. The defence against the second group is the **calibration discipline** of `communication-calibration.md`.

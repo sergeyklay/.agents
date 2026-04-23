@@ -27,7 +27,7 @@ Exact structural rules for the Sortie project roadmap file. This specification i
 ...
 ```
 
-**Title line:** `# Sortie Roadmap` — single H1, never changed.
+**Title line:** `# Sortie Roadmap` - single H1, never changed.
 
 **Intro paragraph:** 1-2 lines wrapped at 90 characters describing the overall project. Ends with a blank line.
 
@@ -46,7 +46,7 @@ Exact structural rules for the Sortie project roadmap file. This specification i
 
 | Element | Rule |
 |---|---|
-| Heading | `## Milestone N: Name` — H2, number matches position (0-indexed) |
+| Heading | `## Milestone N: Name` - H2, number matches position (0-indexed) |
 | Number | Integer starting at 0, sequential, no gaps |
 | Name | Short noun phrase (2-5 words), title case |
 | Description | 1-3 lines wrapped at 90 characters, describes scope and purpose |
@@ -74,7 +74,7 @@ A task is a multi-line block starting with a checkbox line:
 
 | Element | Rule |
 |---|---|
-| Checkbox | `- [x] ` (complete) or `- [ ] ` (incomplete) — exactly as shown, with trailing space |
+| Checkbox | `- [x] ` (complete) or `- [ ] ` (incomplete) - exactly as shown, with trailing space |
 | Task ID | `N.M` where N = milestone number, M = sequential within milestone (1-indexed) |
 | Space after ID | Exactly one space between task ID and description start |
 | Description | Imperative form ("Implement X", "Add Y", "Define Z"), self-contained |
@@ -101,7 +101,7 @@ Examples: `0.1`, `0.2`, ..., `6.1`, `6.2`, ..., `6.13`, `10.1`, `10.13`.
 
 Rules:
 - Task number prefix MUST match the milestone it appears under
-- Sequence numbers MUST be contiguous (no gaps: 6.1, 6.2, 6.3 — not 6.1, 6.3)
+- Sequence numbers MUST be contiguous (no gaps: 6.1, 6.2, 6.3 - not 6.1, 6.3)
 - New tasks always get the next sequential number (append-only)
 - Never renumber existing tasks
 
@@ -140,7 +140,7 @@ Counting: `- [x] ` = 6 characters, so continuation starts at column 7 (6 spaces)
 
 ## Verify Section
 
-Every task MUST have a `**Verify:**` section. This is a non-negotiable requirement — tasks without verification criteria cannot be accepted.
+Every task MUST have a `**Verify:**` section. This is a non-negotiable requirement - tasks without verification criteria cannot be accepted.
 
 The verify section describes HOW to confirm the task is complete. Valid verification methods:
 
@@ -158,7 +158,7 @@ The verify text follows the same wrapping and indentation rules as the task desc
 
 1. **Milestones are dependency-ordered.** Milestone N depends on Milestone N-1. Never reorder milestones.
 2. **Tasks within a milestone are dependency-ordered.** Earlier tasks are foundational; later tasks build on them.
-3. **Completed before incomplete.** Within a milestone, all `[x]` tasks precede all `[ ]` tasks. This is a natural consequence of sequential execution — not an artificial sorting rule.
+3. **Completed before incomplete.** Within a milestone, all `[x]` tasks precede all `[ ]` tasks. This is a natural consequence of sequential execution - not an artificial sorting rule.
 4. **Fundamental to specific.** Within a milestone, tasks progress from infrastructure/types/interfaces to concrete implementations to integration to verification.
 
 ## Complete Grammar (Pseudo-BNF)

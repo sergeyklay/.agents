@@ -43,7 +43,7 @@ Identify the implementation changes using all available signals:
 
 1. Run `git diff HEAD~1` (and `git log --oneline -5` for context). If the change spans multiple commits, widen the range to capture the full scope.
 2. If the diff is inconclusive, search for files recently modified that relate to the task description.
-3. Read every changed file completely — not just the diff hunks. You need surrounding context to evaluate whether the change fits.
+3. Read every changed file completely - not just the diff hunks. You need surrounding context to evaluate whether the change fits.
 
 Build a change inventory:
 
@@ -54,13 +54,13 @@ Build a change inventory:
 
 For each changed file, assess:
 
-1. **Correctness** — Does the code do what the task requires? Are edge cases handled? Are there logic errors?
-2. **Architectural fit** — Does the change respect module boundaries, dependency direction, and the project's established patterns? Does it put logic in the right layer?
-3. **Regression risk** — Could this change break existing behavior? Are callers of modified interfaces updated? Are assumptions still valid?
-4. **Error handling** — Are errors handled consistently with the project's patterns? Are failure modes explicit?
-5. **Naming and contracts** — Do new identifiers communicate intent? Are public API contracts clear?
-6. **Completeness** — Is anything missing that the task implies? Migrations, config changes, documentation updates, test coverage?
-7. **Simplicity** — Is the solution the simplest that works, or is there unnecessary complexity, indirection, or premature abstraction?
+1. **Correctness** - Does the code do what the task requires? Are edge cases handled? Are there logic errors?
+2. **Architectural fit** - Does the change respect module boundaries, dependency direction, and the project's established patterns? Does it put logic in the right layer?
+3. **Regression risk** - Could this change break existing behavior? Are callers of modified interfaces updated? Are assumptions still valid?
+4. **Error handling** - Are errors handled consistently with the project's patterns? Are failure modes explicit?
+5. **Naming and contracts** - Do new identifiers communicate intent? Are public API contracts clear?
+6. **Completeness** - Is anything missing that the task implies? Migrations, config changes, documentation updates, test coverage?
+7. **Simplicity** - Is the solution the simplest that works, or is there unnecessary complexity, indirection, or premature abstraction?
 
 ### Step 5: Produce the Review
 
@@ -78,12 +78,12 @@ For each changed file, assess:
 - **Severity:** Critical | High | Medium | Low
 - **File:** `path/to/file` (lines N-M)
 - **Issue:** [what is wrong, with code evidence]
-- **Recommendation:** [concrete fix — not vague advice]
+- **Recommendation:** [concrete fix - not vague advice]
 
 <repeat for each finding, severity-descending>
 
 ### What Works Well
-[Brief — 1-3 sentences acknowledging sound decisions. Do not pad.]
+[Brief - 1-3 sentences acknowledging sound decisions. Do not pad.]
 
 ### Verdict
 - **Risk level:** Critical | High | Moderate | Low
@@ -96,10 +96,10 @@ For each changed file, assess:
 
 ### Severity Criteria
 
-- **Critical** — Data loss, security vulnerability, correctness bug that affects users. Must fix before merge.
-- **High** — Behavioral bug, broken contract, architectural violation that will cause pain. Should fix before merge.
-- **Medium** — Maintainability concern, missing edge case in non-critical path, suboptimal but working approach. Fix soon.
-- **Low** — Minor naming issue, opportunity for simplification, style inconsistency. Fix if convenient.
+- **Critical** - Data loss, security vulnerability, correctness bug that affects users. Must fix before merge.
+- **High** - Behavioral bug, broken contract, architectural violation that will cause pain. Should fix before merge.
+- **Medium** - Maintainability concern, missing edge case in non-critical path, suboptimal but working approach. Fix soon.
+- **Low** - Minor naming issue, opportunity for simplification, style inconsistency. Fix if convenient.
 
 ### Rules
 
