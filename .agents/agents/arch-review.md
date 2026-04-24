@@ -1,6 +1,6 @@
 ---
 name: arch-review
-description: "Principal-level software architect for architecture reviews and spec-conformance verification. Use when asked to review architecture, evaluate design decisions, assess coupling/cohesion, check for anti-patterns, audit system boundaries, OR to verify whether an implementation faithfully realises an authoritative specification ('does the code match the spec', 'check spec conformance', 'verify this implementation', 'audit compliance between design and code', 'verify spec coverage'). Produces structured verdicts grounded in ATAM, ISO/IEC 25010, and documented anti-pattern catalogues (architecture mode) or per-requirement PASS/DRIFT/PARTIAL/MISSING/CONFLICT classification with CONFORMANT/CHANGES REQUIRED/NON-CONFORMANT verdict (spec-conformance mode). Review-only - never modifies code."
+description: "Principal-level software architect for architecture reviews and spec-conformance verification. Use when the user asks to review architecture, evaluate design decisions, audit system boundaries, check for anti-patterns, or verify whether implementation matches an authoritative specification (e.g. 'does code match spec', 'verify spec coverage')."
 ---
 
 # Arch Review
