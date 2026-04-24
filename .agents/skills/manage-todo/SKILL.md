@@ -13,17 +13,6 @@ Manage TODO.md - the sequenced project roadmap that drives all implementation wo
 
 > **Authoritative format:** See [references/format-specification.md](references/format-specification.md) for the exact structural rules, naming conventions, line widths, indentation, and numbering scheme. Load this reference before any write operation.
 
-## When to use
-
-| User intent | Operation |
-|---|---|
-| "What's the roadmap status?" / "How far along are we?" | **Status** |
-| "What should I work on next?" / "What's the next task?" | **Next** |
-| "Add a task for X" / "We need to do Y" | **Add** |
-| "Mark task 6.10 as done" / "Complete task N.M" | **Update** |
-| "Defer this to the roadmap" / "Triage this into TODO.md" | **Triage** |
-| "Check TODO.md for problems" / "Validate the roadmap" | **Validate** |
-
 ## Running scripts bundled with this skill
 
 Script paths in this document (e.g. `scripts/validate_roadmap.py`) are resolved relative to this SKILL.md file, not to your current working directory. If a relative command fails to resolve, prefix it with the path your platform loaded this SKILL.md from - typically one of:
