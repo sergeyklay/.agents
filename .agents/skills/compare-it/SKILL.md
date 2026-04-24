@@ -11,14 +11,6 @@ metadata:
 
 Produce publication-grade architectural comparison documents that evaluate two solutions against weighted criteria derived from organizational requirements. The output follows a 12-section structure with quantified scoring, bidirectional gap analysis, Mermaid architecture diagrams, cost projections, risk matrices, and reversal conditions for every recommendation.
 
-## When to use
-
-- Comparing two tools, libraries, frameworks, platforms, or approaches
-- Build-vs-buy analysis
-- Technology adoption decisions
-- Vendor evaluation
-- Migration feasibility assessment
-- "Should we replace X with Y?" questions
 
 ## Workflow
 
