@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # Resolve docs/decisions/ relative to this script:
-# scripts/ → managing-adrs/ → skills/ → .claude/ → <project root>/docs/decisions
+# scripts/ → manage-adr/ → skills/ → .claude/ → <project root>/docs/decisions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DECISIONS_DIR="$SCRIPT_DIR/../../../../docs/decisions"
 COUNT=1

@@ -1,5 +1,5 @@
 ---
-name: managing-adrs
+name: manage-adr
 description: "Create, update, and validate Architecture Decision Records (ADRs) following MADR 4.0 format. Use when the user mentions ADR, architecture decision, decision record, or asks to document a technical decision. Also use when creating new files in docs/decisions/. Handles numbering, frontmatter, section structure, and README index updates. Do NOT use for general documentation or non-architectural decisions."
 ---
 
