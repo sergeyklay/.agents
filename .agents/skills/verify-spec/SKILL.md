@@ -241,12 +241,13 @@ After all fixes:
 
 ## Output
 
-Write the full review to a markdown file in the `.reviews/` directory. Create the directory if it does not exist.
+Write the full review to a markdown file under `.reviews/`, creating the directory if it does not exist. The filename is decided in this order:
 
-The filename follows the pattern `Review-{spec-name}.md`, where `{spec-name}` is derived from the specification filename. If the spec filename starts with `Spec-`, strip that prefix. Examples:
-- `.specs/Spec-6.4-Worker-Attempt-Function.md` → `.reviews/Review-6.4-Worker-Attempt-Function.md`
-- `specs/auth-service.md` → `.reviews/Review-auth-service.md`
+1. **Invoker-provided path.** If the invocation (typically an orchestrator or pipeline delegating to this skill) specifies an explicit output path - for example, "write the re-review to `.reviews/Review-ISSUE-42-r2.md`" - use that path verbatim. The invoker is authoritative: pipelines carry task-specific identifiers, iteration suffixes (`-r2`, `-r3`), and ticketing conventions this skill has no visibility into. Do not second-guess the filename, do not append your own suffix, do not run collision-avoidance - the invoker tracks that in their own state.
+2. **Default (no path provided).** Derive the filename from the specification path using the pattern `Review-{spec-name}.md`. If the spec filename starts with `Spec-`, strip that prefix. Examples:
+   - `.specs/Spec-6.4-Worker-Attempt-Function.md` → `.reviews/Review-6.4-Worker-Attempt-Function.md`
+   - `specs/auth-service.md` → `.reviews/Review-auth-service.md`
 
-Before writing, check if `.reviews/<name>.md` already exists. If it does, append a numeric index: `.reviews/<name>-2.md`, `.reviews/<name>-3.md`, etc. Use the next available number.
+   If the derived file already exists, append a numeric index: `.reviews/<name>-2.md`, `.reviews/<name>-3.md`, etc. Use the next available number.
 
 After writing, print the path to the created file.

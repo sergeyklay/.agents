@@ -133,9 +133,14 @@ The full communication calibration - voice, banned phrases, precision rules, hed
 
 ## Save the review
 
-If the review is being produced as a durable artefact (not an inline answer), write it to `.reviews/Review-arch-{slug}.md` where `{slug}` is a short kebab-case slug derived from the system or task name (3-5 words maximum). Create the `.reviews/` directory if it does not exist. If the file already exists, append a numeric index: `-2`, `-3`, etc. Print the final path after writing.
-
 If the review is an inline answer to a conversational question, skip the file-write step and render directly.
+
+Otherwise write it as a durable artefact under `.reviews/`, creating the directory if it does not exist. The filename is decided in this order:
+
+1. **Invoker-provided path.** If the invocation (typically an orchestrator or pipeline delegating to this skill) specifies an explicit output path - for example, "write the review to `.reviews/Review-ISSUE-42-r2.md`" - use that path verbatim. The invoker is authoritative: pipelines carry task-specific identifiers, iteration suffixes (`-r2`, `-r3`), and ticketing conventions this skill has no visibility into. Do not second-guess the filename, do not append your own suffix, do not run collision-avoidance - the invoker tracks that in their own state.
+2. **Default (no path provided).** Write to `.reviews/Review-arch-{slug}.md` where `{slug}` is a short kebab-case slug derived from the system or task name (3-5 words maximum). If the file already exists, append a numeric index: `-2`, `-3`, etc.
+
+Print the final path after writing.
 
 ## Guardrails
 

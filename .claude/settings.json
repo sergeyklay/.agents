@@ -13,8 +13,8 @@
       "Bash(chmod:*)",
       "Bash(col -b)",
       "Bash(composer:*)",
-      "Bash(curl:*)",
       "Bash(cp:*)",
+      "Bash(curl:*)",
       "Bash(diff:*)",
       "Bash(docker-compose:*)",
       "Bash(docker:*)",
@@ -45,6 +45,7 @@
       "Bash(which:*)",
       "Bash(yarn:*)",
       "Bash(yq:*)",
+      "Bash(zip:*)",
       "Edit",
       "mcp__claude_ai_Atlassian__*",
       "MultiEdit",
@@ -62,7 +63,8 @@
       "Bash(rm -rf /)",
       "Bash(shutdown:*)",
       "Bash(reboot:*)"
-    ]
+    ],
+    "defaultMode": "acceptEdits"
   },
   "hooks": {
     "SessionStart": [

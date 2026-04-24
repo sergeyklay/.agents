@@ -93,15 +93,16 @@ path=<review-file-path>; critical=N; significant=M; observations=K; verdict=appr
 - **`approve`** — zero critical findings AND zero significant findings. The orchestrator proceeds directly to the next phase.
 - **`revise`** — one or more critical or significant findings. The orchestrator delegates revision per its pipeline protocol.
 
-The counts are read from the loaded skill's output and normalised into the contract:
+The counts and verdict are read from the loaded skill's output and normalised into the contract:
 
 | Contract field | `review-arch` source | `verify-spec` source |
 |---|---|---|
-| `path` | `.reviews/Review-arch-{slug}.md` | `.reviews/Review-{spec-name}.md` |
 | `critical` | Count of findings in **Critical Risks** | Count of findings with severity **`critical`** |
 | `significant` | Count of findings in **Significant Concerns** | Count of findings with severity **`major`** |
 | `observations` | Count of findings in **Observations** | Count of findings with severity **`minor`** |
 | `verdict` | `approve` iff `critical=0` AND `significant=0`; else `revise` | `approve` iff the skill's verdict is **CONFORMANT**; else `revise` (both **CHANGES REQUIRED** and **NON-CONFORMANT** map to `revise`) |
+
+The `path` field is the actual file path the review was written to. **When the invocation specified an explicit output path** - which orchestrators and pipelines typically do, passing their own task identifiers and iteration suffixes (e.g., `.reviews/Review-ISSUE-42-r2.md`) - report that path verbatim. **Otherwise**, report the skill's default (`.reviews/Review-arch-{slug}.md` for architecture reviews, `.reviews/Review-{spec-name}.md` for spec conformance). The skills are responsible for honouring an invoker-provided path when one is given; the agent simply reports back what was written. Do not reshape, normalise, or re-derive the path.
 
 Strengths, Open Questions, and PASS findings do not appear in the contract — they do not affect the gate.
 
