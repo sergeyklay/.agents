@@ -97,7 +97,7 @@ def init_skill(name: str, path: str) -> bool:
         print("  2. Add scripts/, references/, or assets/ directories as needed")
         print("     If you add scripts/, include a 'Running scripts bundled with")
         print("     this skill' section in SKILL.md explaining that script paths")
-        print("     are relative to SKILL.md (see creating-agent-skills/SKILL.md")
+        print("     are relative to SKILL.md (see make-skill/SKILL.md")
         print("     for the canonical wording). Pair each script command with a")
         print("     manual fallback so the skill still works when python3 is")
         print("     missing or the script cannot be located.")

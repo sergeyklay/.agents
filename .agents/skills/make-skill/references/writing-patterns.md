@@ -315,7 +315,7 @@ Agents run Bash from the user's working directory - typically the project root -
 
 Two rules for cross-platform script commands:
 
-1. **Declare the path convention once**, near the top of SKILL.md, under a heading like `## Running scripts bundled with this skill`. State that script paths are relative to SKILL.md and list the common storage locations. See the parent `creating-agent-skills` skill's SKILL.md for the canonical wording.
+1. **Declare the path convention once**, near the top of SKILL.md, under a heading like `## Running scripts bundled with this skill`. State that script paths are relative to SKILL.md and list the common storage locations. See the parent `make-skill` skill's SKILL.md for the canonical wording.
 2. **Always pair each script command with a manual fallback.** If `python3` is missing or the script cannot be found, the agent must still be able to complete the task. The fallback lives next to each script reference, not only in one central place - agents that have jumped to a specific section may miss a preamble-only fallback.
 
 ### Execute pattern (most common)
