@@ -20,6 +20,12 @@ Everything here earns its place by being something I actually reach for in daily
 - **`scripts/`:** small utilities that support the rest of this repo:
   - **`scripts/analyze-chat-dump.mjs`:** reads a VS Code Copilot Chat JSON export and prints a clean summary - duration, slash command and task, token totals, tools and subagents used, plus a per-subagent tool breakdown - so I can spot slow or noisy steps and iterate on agent configs, prompts, and models.
 
+## Note on agents
+
+Unlike Agent Skills, which follow a published [industry specification](https://agentskills.io), agents are not standardized - every host (Claude Code, Copilot, Cursor, Gemini, Codex, ...) ships its own frontmatter schema, and the schemas are mutually incompatible. To keep the agents in this repo portable across hosts, their frontmatter is stripped down to the smallest subset every host will accept. The trade-off: these agents are functionally leaner than a host-native one could be.
+
+After copying an agent into your host's directory, hand-edit the frontmatter to add the fields your host actually supports (model, allowed tools, capability flags, etc.).
+
 ## Install
 
 No bootstrapper. Clone the repo, then symlink (or copy) what you need into the directory your agent reads from. For details on the Agents Skills see my blogpost: [Agent Skills 101: a practical guide for engineers](https://blog.serghei.pl/posts/agent-skills-101/).
