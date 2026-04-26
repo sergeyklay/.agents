@@ -12,6 +12,7 @@
       "Bash(cat:*)",
       "Bash(chmod:*)",
       "Bash(col -b)",
+      "Bash(command:*)",
       "Bash(composer:*)",
       "Bash(cp:*)",
       "Bash(curl:*)",
