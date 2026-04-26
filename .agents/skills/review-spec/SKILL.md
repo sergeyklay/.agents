@@ -27,12 +27,12 @@ Before you begin the review, you MUST thoroughly study the project to ground you
 
 Search for and read all architectural and project documentation. Look for files such as:
 
-- `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `CURSOR.md` (project context files)
+- `CLAUDE.md`, `AGENTS.md`, `GEMINI.md` (project context files)
 - `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`
 - `docs/` or `doc/` directories - read everything relevant inside
 - `ADR/` or `adr/` or `docs/adr/` - Architecture Decision Records
 - `package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml` - for understanding the tech stack and dependencies
-- `.env.example`, `docker-compose.yml`, `Makefile` - for understanding the runtime and deployment model
+- `.env.example`, `compose.yml`, `docker-compose.yml`, `Makefile` - for understanding the runtime and deployment model
 
 ### Step 2: Codebase Structure
 
@@ -57,15 +57,10 @@ Search the codebase for patterns relevant to the specification:
 Now conduct the architectural review of the specification. Your review must be grounded in the project context you just gathered. Specifically:
 
 1. **Evaluate alignment** - Does the spec align with the existing architecture, patterns, and conventions? Where does it deviate, and is the deviation justified?
-
 2. **Assess feasibility** - Given the current codebase structure, tech stack, and existing abstractions, is the spec implementable as written? Are there hidden complexities or dependencies the spec does not account for?
-
 3. **Identify risks** - What architectural risks does this spec introduce? Consider coupling, data consistency, failure modes, scalability, security boundaries, and operational impact.
-
 4. **Check completeness** - What does the spec leave unspecified that an implementer would need to decide? Are there ambiguities that could lead to divergent implementations?
-
 5. **Evaluate tradeoffs** - What quality attributes does this spec prioritize? What does it sacrifice? Are those tradeoffs appropriate for the project context?
-
 6. **Recommend improvements** - Concrete, actionable recommendations. Reference existing project patterns where the spec should align. Do not suggest abstractions or technologies the project does not already use unless solving a critical gap.
 
 Be thorough. Be direct. Ground every finding in evidence from the spec and the codebase.

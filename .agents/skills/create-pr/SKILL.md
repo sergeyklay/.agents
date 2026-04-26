@@ -1,6 +1,10 @@
 ---
 name: create-pr
 description: "Use when asked to create a pull request, open a PR, or submit changes for review. Handles branch verification, change analysis, title and description generation, and gh pr create. Do NOT use for committing, pushing without PR, or reviewing existing PRs"
+metadata:
+  author: Serghei Iakovlev
+  version: "1.0"
+  category: vcs
 ---
 
 # Creating a Pull Request

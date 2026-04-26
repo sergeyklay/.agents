@@ -4,7 +4,7 @@ description: "Forensic verification of implementation code against its authorita
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
-  category: verification
+  category: review
 ---
 
 # Spec-vs-Implementation Verification Review

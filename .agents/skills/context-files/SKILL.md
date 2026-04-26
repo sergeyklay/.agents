@@ -4,7 +4,7 @@ description: "Create or validate project context files (AGENTS.md, CLAUDE.md, GE
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
-  category: configuration
+  category: meta
 ---
 
 # Context File Generator

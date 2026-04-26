@@ -4,7 +4,7 @@ description: "Read, update, validate, and report on the project roadmap (TODO.md
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
-  category: project-management
+  category: roadmap
 ---
 
 # Roadmap Management

@@ -4,7 +4,7 @@ description: "Use when writing Jira issue descriptions, comments, or work logs. 
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
-  category: project-management
+  category: roadmap
 ---
 
 # Jira wiki markup
