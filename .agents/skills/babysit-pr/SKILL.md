@@ -242,16 +242,6 @@ If the script is unavailable, verify manually using this checklist:
 - Preserve the project's existing code style, module boundaries, and architectural conventions.
 - When rejecting, your rationale must be technical and specific — never dismissive. Cite Context7 findings when they support the rejection.
 
-### Scope boundaries
-
-The skill's responsibility ends at deciding what to do with each comment and applying the minimum change that resolves it. Adjacent actions belong to other skills or to the human operator.
-
-- Do NOT commit or push. Leave the working tree modified; commit and PR creation belong to separate skills.
-- Do NOT alter PR metadata — status, labels, assignees, reviewers, milestone, or branch protection settings.
-- Do NOT close, merge, approve, or reopen the PR.
-- Do NOT resolve, delete, or rename review threads. Thread state belongs to the PR author.
-- Do NOT switch branches or modify files outside the paths named in a comment classified Valid & Actionable.
-
 ## Guiding principles
 
 1. **Library claims are falsifiable.** A reviewer asserting an API behavior is making a verifiable claim. Context7 verifies it. Accepting or rejecting without verifying is the root cause of both false approvals and false rejections.
