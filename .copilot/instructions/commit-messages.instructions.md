@@ -1,5 +1,6 @@
 ---
-description: Commit message formatting rules following Conventional Commits specification
+name: "Commit Messages"
+description: "Commit message formatting rules following Conventional Commits specification"
 ---
 
 # Commit Message Format
