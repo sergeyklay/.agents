@@ -1,7 +1,6 @@
 ---
 name: review-impl
 description: "Review implementation changes for a given task against architectural standards. Use when reviewing a PR, evaluating recently committed code, assessing whether implementation changes are correct and architecturally sound, or when asked to 'review my changes', 'check this implementation', 'review what I built', 'is this PR ready', or 'audit recent commits'. Accepts a task description, GitHub issue URL, or issue shorthand (owner/repo#123, #123) as input. Produces a structured review with severity-rated findings, code evidence, and a verdict (Block / Request changes / Approve with notes / Approve). Saves the review to .reviews/Review-impl-{slug}.md. Do NOT use for specification review or spec-vs-implementation verification."
-argument-hint: <task description or issue reference>
 metadata:
   author: Serghei Iakovlev
   version: "1.0"

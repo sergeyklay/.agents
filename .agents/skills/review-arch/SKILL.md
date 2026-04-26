@@ -1,7 +1,6 @@
 ---
 name: review-arch
 description: "Conduct a principal-level architecture review of a system, specification, diagram, or set of design decisions. Use when asked to review an architecture, evaluate a design, assess coupling/cohesion, check for anti-patterns, audit system boundaries, or produce an Architecture Review Board (ARB) style verdict. Also use when someone says 'review this architecture', 'is this design sound', 'what's wrong with this topology', 'evaluate these tradeoffs', or 'audit this system'. Produces a structured verdict organized around critical risks, significant concerns, observations, strengths, and open questions, grounded in evidence from the codebase and cited against established methodology (ATAM, ISO/IEC 25010, documented anti-pattern catalogues). Do NOT use for line-by-line code review, spec-vs-implementation verification, or PR-level correctness checks."
-argument-hint: <path/to/artifact or task description>
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
