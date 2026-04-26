@@ -1,6 +1,6 @@
 # `.agents`
 
-My personal, curated set of artifacts for AI coding agents that I actually use day-to-day. Right now it's Agent Skills and agents only. More kinds will land here over time. I port this around alongside my dotfiles, so the same capabilities follow me between machines.
+My personal, curated set of artifacts for AI coding agents that I actually use day-to-day. I port this around alongside my dotfiles, so the same capabilities follow me between machines.
 
 ## Scope
 
