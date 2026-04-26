@@ -16,10 +16,12 @@ Checks:
     - No `[C7-REQUIRED]` tags leaked from internal reasoning.
     - Every populated entry has `**[@reviewer, file:line]**` or
       `general feedback` at the start of the bullet.
-    - Every `Deferred to Backlog` entry names a tracker outcome — either
-      a GitHub-style numeric reference (`#N`), a Jira/Linear-style
-      alphanumeric key (e.g. `ABC-123`), the word `existing`, or the
-      phrase `not added`.
+    - Every `Deferred to Backlog` entry names a ticket reference —
+      either a GitHub-style numeric reference (`#N`) or a Jira / Linear-
+      style alphanumeric key (e.g. `ABC-123`). The phrase `not added`
+      is forbidden in this section: a Deferred comment without a ticket
+      is a misclassification and must be moved to Rejected (Category 5)
+      or Needs Discussion (Category 7).
     - Every `Rejected` entry cites Context7, architecture, or a
       project-context-file constraint.
 
@@ -61,10 +63,8 @@ REVIEWER_CITATION = re.compile(
     r"^\- \*\*\[@[^,\]]+,\s*[^\]]+\]\*\*|^\- \*\*\[general feedback\]\*\*",
     re.MULTILINE,
 )
-TRACKER_OUTCOME = re.compile(
-    r"#\d+|[A-Za-z]{2,10}-\d+|existing|not added",
-    re.IGNORECASE,
-)
+TRACKER_OUTCOME = re.compile(r"#\d+|[A-Za-z]{2,10}-\d+")
+NOT_ADDED_PATTERN = re.compile(r"\bnot\s+added\b", re.IGNORECASE)
 EVIDENCE_KEYWORDS = re.compile(
     r"Context7|\bC7\b|FALLBACK:\s*web|"
     r"architecture|specification|\bspec\b|\bADR\b|\bRFC\b|"
@@ -117,11 +117,21 @@ def validate(path: Path) -> list[str]:
     deferred_body = _section_body(text, "### Deferred to Backlog")
     if deferred_body and "_(none)_" not in deferred_body:
         for line in _bullet_lines(deferred_body):
-            if not TRACKER_OUTCOME.search(line):
+            if NOT_ADDED_PATTERN.search(line):
                 errors.append(
-                    f"Deferred entry missing tracker outcome (ticket "
-                    f"reference like '#N' or 'ABC-123', or the words "
-                    f"'existing' / 'not added'): {line[:100]!r}"
+                    f"Deferred entry uses 'not added', which is "
+                    f"forbidden — Deferred ↔ ticket. A deferred comment "
+                    f"without a ticket is a misclassification: move it "
+                    f"to Rejected (Category 5) or Needs Discussion "
+                    f"(Category 7): {line[:100]!r}"
+                )
+            elif not TRACKER_OUTCOME.search(line):
+                errors.append(
+                    f"Deferred entry missing ticket reference "
+                    f"(GitHub-style '#N' or Jira/Linear-style "
+                    f"'ABC-123'). If no ticket can be created, the "
+                    f"comment was misclassified — return to Step 3 and "
+                    f"reclassify: {line[:100]!r}"
                 )
 
     rejected_body = _section_body(text, "### Rejected")

@@ -32,13 +32,15 @@ This reference expands the seven-category classification table in SKILL.md with 
 
 **Definition.** A genuine improvement that is out of scope for this change: an acceptable trade-off at the current scale, a dependency on unfinished work, or work that is better tracked as a dedicated task.
 
+**Hard rule. Deferred ↔ ticket.** A comment is only Category 2 if Step 4b can produce a ticket reference for it — newly created or already existing. A Deferred classification without a ticket reference is forbidden, regardless of which tracker the project uses. If Step 4b's gates prevent creation, the comment was misclassified and belongs in Category 5 (Incorrect, when the architecture conflicts) or Category 7 (Needs Discussion, when no appropriate roadmap lane exists or creation failed without recovery in this session).
+
 **Preconditions.**
 
 - The concern is real (Context7 or architecture confirms it, or logic supports it).
 - Applying it now would materially expand the blast radius of the current change.
-- A clear path exists to address it later — an open milestone or epic, a matching ticket, or a new ticket that passes the three triage gates in SKILL.md Step 4b.
+- A ticket can be created in the project's tracker, or a matching ticket already exists.
 
-**Action.** Trigger tracker triage per SKILL.md Step 4b — discover the project's tracker and any sibling skill that manages it, then apply the three gates and create the ticket via the discovered skill.
+**Action.** Trigger tracker triage per SKILL.md Step 4b — discover the project's tracker and any sibling skill that manages it, then apply the three gates. The end state of Step 4b is a ticket reference (newly created or pre-existing) recorded in the Step 6 summary. If no ticket reference can be produced, the comment is not Deferred.
 
 **Boundary versus Subjective.** A Deferred concern has an objective basis and will eventually be addressed. A Subjective concern has no objective basis and will never be addressed. Do not route real improvements through Subjective to avoid the triage work.
 

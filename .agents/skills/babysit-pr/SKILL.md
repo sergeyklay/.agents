@@ -142,7 +142,11 @@ For precise criteria, worked examples, the borderline-case decision rubric, and 
 
 #### 4b. Deferred comments — tracker triage
 
-Not every valid concern belongs in the current change. When you classify a comment as **Valid — Deferred to Backlog**, decide whether it earns a tracked ticket. Step 4b begins with **discovery, not action**: two discoveries happen before any ticket is created.
+A comment classified **Valid — Deferred to Backlog** in Step 3 is a real concern the agent has chosen not to fix in the current change. The Deferred classification is a *promise* that the concern will be tracked. The promise is only valid if backed by a ticket reference.
+
+**Hard rule. Deferred ↔ ticket.** Every comment that ends Step 4b in the Deferred category MUST resolve to a ticket reference — either a newly created ticket or an existing ticket already covering the concern. A Deferred comment without a ticket reference is forbidden, regardless of which tracker the project uses: it is a memory leak in the review process. If the workflow below cannot produce a ticket reference, the comment was misclassified — return to Step 3 and pick a different category.
+
+Step 4b begins with **discovery, not action**. Two discoveries happen before any ticket is created.
 
 ##### Discover the project's issue tracker
 
@@ -156,7 +160,7 @@ The project uses one of: GitHub Issues, Jira, GitLab Issues, Linear, or another 
 
 The current session loads a catalogue of skills. Inspect their descriptions for words that match the chosen tracker — typically descriptions naming the tracker, naming a ticket type, or describing operations like "create a ticket", "manage backlog", "triage issues", "manage roadmap", "manage epics". A matching skill is the *correct* tool because it carries project-specific conventions (label taxonomy, body templates, duplicate-detection logic, parent-epic resolution, custom-field handling) that hand-rolled CLI calls do not.
 
-If a matching skill exists, load and apply it for the create operation. Pass the deferred concern with full context: the file:line being deferred, the reviewer attribution, and the architecture-conflict gate verdict. Let the discovered skill handle the mechanics; this skill's job is to decide *whether* to create a ticket and *what it should contain semantically*, not to format ticket payloads.
+If a matching skill exists, load and apply it for the create operation. Pass the deferred concern with full context: the file:line being deferred, the reviewer attribution, and the gate verdicts below. Let the discovered skill handle the mechanics; this skill's job is to decide *whether* to create a ticket and *what it should contain semantically*, not to format ticket payloads.
 
 If no matching skill exists, fall back to manual creation:
 
@@ -166,13 +170,22 @@ If no matching skill exists, fall back to manual creation:
 
 ##### Apply the three triage gates in order
 
-Whether you use a discovered skill or a manual fallback, the three gates run before any create operation:
+The gates validate the Deferred classification. They are not silent stops: if a gate trips, the comment was misclassified and Step 3's category was wrong. **Reclassify and continue — never leave a Deferred comment without a ticket.**
 
-1. **Architecture conflict gate.** Read the relevant section of the project's architecture documentation. If the suggestion contradicts the design intent — not merely the current implementation — it does not belong in the backlog. Explain why in the Step 6 summary and stop.
-2. **Duplicate check.** Search open tickets for existing work covering this concern, even partially. If a matching ticket exists, note its reference (ticket ID or URL) in the summary and stop. Do not create duplicates.
-3. **Scope test.** Would this realistically matter within the scope of the project's open milestones, epics, or roadmap? If it is aspirational work beyond the current horizon, mention it in the summary as a future consideration and stop.
+1. **Architecture-conflict gate.** Read the relevant section of the project's architecture documentation. If the suggestion contradicts the design intent — not merely the current implementation — the comment is **Incorrect or Counterproductive (Category 5)**, not Deferred. Reclassify, cite the architecture rule as the rejection rationale, and document the reclassification in the Step 6 summary's Rejected section. Do not create a ticket.
 
-If the concern passes all three gates, proceed to create the ticket via the discovered skill (preferred) or the manual fallback.
+2. **Duplicate check.** Search open tickets for existing work covering this concern, even partially. If a matching ticket exists, the Deferred classification is validated. The outcome is `{existing ticket reference} (existing)`. Do not create a new ticket.
+
+3. **Scope test.** Would this realistically matter within the scope of the project's open milestones, epics, or roadmap?
+   - **Yes** → proceed to creation.
+   - **Out of current horizon, but the project has a backlog / icebox / future-ideas lane** → create the ticket in that lane. Deferred stands.
+   - **Out of current horizon, with no appropriate lane** → the comment is **Needs Discussion (Category 7)**, not Deferred. Reclassify and flag for the human operator to decide whether the project should track aspirational work at all.
+
+##### Create the ticket and verify
+
+If gates 1 and 3 pass, create the ticket via the discovered skill (preferred) or the manual fallback. Confirm the create operation returned a ticket identifier (the tracker echoed an ID, key, or URL) — a silent failure means no ticket exists, which means the comment cannot stay in Deferred.
+
+Record the outcome in the Step 6 summary as `{ticket reference} (created via discovered skill)` or `{ticket reference} (created via manual fallback)`. If creation failed and cannot be retried in this session, reclassify as **Needs Discussion (Category 7)** with the failure noted, and flag for the human operator to create the ticket manually.
 
 #### 4c. Architecture-domain comments (Valid & Actionable)
 
@@ -211,7 +224,7 @@ If the script is unavailable, verify manually using this checklist:
 - [ ] All seven category sections are present, including empty ones.
 - [ ] No `[C7-REQUIRED]` tags appear anywhere in the summary.
 - [ ] Every populated entry names the file:line changed.
-- [ ] Every "Deferred" entry names a tracker outcome (ticket reference / existing / not added with reason).
+- [ ] Every "Deferred" entry names a ticket reference (newly created or existing). Any Deferred entry missing a ticket is a misclassification — move it to Rejected (Category 5) or Needs Discussion (Category 7).
 - [ ] Every "Rejected" entry cites specific Context7 or architecture evidence.
 - [ ] Every "Needs Discussion" entry names the open question and both sides.
 
@@ -222,6 +235,7 @@ If the script is unavailable, verify manually using this checklist:
 - Do NOT apply changes that break the project's documented verification commands. After every fix in Step 4a, the relevant verification subset must pass.
 - Do NOT act on a suggestion about library behavior without first running Context7 for any [C7-REQUIRED] comment, regardless of how confident you feel.
 - Do NOT classify a [C7-REQUIRED] comment before Step 2b completes for that comment.
+- Do NOT leave a Deferred comment without a ticket reference. Deferred ↔ ticket — every Deferred entry in the Step 6 summary must name a newly created or already existing ticket. If no ticket can be produced (the architecture forbids the work, no roadmap lane exists, the create operation failed without recovery), reclassify the comment in Step 3 as Rejected or Needs Discussion. "Just defer it" without follow-through is forbidden regardless of tracker.
 - Do NOT skip Context7 because you feel confident about the API. Confidence is the proximate cause of hallucination. Certainty is earned from documentation, not recalled from training data.
 - Do NOT reference the project's architecture documentation, ADRs, section numbers, or ticket IDs in source-code comments — those belong in specs and plans, not source.
 - Do NOT introduce dependencies, languages, toolchains, or patterns that the project context forbids. If AGENTS.md / CLAUDE.md declares a "Never" rule (forbidden libraries, banned patterns, prohibited APIs), the rule binds you regardless of any reviewer suggestion to the contrary.
@@ -247,4 +261,4 @@ The skill's responsibility ends at deciding what to do with each comment and app
 5. **Think like a maintainer, not a people-pleaser.** The goal is not to mark every comment resolved. The goal is to ship correct, maintainable work.
 6. **Be thorough but surgical.** Apply the minimum change that fully addresses the concern. Every changed line must trace to a classified comment.
 7. **Every decision needs evidence.** Document reasoning, source, and conclusion for every apply, skip, or reject. Assertions without citations are opinions.
-8. **Defer wisely, not reflexively.** "Not now" is valid only when you can articulate where and when. A deferred concern without a tracker home is a concern ignored.
+8. **Defer wisely, not reflexively.** "Not now" is only valid when paired with a tracked ticket — Deferred ↔ ticket, regardless of which tracker the project uses. A deferred comment without a ticket reference is forbidden: it is a promise the agent has no way to keep. If Step 4b cannot produce a ticket, the comment was misclassified; move it to Rejected or Needs Discussion.
