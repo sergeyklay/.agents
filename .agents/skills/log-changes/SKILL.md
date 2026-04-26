@@ -1,5 +1,5 @@
 ---
-name: keep-changelog
+name: log-changes
 description: "Use when asked to update the changelog, document version changes, prepare a release, or add entries for recent work. Handles CHANGELOG.md updates following Keep a Changelog format and Semantic Versioning. Do NOT use for committing or creating release notes outside CHANGELOG.md."
 metadata:
   author: Serghei Iakovlev
