@@ -1,6 +1,6 @@
 # Step 6 Summary — Template
 
-This is the template for the final summary the skill produces for the human operator. All reasoning, all evidence, all decisions belong in this document. Nothing goes to the reviewer.
+This is the template for the final summary the skill outputs as its chat response to the human operator. All reasoning, all evidence, all decisions belong in this rendered summary. Nothing goes to the reviewer, and nothing is saved to a file — the chat is the delivery channel.
 
 ## Template
 

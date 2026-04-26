@@ -1,6 +1,6 @@
 ---
 name: babysit-pr
-description: "Resolve reviewer comments on a pull request or pasted feedback using a six-step evidence-grounded protocol. Use when asked to resolve review feedback, address reviewer comments, process PR comments, triage review feedback, apply review suggestions, handle code review feedback, decide which review comments to accept or reject, or babysit a PR through its review lifecycle. The protocol verifies every library claim with Context7, classifies each comment across seven categories, applies changes surgically or defers them to the project's issue tracker, and emits a summary intended strictly for the human operator. The skill NEVER posts replies, reactions, or messages back to the reviewer. Do NOT use for authoring a new code review, for security scans, or for opening a new PR."
+description: "Resolve reviewer comments on a pull request or pasted feedback using a six-step evidence-grounded protocol. Use when asked to resolve review feedback, address reviewer comments, process PR comments, triage review feedback, apply review suggestions, handle code review feedback, decide which review comments to accept or reject, or babysit a PR through its review lifecycle. The protocol verifies every library claim with Context7, classifies each comment across seven categories, applies changes surgically or defers them to the project's issue tracker, and emits the summary directly in the chat response for the human operator (never to a file). The skill NEVER posts replies, reactions, or messages back to the reviewer. Do NOT use for authoring a new code review, for security scans, or for opening a new PR."
 metadata:
   author: Serghei Iakovlev
   version: "2.0"
@@ -12,6 +12,8 @@ metadata:
 Apply changes that genuinely improve the work. Respectfully decline those that do not. Every accept, reject, defer, or skip is backed by documented evidence: Context7 lookups, the project's architecture documentation, or an explicit logical argument grounded in the code. The goal is not to mark every comment resolved; the goal is to ship correct, maintainable work.
 
 This skill carries the protocol. The project supplies the standards: coding conventions, verification commands, architectural invariants, tracker choice, and Context7 mechanics live in the project's context files (AGENTS.md, CLAUDE.md, CONTRIBUTING.md, README.md) and architecture documentation. This skill tells you *how to reason*; the project tells you *what to reason about*.
+
+Project context (AGENTS.md, CLAUDE.md, architecture documentation) is reference material consulted *while* walking through this skill's steps - not a prerequisite to read end-to-end before starting. There is no ordering competition between this skill and the project's context files; both apply simultaneously.
 
 ## Running scripts bundled with this skill
 
@@ -41,6 +43,8 @@ Copy this checklist into your response and mark items as you complete them. Do n
 - [ ] Step 6 — Produce the human-only summary
 
 ### Step 1 — Ingest feedback and classify domain
+
+**Do not pre-form an action plan from the reviewer's text.** "I'll implement the missing tests and fixes mentioned in the review" - thinking like this is the failure mode this protocol exists to prevent. Steps 1 through 3 (ingest → Context7 audit → classify) MUST complete before any decision about which fixes to apply. The review is *input*; the decision is *output*.
 
 Examine the input the user provided.
 
@@ -213,17 +217,16 @@ Before producing the Step 6 summary, confirm you have not executed any of the fo
 
 ### Step 6 — Produce the summary
 
-Write the summary using [assets/summary-template.md](assets/summary-template.md). The template has one section per category plus the source header and the Context7 evidence log.
+Output the summary **directly in the chat response** to the human operator, using [assets/summary-template.md](assets/summary-template.md) as the structural template. **Do not save the summary to a file** — the audience is the human reading the chat, not a persistent artifact. The template has one section per category plus the source header, the tracker header, and the Context7 evidence log.
 
-If the validator script is available, run it on the summary file: `python3 scripts/validate_report.py <summary-file>`. Fix any reported violations and re-run until it reports PASS.
-
-If the script is unavailable, verify manually using this checklist:
+Before sending the response, verify the draft against this checklist:
 
 - [ ] Source header present (PR #N / Inline feedback / Mixed).
+- [ ] Tracker header present (discovered tracker, or "n/a — no items deferred").
 - [ ] Context7 Evidence Log table has one row per [C7-REQUIRED] comment.
-- [ ] All seven category sections are present, including empty ones.
+- [ ] All seven category sections are present, including empty ones (use `_(none)_` for empty bodies).
 - [ ] No `[C7-REQUIRED]` tags appear anywhere in the summary.
-- [ ] Every populated entry names the file:line changed.
+- [ ] Every populated entry names the source file:line referenced.
 - [ ] Every "Deferred" entry names a ticket reference (newly created or existing). Any Deferred entry missing a ticket is a misclassification — move it to Rejected (Category 5) or Needs Discussion (Category 7).
 - [ ] Every "Rejected" entry cites specific Context7 or architecture evidence.
 - [ ] Every "Needs Discussion" entry names the open question and both sides.
