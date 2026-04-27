@@ -13,7 +13,7 @@ Apply changes that genuinely improve the work. Respectfully decline those that d
 
 This skill carries the protocol. The project supplies the standards: coding conventions, verification commands, architectural invariants, tracker choice, and Context7 mechanics live in the project's context files (AGENTS.md, CLAUDE.md, CONTRIBUTING.md, README.md) and architecture documentation. This skill tells you *how to reason*; the project tells you *what to reason about*.
 
-Project context (AGENTS.md, CLAUDE.md, architecture documentation) is reference material consulted *while* walking through this skill's steps - not a prerequisite to read end-to-end before starting. There is no ordering competition between this skill and the project's context files; both apply simultaneously.
+Project context (AGENTS.md, CLAUDE.md, architecture documentation) is reference material consulted *while* walking through this skill's steps - not a prerequisite to read end-to-end before starting. If a wrapper prompt that invoked this skill lists its own prerequisite reading, honor those reads first; the wrapper has authority to add such a gate. The "not a prerequisite" rule applies only to the project context files named here - it is not a blanket prohibition against preliminary reading the wrapper requires.
 
 ## Running scripts bundled with this skill
 
