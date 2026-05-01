@@ -19,8 +19,7 @@ Everything here earns its place by being something I actually reach for in daily
 - **`.claude/`:** Claude-specific configuration, including `settings.json` and any custom hooks. This directory is for configuration that only applies to Claude Code. It does not contain any skills or agents - those go in `.agents/`.
 - **`.copilot/instructions/`:** Copilot-specific instructions.
 - **`.gemini/`:** Gemini-specific configuration and instructions, including `settings.json` and  policies. This directory is for configuration that only applies to Gemini. It does not contain any skills or agents - those go in `.agents/`.
-- **`scripts/`:** small utilities that support the rest of this repo:
-  - **`scripts/analyze-chat-dump.mjs`:** reads a VS Code Copilot Chat JSON export and prints a clean summary - duration, slash command and task, token totals, tools and subagents used, plus a per-subagent tool breakdown - so I can spot slow or noisy steps and iterate on agent configs, prompts, and models.
+- **`scripts/`:** small utilities that support the rest of this repo.
 
 ## Note on agents
 
