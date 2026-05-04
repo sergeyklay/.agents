@@ -10,3 +10,4 @@ allowed-tools:
   - Bash(gh repo view:*)
   - Bash(gh pr create:*)
   - Bash(gh pr view:*)
+  - Bash(gh pr edit:*)
