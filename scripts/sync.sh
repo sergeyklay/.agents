@@ -263,8 +263,8 @@ sync_settings() {
     printf 'syncing settings...\n'
 
     sync_to "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
-    sync_to "$REPO_ROOT/.gemini/settings.json" "$HOME/.gemini/settings.json"
-    sync_to "$REPO_ROOT/.gemini/policies"      "$HOME/.gemini/policies"
+    sync_to "$REPO_ROOT/.gemini/settings.user.json" "$HOME/.gemini/settings.json"
+    sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
 }
 
 sync_instructions() {
