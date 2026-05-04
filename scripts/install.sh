@@ -15,7 +15,7 @@ SCRIPT_DIR=$(CDPATH="" cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH="" cd -- "$SCRIPT_DIR/.." && pwd)
 
 # Sync kinds dispatched by main; --all expands to this list.
-ALL_ACTIONS='agents hooks instructions settings skills'
+ALL_ACTIONS='agents commands hooks instructions settings skills'
 
 usage() {
     cat <<EOF
@@ -26,6 +26,7 @@ Install agent assets from this repository to user home.
 Options:
   --all           Install all.
   --agents        Install agents to user home.
+  --commands      Install commands to user home.
   --hooks         Install agent hooks to user home.
   --instructions  Install agent instructions to user home.
   --settings      Install agents settings to user home.
@@ -207,19 +208,29 @@ frontmatter_overlay() (
     fi
 )
 
-# Stage an overlaid agent file and mirror it to $dst. $vendor selects
-# the templates/<vendor>/ directory; $src is the source agent file;
-# $dst is the host destination. Logged as <vendor>/<name>.
-sync_agent_view() {
-    vendor=$1
+# Stage an overlaid markdown file and mirror it to $dst. $kind is a
+# path under templates/ (e.g. ".copilot/agents", ".copilot/prompts");
+# templates/<kind>/<name>.yaml is the per-file frontmatter overlay,
+# and templates/<kind>/<name>.body.md, if present, is appended to the
+# body — used for host-specific footers like ${input:...} placeholders
+# whose syntax varies per host. Both overlays are independently
+# optional. $src is the source markdown; $dst is the host destination.
+# Logged as <kind>/<name>.
+sync_view() {
+    kind=$1
     src=$2
     dst=$3
     name=$(basename -- "$src" .md)
-    tmpl="$REPO_ROOT/templates/$vendor/$name.yaml"
+    tmpl="$REPO_ROOT/templates/$kind/$name.yaml"
+    suffix="$REPO_ROOT/templates/$kind/$name.body.md"
 
     tmp=$(mktemp) || die "mktemp failed"
     frontmatter_overlay "$src" "$tmpl" "$tmp"
-    SYNC_TO_LABEL="$vendor/$name"
+    if [ -f "$suffix" ]; then
+        printf '\n' >> "$tmp"
+        cat -- "$suffix" >> "$tmp"
+    fi
+    SYNC_TO_LABEL="$kind/$name"
     sync_to "$tmp" "$dst"
     unset SYNC_TO_LABEL
     rm -f -- "$tmp"
@@ -242,9 +253,29 @@ sync_agents() {
         [ -f "$f" ] || continue
         name=$(basename -- "$f" .md)
 
-        sync_agent_view ".claude"  "$f" "$HOME/.claude/agents/$name.md"
-        sync_agent_view ".copilot" "$f" "$HOME/.copilot/agents/$name.agent.md"
-        sync_agent_view ".gemini"  "$f" "$HOME/.gemini/agents/$name.md"
+        sync_view ".claude/agents"  "$f" "$HOME/.claude/agents/$name.md"
+        sync_view ".copilot/agents" "$f" "$HOME/.copilot/agents/$name.agent.md"
+        sync_view ".gemini/agents"  "$f" "$HOME/.gemini/agents/$name.md"
+    done
+}
+
+sync_commands() {
+    printf 'syncing commands...\n'
+
+    src_dir="$REPO_ROOT/.agents/commands"
+    [ -d "$src_dir" ] || die "source missing: $src_dir"
+
+    # Pre-create the per-host destination directory so the per-file
+    # mirrors below are not skipped on a missing parent. Each host gates
+    # itself on its own root, so an uninstalled tool stays untouched.
+    [ -d "$HOME/.copilot" ] && mkdir -p "$HOME/.copilot/prompts"
+
+    for f in "$src_dir/"*.md; do
+        [ -f "$f" ] || continue
+        name=$(basename -- "$f" .md)
+
+        # Copilot calls these "prompts" and uses the .prompt.md suffix.
+        sync_view ".copilot/prompts" "$f" "$HOME/.copilot/prompts/$name.prompt.md"
     done
 }
 
@@ -285,6 +316,7 @@ main() {
         case $1 in
             --all)           actions="$actions $ALL_ACTIONS" ;;
             --agents)        actions="$actions agents" ;;
+            --commands)      actions="$actions commands" ;;
             --hooks)         actions="$actions hooks" ;;
             --instructions)  actions="$actions instructions" ;;
             --skills)        actions="$actions skills" ;;
