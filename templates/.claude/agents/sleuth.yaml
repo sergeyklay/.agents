@@ -2,6 +2,6 @@ skills:
   - research-it
   - explain-it
 disallowedTools: NotebookEdit
-model: inherit
+model: opus[1m]
 effort: high
 color: cyan

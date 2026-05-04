@@ -265,14 +265,21 @@ sync_commands() {
     src_dir="$REPO_ROOT/.agents/commands"
     [ -d "$src_dir" ] || die "source missing: $src_dir"
 
-    # Pre-create the per-host destination directory so the per-file
-    # mirrors below are not skipped on a missing parent. Each host gates
-    # itself on its own root, so an uninstalled tool stays untouched.
+    # Pre-create per-host destination directories so the per-file mirrors
+    # below are not skipped on a missing parent. Each host gates itself
+    # on its own root, so an uninstalled tool stays untouched.
+    [ -d "$HOME/.claude" ]  && mkdir -p "$HOME/.claude/commands"
     [ -d "$HOME/.copilot" ] && mkdir -p "$HOME/.copilot/prompts"
 
     for f in "$src_dir/"*.md; do
         [ -f "$f" ] || continue
         name=$(basename -- "$f" .md)
+
+        # Claude: ~/.claude/commands/ is functionally equivalent to
+        # ~/.claude/skills/<name>/SKILL.md per the docs and accepts the
+        # same frontmatter, but stays out of --skills' --delete sweep
+        # against .agents/skills/.
+        sync_view ".claude/commands" "$f" "$HOME/.claude/commands/$name.md"
 
         # Copilot calls these "prompts" and uses the .prompt.md suffix.
         sync_view ".copilot/prompts" "$f" "$HOME/.copilot/prompts/$name.prompt.md"

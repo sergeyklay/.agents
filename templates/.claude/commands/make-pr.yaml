@@ -1,0 +1,4 @@
+name: make-pr
+argument-hint: PR details or branch/commit context
+disable-model-invocation: true
+model: sonnet

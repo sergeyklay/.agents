@@ -2,6 +2,6 @@ skills:
   - review-arch
   - verify-spec
 disallowedTools: NotebookEdit
-model: opus
+model: opus[1m]
 effort: max
 color: red
