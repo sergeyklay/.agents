@@ -24,12 +24,12 @@ Usage: $(basename "$0") [options]
 Mirror agent assets from this repository to external locations.
 
 Options:
-  --all           Run every sync.
-  --agents        Sync agents to home.
-  --hooks         Sync agent hooks to home.
-  --instructions  Sync agent instructions to home.
-  --settings      Sync agents settings to home.
-  --skills        Sync skills to registered skill destinations.
+  --all           Install all.
+  --agents        Install agents to user home.
+  --hooks         Install agent hooks to user home.
+  --instructions  Install agent instructions to user home.
+  --settings      Install agents settings to user home.
+  --skills        Install skills to registered skill destinations.
   -h, --help      Show this help and exit.
 EOF
 }
