@@ -2,3 +2,11 @@ name: make-pr
 argument-hint: PR details or branch/commit context
 disable-model-invocation: true
 model: sonnet
+allowed-tools:
+  - Bash(git add:*)
+  - Bash(git commit:*)
+  - Bash(git checkout -b:*)
+  - Bash(git push -u origin:*)
+  - Bash(gh repo view:*)
+  - Bash(gh pr create:*)
+  - Bash(gh pr view:*)
