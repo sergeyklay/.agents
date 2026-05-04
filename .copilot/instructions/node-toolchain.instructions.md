@@ -9,7 +9,7 @@ Each TS/JS project pins its own runtime and package manager. Detect them; never 
 
 ## Detect
 
-**Package manager**: `package.json#packageManager` first; otherwise the lockfile present in the repo root.
+**Package manager**: The lockfile present in the repo root.
 
 | File | Manager |
 |---|---|
