@@ -1,0 +1,7 @@
+skills:
+  - research-it
+  - explain-it
+disallowedTools: NotebookEdit
+model: inherit
+effort: high
+color: cyan

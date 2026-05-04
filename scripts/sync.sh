@@ -1,17 +1,20 @@
 #!/bin/sh
-# sync — mirrors selected agent assets from this repo to external locations.
+# sync — mirror agent assets from this repository into host-specific
+# directories under $HOME.
 #
-# To add a destination for an existing kind: append a `sync_to` line in the
-# matching sync_<kind> function. To add a new kind: add a --flag case in
-# main(), append the kind to ALL_ACTIONS, and define a corresponding
-# sync_<kind> function below.
+# Per-host overlay: when templates/<vendor>/<name>.yaml exists, its
+# top-level keys are merged onto the agent's frontmatter before the
+# mirror, replacing matching source fields and adding the rest. The
+# vendor token matches the destination's hidden-directory name
+# (.claude, .copilot, .gemini); a missing template yields a verbatim
+# copy.
 
 set -eu
 
 SCRIPT_DIR=$(CDPATH="" cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH="" cd -- "$SCRIPT_DIR/.." && pwd)
 
-# Master list of sync kinds — referenced by --all and the contract above.
+# Sync kinds dispatched by main; --all expands to this list.
 ALL_ACTIONS='agents hooks instructions settings skills'
 
 usage() {
@@ -36,10 +39,9 @@ die() {
     exit 1
 }
 
-# Print the canonical absolute path of $1, resolving symlinks. Path
-# components are resolved via cd-pwd-P; a symlink at the leaf is
-# resolved one level via readlink and recursion. POSIX-only — avoids
-# realpath / readlink -f, which differ between GNU and BSD.
+# Print the canonical absolute path of $1, resolving symlinks one
+# component at a time. POSIX-only: realpath and readlink -f differ
+# between GNU and BSD.
 canonical_path() {
     if [ -d "$1" ]; then
         ( CDPATH="" cd -- "$1" && pwd -P )
@@ -54,26 +56,24 @@ canonical_path() {
     fi
 }
 
-# Mirror $1 into $2 (directory: recursive --delete; file: copy). Any
-# extra arguments after $2 are forwarded to rsync — useful for
-# per-destination flags such as --exclude, which doubles as a
-# protect rule against --delete. The destination is skipped when (a)
-# its parent directory is absent — the target tool isn't installed
-# on this machine, so we won't bootstrap it; or (b) it already
-# resolves through symlinks to the source — there's nothing to copy.
-# Flag set is restricted to what rsync 2.6.9 (macOS default) and
-# modern Linux share.
+# Mirror $1 into $2; arguments after $2 are forwarded to rsync. A
+# directory source uses rsync --delete; a file source is copied.
+# Skipped when $2's parent directory is absent, or when $1 and $2
+# resolve to the same canonical path. SYNC_TO_LABEL, when set,
+# replaces $1 in log output. Flag set is restricted to the rsync
+# features shared by macOS's stock 2.6.9 and modern Linux builds.
 sync_to() {
     src=$1
     dst=$2
     shift 2
+    label=${SYNC_TO_LABEL:-$src}
     parent=$(dirname -- "$dst")
     if [ ! -d "$parent" ]; then
-        printf '  skip: %s (no %s)\n' "$dst" "$parent"
+        printf '  skip: %s -> %s (no %s)\n' "$label" "$dst" "$parent"
         return 0
     fi
     if [ -e "$dst" ] && [ "$(canonical_path "$src")" = "$(canonical_path "$dst")" ]; then
-        printf '  skip: %s (symlink to source)\n' "$dst"
+        printf '  skip: %s -> %s (symlink to source)\n' "$label" "$dst"
         return 0
     fi
     if [ -d "$src" ]; then
@@ -84,7 +84,145 @@ sync_to() {
     else
         die "source missing: $src"
     fi
-    printf '  %s -> %s\n' "$src" "$dst"
+    printf '  %s -> %s\n' "$label" "$dst"
+}
+
+# Return 0 when mikefarah/yq v4 is on PATH. Other yq forks share the
+# binary name but use incompatible expression syntax, so version
+# gating is mandatory.
+detect_yq() {
+    command -v yq >/dev/null 2>&1 || return 1
+    case "$(yq --version 2>/dev/null)" in
+        *mikefarah*v4.*) return 0 ;;
+    esac
+    return 1
+}
+
+# Split $1 (markdown with optional leading YAML frontmatter) into the
+# frontmatter at $2 and the body at $3. The surrounding `---` markers
+# are stripped. A file with no frontmatter leaves $2 empty and writes
+# its full content to $3.
+split_frontmatter() {
+    awk -v fm="$2" -v body="$3" '
+        BEGIN { state = "pre" }
+        state == "pre" && NR == 1 && /^---$/ { state = "fm"; next }
+        state == "pre"                      { state = "body"; print > body; next }
+        state == "fm"  && /^---$/           { state = "body"; next }
+        state == "fm"                       { print > fm; next }
+        state == "body"                     { print > body }
+    ' "$1"
+}
+
+# Overlay $1's frontmatter with $2 using mikefarah/yq's deep-merge
+# operator (RHS-priority, array replace). The result is written to $3
+# with the body preserved verbatim. Quoted keys, anchors, and multi-
+# line scalars round-trip.
+# https://mikefarah.gitbook.io/yq/operators/multiply-merge
+#
+# This and the sibling overlay backends run in subshell scope so their
+# variable assignments do not propagate to the caller.
+overlay_with_yq() (
+    src=$1
+    tmpl=$2
+    dst=$3
+
+    fm=$(mktemp) || die "mktemp failed"
+    body=$(mktemp) || die "mktemp failed"
+    merged=$(mktemp) || die "mktemp failed"
+
+    split_frontmatter "$src" "$fm" "$body"
+    yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
+        "$fm" "$tmpl" > "$merged" \
+        || die "yq merge failed: $tmpl onto $src"
+
+    {
+        printf -- '---\n'
+        cat -- "$merged"
+        printf -- '---\n'
+        cat -- "$body"
+    } > "$dst"
+
+    rm -f -- "$fm" "$body" "$merged"
+)
+
+# Pure-POSIX awk overlay backend. Recognises top-level keys matching
+# /^[A-Za-z_][A-Za-z_0-9-]*:/ at column zero; multi-line values
+# continue until the next top-level key. YAML document markers
+# (`---`, `...`) inside the template are dropped. Quoted keys,
+# anchors, and multi-document YAML are unsupported.
+overlay_with_awk() (
+    src=$1
+    tmpl=$2
+    dst=$3
+
+    awk -v tmpl="$tmpl" '
+        BEGIN {
+            while ((getline line < tmpl) > 0) {
+                if (line == "---" || line == "...") continue
+                tmpl_fm[++tn] = line
+                if (match(line, /^[A-Za-z_][A-Za-z_0-9-]*:/)) {
+                    key = substr(line, 1, RLENGTH - 1)
+                    tmpl_keys[key] = 1
+                }
+            }
+            close(tmpl)
+            state = "pre"
+        }
+        state == "pre" && $0 == "---" { state = "fm"; print; next }
+        state == "fm"  && $0 == "---" {
+            for (i = 1; i <= tn; i++) print tmpl_fm[i]
+            state = "body"
+            print
+            next
+        }
+        state == "fm" {
+            if (match($0, /^[A-Za-z_][A-Za-z_0-9-]*:/)) {
+                key = substr($0, 1, RLENGTH - 1)
+                skip_block = (key in tmpl_keys) ? 1 : 0
+            }
+            if (!skip_block) print
+            next
+        }
+        { print }
+    ' "$src" > "$dst"
+)
+
+# Apply $2's overlay to $1's frontmatter; write the result to $3.
+# Selects the yq backend when available, otherwise the awk backend.
+# A missing $2 yields a verbatim copy of $1.
+frontmatter_overlay() (
+    src=$1
+    tmpl=$2
+    dst=$3
+
+    if [ ! -f "$tmpl" ]; then
+        cp -- "$src" "$dst"
+        return 0
+    fi
+
+    if detect_yq; then
+        overlay_with_yq "$src" "$tmpl" "$dst"
+    else
+        overlay_with_awk "$src" "$tmpl" "$dst"
+    fi
+)
+
+# Stage an overlaid agent file and mirror it to $dst. $vendor selects
+# the templates/<vendor>/ directory; $src is the source agent file;
+# $dst is the host destination. Logged as <vendor>/<name>.
+sync_agent_view() {
+    vendor=$1
+    src=$2
+    dst=$3
+    name=$(basename -- "$src" .md)
+    tmpl="$REPO_ROOT/templates/$vendor/$name.yaml"
+
+    tmp=$(mktemp) || die "mktemp failed"
+    frontmatter_overlay "$src" "$tmpl" "$tmp"
+    SYNC_TO_LABEL="$vendor/$name"
+    sync_to "$tmp" "$dst"
+    unset SYNC_TO_LABEL
+    rm -f -- "$tmp"
 }
 
 sync_agents() {
@@ -93,10 +231,9 @@ sync_agents() {
     src_dir="$REPO_ROOT/.agents/agents"
     [ -d "$src_dir" ] || die "source missing: $src_dir"
 
-    # Provision agents/ subdir for each installed agent so the per-file
-    # sync_to calls below don't trip the "parent missing" skip rule.
-    # Gating on root existence keeps us from bootstrapping a tool the
-    # user doesn't have.
+    # Pre-create agents/ in each installed host so the per-file mirrors
+    # below are not skipped on a missing parent. Gating on root
+    # existence keeps uninstalled hosts un-bootstrapped.
     for root in "$HOME/.claude" "$HOME/.copilot" "$HOME/.gemini"; do
         [ -d "$root" ] && mkdir -p "$root/agents"
     done
@@ -105,58 +242,40 @@ sync_agents() {
         [ -f "$f" ] || continue
         name=$(basename -- "$f" .md)
 
-        # Claude
-        sync_to "$f" "$HOME/.claude/agents/$name.md"
-
-        # Copilot (uses .agent.md suffix per Copilot convention)
-        sync_to "$f" "$HOME/.copilot/agents/$name.agent.md"
-
-        # Gemini
-        sync_to "$f" "$HOME/.gemini/agents/$name.md"
+        sync_agent_view ".claude"  "$f" "$HOME/.claude/agents/$name.md"
+        sync_agent_view ".copilot" "$f" "$HOME/.copilot/agents/$name.agent.md"
+        sync_agent_view ".gemini"  "$f" "$HOME/.gemini/agents/$name.md"
     done
 }
 
 sync_skills() {
     printf 'syncing skills...\n'
 
-    # Claude
     sync_to "$REPO_ROOT/.agents/skills" "$HOME/.claude/skills"
-
-    # Codex: preserve .system/ and any other Codex-managed dot entries
+    # Codex preserves .system/ and other Codex-managed dot entries.
     sync_to "$REPO_ROOT/.agents/skills" "$HOME/.codex/skills" --exclude='.*'
-
-    # Copilot
     sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills"
-
-    # Gemini
     sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills"
-
-    # OpenCode
     sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills"
 }
 
 sync_settings() {
     printf 'syncing settings...\n'
 
-    # Claude
     sync_to "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
-
-    # Gemini
     sync_to "$REPO_ROOT/.gemini/settings.json" "$HOME/.gemini/settings.json"
-    sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
+    sync_to "$REPO_ROOT/.gemini/policies"      "$HOME/.gemini/policies"
 }
 
 sync_instructions() {
     printf 'syncing instructions...\n'
 
-    # Copilot
     sync_to "$REPO_ROOT/.copilot/instructions" "$HOME/.copilot/instructions"
 }
 
 sync_hooks() {
     printf 'syncing hooks...\n'
 
-    # Claude
     sync_to "$REPO_ROOT/.claude/hooks" "$HOME/.claude/hooks"
 }
 
@@ -177,8 +296,8 @@ main() {
         shift
     done
     [ -n "$actions" ] || { usage >&2; exit 2; }
-    # Dispatch in canonical order; the membership check drops duplicates
-    # so --all combined with individual flags still runs each kind once.
+    # Dispatch in canonical order; the membership check drops
+    # duplicates when --all is combined with individual flags.
     for action in $ALL_ACTIONS; do
         case " $actions " in *" $action "*) "sync_$action" ;; esac
     done

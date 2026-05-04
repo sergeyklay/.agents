@@ -1,0 +1,7 @@
+skills:
+  - review-arch
+  - verify-spec
+disallowedTools: NotebookEdit
+model: inherit
+effort: max
+color: red
