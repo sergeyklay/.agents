@@ -1,5 +1,5 @@
 ---
-name: pr
+name: makePr
 description: "Commit staged changes, create or update a pull request"
 ---
 

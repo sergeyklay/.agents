@@ -1,4 +1,3 @@
-name: makePr
 argument-hint: PR details or branch/commit context
 agent: agent
 model: Claude Sonnet 4.6 (copilot)
