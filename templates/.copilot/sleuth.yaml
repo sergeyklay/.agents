@@ -1,0 +1,32 @@
+name: Sleuth
+argument-hint: "Given a problem statement, research the topic and explain it in detail."
+model:
+  - Claude Opus 4.7 (copilot)
+  - GPT-5.5 (copilot)
+  - Gemini 3.1 Pro (Preview) (copilot)
+tools:
+  - execute/getTerminalOutput
+  - execute/killTerminal
+  - execute/runInTerminal
+  - read/readFile
+  - edit/createDirectory
+  - edit/createFile
+  - edit/editFiles
+  - search
+  - web
+  - context7/*
+  - "com.atlassian/atlassian-mcp-server/createIssueLink"
+  - "com.atlassian/atlassian-mcp-server/createJiraIssue"
+  - "com.atlassian/atlassian-mcp-server/editJiraIssue"
+  - "com.atlassian/atlassian-mcp-server/getAccessibleAtlassianResources"
+  - "com.atlassian/atlassian-mcp-server/getConfluencePage"
+  - "com.atlassian/atlassian-mcp-server/getIssueLinkTypes"
+  - "com.atlassian/atlassian-mcp-server/getJiraIssue"
+  - "com.atlassian/atlassian-mcp-server/getJiraIssueTypeMetaWithFields"
+  - "com.atlassian/atlassian-mcp-server/getJiraProjectIssueTypesMetadata"
+  - "com.atlassian/atlassian-mcp-server/getTransitionsForJiraIssue"
+  - "com.atlassian/atlassian-mcp-server/getVisibleJiraProjects"
+  - "com.atlassian/atlassian-mcp-server/lookupJiraAccountId"
+  - "com.atlassian/atlassian-mcp-server/searchConfluenceUsingCql"
+  - "com.atlassian/atlassian-mcp-server/searchJiraIssuesUsingJql"
+  - "com.atlassian/atlassian-mcp-server/transitionJiraIssue"
