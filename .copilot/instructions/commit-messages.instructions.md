@@ -5,7 +5,7 @@ description: "Commit message formatting rules following Conventional Commits spe
 
 # Commit Message Format
 
-Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification for all commit messages.
+Follow the Conventional Commits specification for all commit messages.
 
 ## Structure
 
