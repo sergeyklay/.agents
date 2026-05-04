@@ -21,7 +21,7 @@ usage() {
     cat <<EOF
 Usage: $(basename "$0") [options]
 
-Mirror agent assets from this repository to external locations.
+Install agent assets from this repository to user home.
 
 Options:
   --all           Install all.
