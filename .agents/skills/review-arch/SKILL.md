@@ -19,7 +19,7 @@ Two rules hold on every review. Failing either one is a defect in the output, re
 
 ### Context before judgement
 
-You do not start evaluating until you understand the system's purpose, constraints, and priorities. An architecture that is correct for a startup MVP may be wrong for a regulated financial system and vice versa. If any of the context in [Step 1](#step-1-understand-context) is missing, ask for it before proceeding. Do not assume.
+You do not start evaluating until you understand the system's purpose, constraints, and priorities. An architecture that is correct for a startup MVP may be wrong for a regulated financial system and vice versa. If any of the context in "Step 1" bellow is missing, ask for it before proceeding. Do not assume.
 
 ### Evidence before findings
 
@@ -32,7 +32,7 @@ Every finding must cite specific evidence: a file path and line range, a named a
 Before evaluating anything, establish:
 
 - **Purpose and users.** What does the system do and who uses it?
-- **Business drivers.** What are the primary goals and constraints? What is the organisation willing to trade for what?
+- **Business drivers.** What are the primary goals and constraints? What is the organization willing to trade for what?
 - **Quality-attribute priorities.** Which of performance, availability, security, cost, time-to-market, maintainability matter most, and in what order?
 - **Team and operational context.** Team size, maturity, operational capability, deployment environment, timeline.
 
@@ -66,7 +66,7 @@ Apply the ATAM lens (Kazman/Klein/Clements, CMU/SEI-2000-TR-004). For each signi
 - **Risks.** Decisions whose consequences are undesirable given the quality goals. Every risk is a finding.
 - **Non-risks.** Decisions whose consequences are sound. Acknowledge them briefly so the review is balanced; do not enumerate every good decision.
 
-The full ATAM concept definitions, the ISO/IEC 25010:2023 quality-attribute vocabulary, and the utility-tree pattern for prioritising quality attributes are in [references/quality-attributes.md](references/quality-attributes.md). Read that file when the system under review has non-trivial tradeoffs or when the stated priorities are ambiguous.
+The full ATAM concept definitions, the ISO/IEC 25010:2023 quality-attribute vocabulary, and the utility-tree pattern for prioritizing quality attributes are in [references/quality-attributes.md](references/quality-attributes.md). Read that file when the system under review has non-trivial tradeoffs or when the stated priorities are ambiguous.
 
 ### Step 4: Evaluate across the five dimensions
 
@@ -74,17 +74,17 @@ Systematically work through the evaluation dimensions. Not every dimension appli
 
 1. **Alignment with business drivers.** Do the decisions support stated goals, or contradict them?
 2. **Quality-attribute tradeoffs.** Are sensitivity and tradeoff points acknowledged? Are they the right tradeoffs for the stated priorities?
-3. **Structural integrity.** Are component boundaries, data ownership, and communication patterns appropriate? Is coupling minimised at the right boundaries?
+3. **Structural integrity.** Are component boundaries, data ownership, and communication patterns appropriate? Is coupling minimized at the right boundaries?
 4. **Anti-patterns.** Does the architecture match any known structural failure mode?
 5. **Gaps and unknowns.** What is not addressed that should be? What assumptions are implicit but not validated?
 
 Each dimension is expanded in [references/evaluation-dimensions.md](references/evaluation-dimensions.md): the questions to ask, what counts as evidence, how to separate concerns that belong here from concerns that belong elsewhere. Read that file on the first review of a session. It is the working checklist.
 
-For anti-pattern detection, [references/anti-patterns.md](references/anti-patterns.md) catalogues distributed monolith, shared database, god service, synchronous call chain, missing failure handling, premature distribution, premature optimisation, resume-driven architecture, dual-write, chatty services, and more, with symptoms, the specific structural risk, and the concrete fix for each. Consult it when a decision feels wrong but you cannot yet name why.
+For anti-pattern detection, [references/anti-patterns.md](references/anti-patterns.md) catalogues distributed monolith, shared database, god service, synchronous call chain, missing failure handling, premature distribution, premature optimization, resume-driven architecture, dual-write, chatty services, and more, with symptoms, the specific structural risk, and the concrete fix for each. Consult it when a decision feels wrong but you cannot yet name why.
 
 ### Step 5: Synthesise the verdict
 
-Organise your findings using the output format below. Sort within each section by severity-descending. Be concise. Every sentence should carry information the reader can act on.
+Organize your findings using the output format below. Sort within each section by severity-descending. Be concise. Every sentence should carry information the reader can act on.
 
 Before writing, walk the [review philosophy](references/review-philosophy.md) checklist one more time: focus on decisions that matter, evaluate tradeoffs not correctness, do not nitpick, distinguish risks from preferences. It is the difference between a useful review and an opinionated one.
 
