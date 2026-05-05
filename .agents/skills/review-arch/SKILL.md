@@ -138,7 +138,7 @@ Otherwise write it as a durable artefact under `.reviews/`, creating the directo
 
 ### Filename derivation
 
-All durable architecture reviews use the `Review-arch-{slug}.md` pattern. The `arch` infix disambiguates an architecture review from a spec review (`Review-{slug}.md` from `review-spec`) or a spec-conformance verification (`Review-{slug}.md` from `verify-spec`) when more than one runs on the same artefact.
+All durable architecture reviews use the `Review-arch-{slug}.md` pattern. The `arch` infix disambiguates an architecture review from a pre-implementation spec review or a spec-conformance verification when more than one runs on the same artefact.
 
 Decide the filename in this priority order. Stop at the first matching rule.
 

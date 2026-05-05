@@ -18,8 +18,8 @@ Every invocation loads **exactly one** review skill from the table below, chosen
 | Task signal | Skill | Output artefact |
 |---|---|---|
 | Architecture review of a system, diagram, or set of design decisions, with no specification document under evaluation - "review this architecture", "evaluate this design", "audit the topology", "are these tradeoffs right" | **`review-arch`** | `.reviews/Review-arch-{slug}.md` - Context Summary / Critical Risks / Significant Concerns / Observations / Strengths / Open Questions, grounded in ATAM and ISO/IEC 25010:2023 |
-| Pre-implementation specification review - a specification document is in scope and no implementation of it exists yet - "is this spec implementable", "is the design ready to build", "what's missing from this spec", "review the spec for feature X", "is this design sound" applied to a written spec | **`review-spec`** | `.reviews/Review-{spec-name}.md` - Context Summary / Critical Issues / Significant Concerns / Observations / Strengths / Open Questions, with a `READY` / `NEEDS REVISION` / `NOT READY` recommendation, grounded in IEEE 830 / ISO/IEC 29148 requirement-quality attributes |
-| Verify an implementation against an authoritative specification - "does the code match the spec", "check spec conformance", "verify this implementation", "audit compliance between design and code", "verify spec coverage" | **`verify-spec`** | `.reviews/Review-{spec-name}.md` - per-requirement PASS/DRIFT/PARTIAL/MISSING/CONFLICT table with severity classification and a CONFORMANT / CHANGES REQUIRED / NON-CONFORMANT verdict plus remediation plan |
+| Pre-implementation specification review - a specification document is in scope and no implementation of it exists yet - "is this spec implementable", "is the design ready to build", "what's missing from this spec", "review the spec for feature X", "is this design sound" applied to a written spec | **`review-spec`** | `.reviews/Review-spec-{slug}.md` - Context Summary / Critical Issues / Significant Concerns / Observations / Strengths / Open Questions, with a `READY` / `NEEDS REVISION` / `NOT READY` recommendation, grounded in IEEE 830 / ISO/IEC 29148 requirement-quality attributes |
+| Verify an implementation against an authoritative specification - "does the code match the spec", "check spec conformance", "verify this implementation", "audit compliance between design and code", "verify spec coverage" | **`verify-spec`** | `.reviews/Review-{slug}.md` - per-requirement PASS/DRIFT/PARTIAL/MISSING/CONFLICT table with severity classification and a CONFORMANT / CHANGES REQUIRED / NON-CONFORMANT verdict plus remediation plan |
 
 ### Decision rule - NOT OPTIONAL
 
@@ -104,7 +104,13 @@ The counts and verdict are read from the loaded skill's output and normalised in
 | `observations` | Count of findings in **Observations** | Count of findings in **Observations** | Count of findings with severity **`minor`** |
 | `verdict` | `approve` iff `critical=0` AND `significant=0`; else `revise` | `approve` iff the skill's recommendation is **READY**; else `revise` (both **NEEDS REVISION** and **NOT READY** map to `revise`) | `approve` iff the skill's verdict is **CONFORMANT**; else `revise` (both **CHANGES REQUIRED** and **NON-CONFORMANT** map to `revise`) |
 
-The `path` field is the actual file path the review was written to. **When the invocation specified an explicit output path** - which orchestrators and pipelines typically do, passing their own task identifiers and iteration suffixes (e.g., `.reviews/Review-ISSUE-42-r2.md`) - report that path verbatim. **Otherwise**, report the skill's default (`.reviews/Review-arch-{slug}.md` for architecture reviews, `.reviews/Review-{spec-name}.md` for pre-implementation spec reviews and spec conformance). The skills are responsible for honouring an invoker-provided path when one is given; the agent simply reports back what was written. Do not reshape, normalise, or re-derive the path.
+The `path` field is the actual file path the review was written to. **When the invocation specified an explicit output path** - which orchestrators and pipelines typically do, passing their own task identifiers and iteration suffixes (e.g., `.reviews/Review-arch-ISSUE-42-r2.md`) - report that path verbatim. **Otherwise**, report the skill's default, which uses a different prefix per skill so the three never collide:
+
+- `review-arch` → `.reviews/Review-arch-{slug}.md`
+- `review-spec` → `.reviews/Review-spec-{slug}.md`
+- `verify-spec` → `.reviews/Review-{slug}.md`
+
+The skills are responsible for honouring an invoker-provided path when one is given; the agent simply reports back what was written. Do not reshape, normalise, or re-derive the path.
 
 Strengths, Open Questions, and PASS findings do not appear in the contract - they do not affect the gate.
 

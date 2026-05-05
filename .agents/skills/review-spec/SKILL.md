@@ -92,19 +92,21 @@ Write the full review to a markdown file under `.reviews/`, creating the directo
 
 ### Filename derivation
 
+All durable spec reviews use the `Review-spec-{slug}.md` pattern. The `spec` infix disambiguates a pre-implementation spec review from an architecture review or a spec-conformance verification when more than one runs on the same artefact.
+
 Decide the filename in this priority order. Stop at the first matching rule.
 
 1. **Invoker-provided path.** If the invocation specifies an explicit output path (typical when an orchestrator or pipeline delegates to this skill — e.g. `.reviews/Review-spec-ISSUE-42-r2.md`), use that path verbatim. Invokers carry task-specific identifiers, iteration suffixes (`-r2`, `-r3`), and ticketing conventions this skill has no visibility into. Do not second-guess.
 
-2. **Mirror the spec filename** (the default when the spec filename starts with `Spec-`). Strip the `Spec-` prefix and emit `Review-{rest}.md`. This preserves 1:1 traceability between spec and review:
-   - `.specs/Spec-6.4-Worker-Attempt-Function.md` → `.reviews/Review-6.4-Worker-Attempt-Function.md`
-   - `.specs/Spec-ABC-42.md` → `.reviews/Review-ABC-42.md`
-   - `.specs/Spec-238-codex-agent-adapter.md` → `.reviews/Review-238-codex-agent-adapter.md`
+2. **Mirror the spec filename** (the default when the spec filename starts with `Spec-`). Strip the `Spec-` prefix and emit `Review-spec-{rest}.md`. This preserves 1:1 traceability between spec and review:
+   - `.specs/Spec-6.4-Worker-Attempt-Function.md` → `.reviews/Review-spec-6.4-Worker-Attempt-Function.md`
+   - `.specs/Spec-ABC-42.md` → `.reviews/Review-spec-ABC-42.md`
+   - `.specs/Spec-238-codex-agent-adapter.md` → `.reviews/Review-spec-238-codex-agent-adapter.md`
 
 3. **Spec filename does not start with `Spec-`** — derive a slug, in this sub-priority:
-   - **Jira ID present** in the task argument (e.g. `SORT-42`, `BP-138`): `.reviews/Review-{ID}.md` (e.g. `Review-SORT-42.md`).
-   - **GitHub issue present** in the task argument (e.g. `#238`, `owner/repo#238`, full issue URL): `.reviews/Review-{N}-{kebab-case-slug}.md`, where `{slug}` is derived from the issue title (e.g. `Review-238-codex-agent-adapter.md`).
-   - **Neither ID present**: derive `{kebab-case-slug}` from the task name and emit `.reviews/Review-{slug}.md` (e.g. `Review-agent-max-turns-passthrough-leak.md`).
+   - **Jira ID present** in the task argument (e.g. `SORT-42`, `BP-138`): `.reviews/Review-spec-{ID}.md` (e.g. `Review-spec-SORT-42.md`).
+   - **GitHub issue present** in the task argument (e.g. `#238`, `owner/repo#238`, full issue URL): `.reviews/Review-spec-{N}-{kebab-case-slug}.md`, where `{slug}` is derived from the issue title (e.g. `Review-spec-238-codex-agent-adapter.md`).
+   - **Neither ID present**: derive `{kebab-case-slug}` from the task name and emit `.reviews/Review-spec-{slug}.md` (e.g. `Review-spec-agent-max-turns-passthrough-leak.md`).
 
 4. **Collision handling.** If the resolved filename already exists, append a numeric index: `.reviews/<name>-2.md`, `.reviews/<name>-3.md`, etc. Use the next available number.
 

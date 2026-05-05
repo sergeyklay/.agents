@@ -25,7 +25,7 @@ The skill is the single source of truth for *how* to evaluate the spec, classify
 - Load the `review-spec` Agent Skill before reading the specification.
 - Walk through every phase in order. Do not skip, merge, or abbreviate any phase. Each gate prevents a documented failure mode (ungrounded reviews, missed conventions, ambiguity blindness, severity inflation).
 - If the skill is unavailable in this environment, stop and report the failure. Do not improvise a replacement protocol.
-- Write the final review to `.reviews/Review-{spec-name}.md` per the skill's output rules. Print the path of the file written.
+- Write the final review to `.reviews/Review-spec-{slug}.md` per the skill's output rules. Print the path of the file written.
 
 ## Constraints
 
