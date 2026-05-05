@@ -2,11 +2,3 @@ name: makePr
 argument-hint: PR details or branch/commit context
 agent: agent
 model: Claude Sonnet 4.6 (copilot)
-tools:
-  - 'execute/getTerminalOutput'
-  - 'execute/runInTerminal'
-  - 'read/terminalSelection'
-  - 'read/terminalLastCommand'
-  - 'read/readFile'
-  - 'search'
-  - 'web/githubRepo'
