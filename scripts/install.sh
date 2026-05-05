@@ -208,15 +208,25 @@ frontmatter_overlay() (
     fi
 )
 
-# Stage an overlaid markdown file and mirror it to $dst. $kind is a
-# path under templates/ (e.g. ".copilot/agents", ".copilot/prompts");
-# templates/<kind>/<name>.yaml is the per-file frontmatter overlay,
-# and templates/<kind>/<name>.body.md, if present, is appended to the
-# body — used for host-specific footers like ${input:...} placeholders
-# whose syntax varies per host. Both overlays are independently
-# optional. $src is the source markdown; $dst is the host destination.
+# Stage an overlaid file and mirror it to $dst. $kind is a path under
+# templates/ (e.g. ".copilot/agents", ".gemini/commands"); templates/
+# <kind>/<name>.yaml is the per-file frontmatter overlay, and templates/
+# <kind>/<name>.body.md, if present, is appended to the body — used for
+# host-specific footers like ${input:...} or {{args}} whose syntax
+# varies per host. Both overlays are independently optional. Output
+# format is selected by the destination extension: .toml dispatches to
+# sync_view_toml (Gemini schema with description + prompt), anything
+# else uses sync_view_md (markdown with merged YAML frontmatter and
+# body). $src is the source markdown; $dst is the host destination.
 # Logged as <kind>/<name>.
 sync_view() {
+    case "$3" in
+        *.toml) sync_view_toml "$1" "$2" "$3" ;;
+        *)      sync_view_md   "$1" "$2" "$3" ;;
+    esac
+}
+
+sync_view_md() {
     kind=$1
     src=$2
     dst=$3
@@ -234,6 +244,58 @@ sync_view() {
     sync_to "$tmp" "$dst"
     unset SYNC_TO_LABEL
     rm -f -- "$tmp"
+}
+
+# Emit a Gemini-flavoured TOML command (schema: description + prompt)
+# from the source markdown's frontmatter and body. Description comes
+# from the merged YAML frontmatter as a single-line scalar and is
+# emitted as a TOML basic string with " and \ escaped. Prompt is body
+# plus optional .body.md suffix, emitted as a TOML literal multiline
+# string ('''...''') so that backslashes and ${...} / {{...}}
+# placeholders pass through verbatim. Source bodies must not contain
+# the literal '''; markdown uses ``` for code fences, so this holds.
+sync_view_toml() {
+    kind=$1
+    src=$2
+    dst=$3
+    name=$(basename -- "$src" .md)
+    tmpl="$REPO_ROOT/templates/$kind/$name.yaml"
+    suffix="$REPO_ROOT/templates/$kind/$name.body.md"
+
+    merged=$(mktemp) || die "mktemp failed"
+    fm=$(mktemp) || die "mktemp failed"
+    body=$(mktemp) || die "mktemp failed"
+    frontmatter_overlay "$src" "$tmpl" "$merged"
+    split_frontmatter "$merged" "$fm" "$body"
+
+    description=$(awk '
+        /^description:/ {
+            sub(/^description:[[:space:]]*/, "")
+            if (sub(/^"/, "")) sub(/"$/, "")
+            else if (sub(/^\047/, "")) sub(/\047$/, "")
+            print
+            exit
+        }
+    ' "$fm")
+    description_escaped=$(printf '%s' "$description" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
+    tmp=$(mktemp) || die "mktemp failed"
+    {
+        printf 'description = "%s"\n' "$description_escaped"
+        printf "prompt = '''\n"
+        cat -- "$body"
+        if [ -f "$suffix" ]; then
+            printf '\n'
+            cat -- "$suffix"
+        fi
+        printf "'''\n"
+    } > "$tmp"
+
+    SYNC_TO_LABEL="$kind/$name"
+    sync_to "$tmp" "$dst"
+    unset SYNC_TO_LABEL
+
+    rm -f -- "$merged" "$fm" "$body" "$tmp"
 }
 
 sync_agents() {
@@ -270,6 +332,7 @@ sync_commands() {
     # on its own root, so an uninstalled tool stays untouched.
     [ -d "$HOME/.claude" ]  && mkdir -p "$HOME/.claude/commands"
     [ -d "$HOME/.copilot" ] && mkdir -p "$HOME/.copilot/prompts"
+    [ -d "$HOME/.gemini" ]  && mkdir -p "$HOME/.gemini/commands"
 
     for f in "$src_dir/"*.md; do
         [ -f "$f" ] || continue
@@ -283,6 +346,10 @@ sync_commands() {
 
         # Copilot calls these "prompts" and uses the .prompt.md suffix.
         sync_view ".copilot/prompts" "$f" "$HOME/.copilot/prompts/$name.prompt.md"
+
+        # Gemini commands are TOML files with `description` and `prompt`
+        # keys; sync_view dispatches on the .toml extension.
+        sync_view ".gemini/commands" "$f" "$HOME/.gemini/commands/$name.toml"
     done
 }
 
