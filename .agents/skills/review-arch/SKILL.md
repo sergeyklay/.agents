@@ -3,7 +3,7 @@ name: review-arch
 description: "Conduct a principal-level architecture review of a system, specification, diagram, or set of design decisions. Use when asked to review an architecture, evaluate a design, assess coupling/cohesion, check for anti-patterns, audit system boundaries, or produce an Architecture Review Board (ARB) style verdict. Also use when someone says 'review this architecture', 'is this design sound', 'what's wrong with this topology', 'evaluate these tradeoffs', or 'audit this system'. Produces a structured verdict organized around critical risks, significant concerns, observations, strengths, and open questions, grounded in evidence from the codebase and cited against established methodology (ATAM, ISO/IEC 25010, documented anti-pattern catalogues). Do NOT use for line-by-line code review, spec-vs-implementation verification, or PR-level correctness checks."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: review
 ---
 
@@ -134,10 +134,32 @@ The full communication calibration - voice, banned phrases, precision rules, hed
 
 If the review is an inline answer to a conversational question, skip the file-write step and render directly.
 
-Otherwise write it as a durable artefact under `.reviews/`, creating the directory if it does not exist. The filename is decided in this order:
+Otherwise write it as a durable artefact under `.reviews/`, creating the directory if it does not exist. Populate the body using the structure defined in [assets/review-template.md](assets/review-template.md).
 
-1. **Invoker-provided path.** If the invocation (typically an orchestrator or pipeline delegating to this skill) specifies an explicit output path - for example, "write the review to `.reviews/Review-ISSUE-42-r2.md`" - use that path verbatim. The invoker is authoritative: pipelines carry task-specific identifiers, iteration suffixes (`-r2`, `-r3`), and ticketing conventions this skill has no visibility into. Do not second-guess the filename, do not append your own suffix, do not run collision-avoidance - the invoker tracks that in their own state.
-2. **Default (no path provided).** Write to `.reviews/Review-arch-{slug}.md` where `{slug}` is a short kebab-case slug derived from the system or task name (3-5 words maximum). If the file already exists, append a numeric index: `-2`, `-3`, etc.
+### Filename derivation
+
+All durable architecture reviews use the `Review-arch-{slug}.md` pattern. The `arch` infix disambiguates an architecture review from a spec review (`Review-{slug}.md` from `review-spec`) or a spec-conformance verification (`Review-{slug}.md` from `verify-spec`) when more than one runs on the same artefact.
+
+Decide the filename in this priority order. Stop at the first matching rule.
+
+1. **Invoker-provided path.** If the invocation specifies an explicit output path (typical when an orchestrator or pipeline delegates to this skill — for example, `.reviews/Review-arch-ISSUE-42-r2.md`), use that path verbatim. Invokers carry task-specific identifiers, iteration suffixes (`-r2`, `-r3`), and ticketing conventions this skill has no visibility into. Do not second-guess.
+
+2. **Mirror the spec filename** (when the artefact under review is a spec file whose name starts with `Spec-`). Strip the `Spec-` prefix and emit `Review-arch-{rest}.md`. This preserves 1:1 traceability between the spec and the architecture review:
+   - `.specs/Spec-6.4-Worker-Attempt-Function.md` → `.reviews/Review-arch-6.4-Worker-Attempt-Function.md`
+   - `.specs/Spec-ABC-42.md` → `.reviews/Review-arch-ABC-42.md`
+   - `.specs/Spec-238-codex-agent-adapter.md` → `.reviews/Review-arch-238-codex-agent-adapter.md`
+
+3. **No spec, or spec filename does not start with `Spec-`** — derive a slug from the input, in this sub-priority:
+   - **Jira ID present** in the task argument or referenced issue (e.g. `SORT-42`, `BP-138`): `.reviews/Review-arch-{ID}.md` (e.g. `Review-arch-SORT-42.md`).
+   - **GitHub issue present** (e.g. `#238`, `owner/repo#238`, full issue URL): `.reviews/Review-arch-{N}-{kebab-case-slug}.md`, where `{slug}` is derived from the issue title (e.g. `Review-arch-238-codex-agent-adapter.md`).
+   - **Codebase, diagram, or free-form description with no ID**: derive `{kebab-case-slug}` from the system or feature name and emit `.reviews/Review-arch-{slug}.md` (e.g. `Review-arch-payment-service.md`, `Review-arch-event-bus-topology.md`).
+
+4. **Collision handling.** If the resolved filename already exists in `.reviews/`, append a numeric index: `.reviews/<name>-2.md`, `.reviews/<name>-3.md`, etc. Use the next available number.
+
+### Title and slug style
+
+- Slugs are kebab-case ASCII, under ~60 characters.
+- The H1 in the body (`# Architecture Review: {Title}`) matches the filename slug in human-readable form (capitalization restored, hyphens replaced with spaces where natural).
 
 Print the final path after writing.
 

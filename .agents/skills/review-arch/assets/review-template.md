@@ -1,9 +1,10 @@
-# Architecture Review: [system or task name]
+# Architecture Review: {Title}
 
-- **Status:** Draft
-- **Reviewer:** [name or agent]
-- **Date:** YYYY-MM-DD
-- **Artefact under review:** [path to spec / diagram / codebase / GitHub issue]
+**Created at:** {ISO timestamp} \
+**Issue ID:** {#NNN or ABC-NNN or N/A} \
+**Feature:** {One-sentence summary of the feature or change.} \
+**Source spec:** `.specs/Spec-{TASK_NAME}.md`
+**Artefact under review:**  [`.specs/Spec-{TASK_NAME}.md` / diagram / codebase / GitHub issue]
 
 ---
 
