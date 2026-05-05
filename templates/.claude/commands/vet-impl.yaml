@@ -1,4 +1,4 @@
-name: audit-spec
+name: vet-impl
 argument-hint: Path to the specification file
 disable-model-invocation: true
 context: fork

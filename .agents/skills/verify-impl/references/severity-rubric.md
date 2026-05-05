@@ -1,6 +1,6 @@
 # Severity Rubric
 
-Use this reference at Phase 4 of `verify-spec` whenever classifying a non-PASS finding. The severity assigned drives downstream decisions: critical findings block acceptance, major findings request changes, minor findings document divergence without blocking.
+Use this reference at Phase 4 of `verify-impl` whenever classifying a non-PASS finding. The severity assigned drives downstream decisions: critical findings block acceptance, major findings request changes, minor findings document divergence without blocking.
 
 ## Contents
 

@@ -83,7 +83,7 @@ Populate the template at [assets/review-template.md](assets/review-template.md).
 - **Be direct.** State findings without social padding. Findings wrapped in qualifiers are easy to ignore — and easy to disregard.
 - **Match severity to impact.** A spec that overlooks an edge case is `Significant`. A spec that mandates a layer-boundary breach is `Critical`. Naming preferences are `Observation`. See [references/spec-anti-patterns.md](references/spec-anti-patterns.md) for the rubric.
 - **Honor existing decisions.** If the project has decided not to use library X (visible in ADRs or context files), do not recommend X. The spec must align with the project, not the reviewer's preferences.
-- **Spec-first, code-second.** This skill reviews the spec, not an implementation. If the spec is wrong, that is a finding here. If the implementation diverges from a correct spec, that is a different review (use `verify-spec`).
+- **Spec-first, code-second.** This skill reviews the spec, not an implementation. If the spec is wrong, that is a finding here. If the implementation diverges from a correct spec, that is a different review (use `verify-impl`).
 - **Calibrate with strengths.** A review that lists only what is wrong reads as adversarial and is hard to act on. Naming what the spec gets right preserves those decisions in revisions and helps the author trust the rest of the review.
 
 ## Output

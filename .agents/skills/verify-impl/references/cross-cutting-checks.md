@@ -1,6 +1,6 @@
 # Cross-Cutting Verification Dimensions
 
-Use this reference at Phase 5 of `verify-spec`. The eight dimensions below cover properties that span multiple requirements and are easy to miss in line-by-line review. For each dimension, run the check only when the project's tech stack and the spec's domain make it relevant - and skip explicitly rather than silently.
+Use this reference at Phase 5 of `verify-impl`. The eight dimensions below cover properties that span multiple requirements and are easy to miss in line-by-line review. For each dimension, run the check only when the project's tech stack and the spec's domain make it relevant - and skip explicitly rather than silently.
 
 ## Contents
 

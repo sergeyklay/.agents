@@ -1,7 +1,7 @@
 skills:
   - review-arch
   - review-spec
-  - verify-spec
+  - verify-impl
 disallowedTools: NotebookEdit
 model: opus[1m]
 effort: max

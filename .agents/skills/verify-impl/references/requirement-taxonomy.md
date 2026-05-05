@@ -1,6 +1,6 @@
 # Requirement Taxonomy
 
-Use this reference at Phase 2 of `verify-spec` for two purposes: (1) categorizing each extracted requirement, and (2) ensuring no class of requirement is overlooked. The categories are not interchangeable - a `state-transition` requirement has different verification semantics than a `naming` requirement.
+Use this reference at Phase 2 of `verify-impl` for two purposes: (1) categorizing each extracted requirement, and (2) ensuring no class of requirement is overlooked. The categories are not interchangeable - a `state-transition` requirement has different verification semantics than a `naming` requirement.
 
 ## Contents
 

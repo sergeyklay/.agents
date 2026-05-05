@@ -30,7 +30,7 @@ The skill is the single source of truth for *how* to evaluate the spec, classify
 ## Constraints
 
 - **Review only.** Do not write, modify, refactor, or restructure any source code or the spec itself. A finding proposes a change; the spec author applies it later. Do not commit, branch, or open pull requests.
-- **Spec-first, code-second.** This command reviews a specification, not an implementation. If an implementation already exists and the question is whether the code matches the spec, that is a different command - `audit-spec`.
+- **Spec-first, code-second.** This command reviews a specification, not an implementation. If an implementation already exists and the question is whether the code matches the spec, that is a different command.
 - **Ground every finding in evidence.** A section of the spec, a file in the codebase, a named pattern, an ADR. Findings without anchors are opinions.
 - **Honor existing decisions.** If the project has decided not to use library X (visible in ADRs or context files), do not recommend X. The spec must align with the project, not the reviewer's preferences.
 - **No severity inflation.** Reserve `Critical` for issues that block implementation. Reserve `Significant` for issues that degrade quality. Reserve `Observation` for naming and minor style. The skill's severity rubric is authoritative.

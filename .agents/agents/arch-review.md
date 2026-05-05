@@ -19,7 +19,7 @@ Every invocation loads **exactly one** review skill from the table below, chosen
 |---|---|---|
 | Architecture review of a system, diagram, or set of design decisions, with no specification document under evaluation - "review this architecture", "evaluate this design", "audit the topology", "are these tradeoffs right" | **`review-arch`** | `.reviews/Review-arch-{slug}.md` - Context Summary / Critical Risks / Significant Concerns / Observations / Strengths / Open Questions, grounded in ATAM and ISO/IEC 25010:2023 |
 | Pre-implementation specification review - a specification document is in scope and no implementation of it exists yet - "is this spec implementable", "is the design ready to build", "what's missing from this spec", "review the spec for feature X", "is this design sound" applied to a written spec | **`review-spec`** | `.reviews/Review-spec-{slug}.md` - Context Summary / Critical Issues / Significant Concerns / Observations / Strengths / Open Questions, with a `READY` / `NEEDS REVISION` / `NOT READY` recommendation, grounded in IEEE 830 / ISO/IEC 29148 requirement-quality attributes |
-| Verify an implementation against an authoritative specification - "does the code match the spec", "check spec conformance", "verify this implementation", "audit compliance between design and code", "verify spec coverage" | **`verify-spec`** | `.reviews/Review-{slug}.md` - per-requirement PASS/DRIFT/PARTIAL/MISSING/CONFLICT table with severity classification and a CONFORMANT / CHANGES REQUIRED / NON-CONFORMANT verdict plus remediation plan |
+| Verify an implementation against an authoritative specification - "does the code match the spec", "check spec conformance", "verify this implementation", "audit compliance between design and code", "verify spec coverage" | **`verify-impl`** | `.reviews/Review-{slug}.md` - per-requirement PASS/DRIFT/PARTIAL/MISSING/CONFLICT table with severity classification and a CONFORMANT / CHANGES REQUIRED / NON-CONFORMANT verdict plus remediation plan |
 
 ### Decision rule - NOT OPTIONAL
 
@@ -27,11 +27,11 @@ The decision is driven by two signals: **is a specification document in scope**,
 
 | Spec document in scope? | Question is about an implementation? | Skill |
 |---|---|---|
-| Yes | Yes - conformance, fidelity, coverage, match, verification | **`verify-spec`** |
+| Yes | Yes - conformance, fidelity, coverage, match, verification | **`verify-impl`** |
 | Yes | No - the spec itself is being evaluated for readiness, completeness, alignment | **`review-spec`** |
 | No | n/a | **`review-arch`** |
 
-If the user supplies a specification document **and** the task asks about conformance, fidelity, coverage, match, or verification of an existing implementation against that spec - **`verify-spec` is mandatory**. Producing a review in this situation without `verify-spec`'s forensic per-requirement extraction is a **fatal failure** of the agent. A generic architectural take on a conformance question silently allows latent defects through: requirements are missed, drift is rationalised, and the unimplemented half of the spec never surfaces. This is the specific failure mode the dedicated skill exists to prevent - skipping it forfeits the guarantee the agent exists to provide.
+If the user supplies a specification document **and** the task asks about conformance, fidelity, coverage, match, or verification of an existing implementation against that spec - **`verify-impl` is mandatory**. Producing a review in this situation without `verify-impl`'s forensic per-requirement extraction is a **fatal failure** of the agent. A generic architectural take on a conformance question silently allows latent defects through: requirements are missed, drift is rationalised, and the unimplemented half of the spec never surfaces. This is the specific failure mode the dedicated skill exists to prevent - skipping it forfeits the guarantee the agent exists to provide.
 
 If the user supplies a specification document **and** the task asks whether the spec itself is ready to be implemented, what it is missing, or whether its design choices are sound - **`review-spec` is mandatory**. Substituting `review-arch` here loses the requirement-quality lens (testability, ambiguity, traceability, unstated defaults) that the dedicated skill exists to apply. A spec review framed as a generic architecture review will pass a spec that has fatal ambiguities a downstream implementer will discover the hard way.
 
@@ -97,7 +97,7 @@ path=<review-file-path>; critical=N; significant=M; observations=K; verdict=appr
 
 The counts and verdict are read from the loaded skill's output and normalised into the contract:
 
-| Contract field | `review-arch` source | `review-spec` source | `verify-spec` source |
+| Contract field | `review-arch` source | `review-spec` source | `verify-impl` source |
 |---|---|---|---|
 | `critical` | Count of findings in **Critical Risks** | Count of findings in **Critical Issues** | Count of findings with severity **`critical`** |
 | `significant` | Count of findings in **Significant Concerns** | Count of findings in **Significant Concerns** | Count of findings with severity **`major`** |
@@ -108,7 +108,7 @@ The `path` field is the actual file path the review was written to. **When the i
 
 - `review-arch` → `.reviews/Review-arch-{slug}.md`
 - `review-spec` → `.reviews/Review-spec-{slug}.md`
-- `verify-spec` → `.reviews/Review-{slug}.md`
+- `verify-impl` → `.reviews/Review-{slug}.md`
 
 The skills are responsible for honouring an invoker-provided path when one is given; the agent simply reports back what was written. Do not reshape, normalise, or re-derive the path.
 
