@@ -1,6 +1,10 @@
 ---
 name: test-ts
 description: "Write, review, and run TypeScript/React tests for this Next.js 16 App Router project. Use whenever writing or modifying *.test.ts or *.test.tsx files, adding test coverage to components, hooks, Server Actions, or utilities, setting up Vitest configuration, or asked about testing strategy. Covers Vitest (the project's test runner, not Jest), React Testing Library v16, accessibility-first queries, user-event for interactions, AAA structure, parameterized tests with describe.each and it.each, Prisma mock patterns, next/navigation and next/headers mocking, and the RSC boundary testing strategy. Do NOT use for Playwright end-to-end tests or performance benchmarks."
+metadata:
+  author: Serghei Iakovlev
+  version: "1.0"
+  category: testing
 ---
 
 # TypeScript/React testing
@@ -19,8 +23,6 @@ npx vitest run src/components/invoice/     # run tests in a directory
 npx vitest run -t "renders the client"     # filter by test name pattern
 npx vitest run path/to/component.test.tsx  # run a single file
 ```
-
----
 
 ## Decision framework
 
@@ -41,9 +43,7 @@ Before writing any test, classify it:
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 ```
 
-Pick the lightest category that validates the behavior. Async Server Components (RSCs) cannot be rendered by RTL; see [RSC testing strategy](#rsc-testing-strategy) below and [references/rsc-patterns.md](references/rsc-patterns.md) for full mocking recipes.
-
----
+Pick the lightest category that validates the behavior. Async Server Components (RSCs) cannot be rendered by RTL; see "RSC testing strategy" below and [references/rsc-patterns.md](references/rsc-patterns.md) for full mocking recipes.
 
 ## File organization
 
@@ -51,8 +51,6 @@ Pick the lightest category that validates the behavior. Async Server Components 
 - Co-locate test files next to the source file, not in a separate `__tests__/` directory.
 - Fixture factories live in `src/__fixtures__/<domain>.fixtures.ts`.
 - All new features require tests; every bug fix requires a regression test.
-
----
 
 ## Canonical test structure
 
@@ -102,8 +100,6 @@ Structural rules:
 - `it` reads as a complete sentence: `it('disables the submit button while the mutation is pending')`.
 - Each `it` block covers one logical scenario. Split complex assertions into focused tests.
 
----
-
 ## RTL query priority
 
 Use queries in accessibility-first order:
@@ -126,8 +122,6 @@ screen.getByTestId('save-btn');
 container.querySelector('.invoice-form');
 ```
 
----
-
 ## User interactions
 
 Always use `@testing-library/user-event`, not `fireEvent`. `user-event` simulates the full browser event sequence (pointerdown, focus, input, keydown, keyup, click). `fireEvent` dispatches a single synthetic event and misses intermediary behavior that real components react to.
@@ -141,8 +135,6 @@ await user.click(screen.getByRole('button', { name: /save/i }));
 await user.keyboard('{Escape}');
 await user.clear(screen.getByRole('textbox', { name: 'Amount' }));
 ```
-
----
 
 ## Parameterized tests
 
@@ -181,8 +173,6 @@ it('handles all badge statuses', () => {
 });
 ```
 
----
-
 ## Fixture factories
 
 Build domain objects with factory functions, not inline literals. Inline literals couple tests to schema shape and break silently when fields are added or renamed.
@@ -207,8 +197,6 @@ export function buildInvoice(overrides: Partial<Invoice> = {}): Invoice {
 ```
 
 Co-locate factories with the domain type. One factory per domain entity. Name them `build<Entity>`.
-
----
 
 ## Server Action testing
 
@@ -270,8 +258,6 @@ Rules:
 
 For Prisma chains with relations, pagination, or `$transaction`, see [references/mocking-patterns.md](references/mocking-patterns.md).
 
----
-
 ## RSC testing strategy
 
 Async Server Components cannot be rendered by React Testing Library. They execute on the server and return RSC payloads; `jsdom` has no mechanism for this. Use three complementary approaches.
@@ -311,8 +297,6 @@ render(<InvoicesPage />);
 
 For mocking `next/navigation`, `next/headers`, `cookies()`, and Auth.js `auth()` in code called by RSCs or Server Actions, see [references/rsc-patterns.md](references/rsc-patterns.md).
 
----
-
 ## Hook testing
 
 Test custom hooks with `renderHook` from React Testing Library. Wrap timer-dependent behavior with `vi.useFakeTimers()`.
@@ -350,8 +334,6 @@ describe('useJobPoller', () => {
   });
 });
 ```
-
----
 
 ## Forbidden patterns
 
