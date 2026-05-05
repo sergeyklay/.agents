@@ -1,6 +1,6 @@
 ---
 name: verify-impl
-description: "Forensic audit of an implementation against its authoritative specification. Use whenever a specification document and an implementation are both in scope and the user asks any conformance question - even when not phrased explicitly: 'does this code match the spec', 'verify this implementation', 'check spec conformance', 'audit compliance between design and code', 'is the implementation faithful', 'verify spec coverage', 'audit against requirements', 'spec-vs-code'. Also triggers when a file path under `.specs/`, `specs/`, or `docs/specs/` is mentioned alongside an implementation. Do NOT use for general code review, specification design review before implementation begins, security review, or architecture review without a spec document."
+description: "Forensic audit of an implementation against its authoritative specification. Use whenever a specification document and an implementation are both in scope and the user asks any conformance question - even when not phrased explicitly: 'does this code match the spec', 'verify this implementation', 'check spec conformance', 'audit compliance between design and code', 'is the implementation faithful', 'verify spec coverage', 'audit against requirements', 'spec-vs-code'. Also triggers when a file path under `.specs/` is mentioned alongside an implementation. Do NOT use for general code review, specification design review before implementation begins, security review, or architecture review without a spec document."
 metadata:
   author: Serghei Iakovlev
   version: "3.0"
