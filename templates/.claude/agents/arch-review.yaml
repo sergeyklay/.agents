@@ -1,5 +1,6 @@
 skills:
   - review-arch
+  - review-spec
   - verify-spec
 disallowedTools: NotebookEdit
 model: opus[1m]

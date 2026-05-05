@@ -1,0 +1,3 @@
+name: vetSpec
+argument-hint: "<task-name-or-issue-ref> <path-to-spec>"
+agent: Reviewer

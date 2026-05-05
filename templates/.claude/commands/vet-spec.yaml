@@ -1,0 +1,6 @@
+name: vet-spec
+argument-hint: "<task-name-or-issue-ref> <path-to-spec>"
+arguments: [task, specPath]
+disable-model-invocation: true
+context: fork
+agent: arch-review
