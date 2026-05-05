@@ -209,16 +209,24 @@ frontmatter_overlay() (
 )
 
 # Stage an overlaid file and mirror it to $dst. $kind is a path under
-# templates/ (e.g. ".copilot/agents", ".gemini/commands"); templates/
-# <kind>/<name>.yaml is the per-file frontmatter overlay, and templates/
-# <kind>/<name>.body.md, if present, is appended to the body — used for
-# host-specific footers like ${input:...} or {{args}} whose syntax
-# varies per host. Both overlays are independently optional. Output
-# format is selected by the destination extension: .toml dispatches to
-# sync_view_toml (Gemini schema with description + prompt), anything
-# else uses sync_view_md (markdown with merged YAML frontmatter and
-# body). $src is the source markdown; $dst is the host destination.
-# Logged as <kind>/<name>.
+# templates/ (e.g. ".copilot/agents", ".gemini/commands"). For a given
+# command/agent <name>, three optional template files apply:
+#
+#   <name>.yaml         - frontmatter overlay (deep-merged into source FM)
+#   <name>.preamble.md  - inserted between frontmatter and source body
+#   <name>.body.md      - appended after the source body
+#
+# Use the preamble for host-specific top-of-prompt directives whose
+# semantics depend on position — for example, Gemini's `@<agent>`
+# mention, which only triggers deterministic subagent delegation when
+# it is the first token of the prompt. Use the suffix for host-specific
+# input syntax (`${input:...}` for Copilot, `$ARGUMENTS` for Claude,
+# `{{args}}` for Gemini). All three overlays are independently
+# optional. Output format is selected by the destination extension:
+# .toml dispatches to sync_view_toml (Gemini schema with description +
+# prompt), anything else uses sync_view_md (markdown with merged YAML
+# frontmatter and body). $src is the source markdown; $dst is the host
+# destination. Logged as <kind>/<name>.
 sync_view() {
     case "$3" in
         *.toml) sync_view_toml "$1" "$2" "$3" ;;
@@ -232,14 +240,39 @@ sync_view_md() {
     dst=$3
     name=$(basename -- "$src" .md)
     tmpl="$REPO_ROOT/templates/$kind/$name.yaml"
+    preamble="$REPO_ROOT/templates/$kind/$name.preamble.md"
     suffix="$REPO_ROOT/templates/$kind/$name.body.md"
 
     tmp=$(mktemp) || die "mktemp failed"
-    frontmatter_overlay "$src" "$tmpl" "$tmp"
+
+    if [ -f "$preamble" ]; then
+        # Preamble must sit between the frontmatter and the body, so
+        # split the overlaid file and reassemble.
+        merged=$(mktemp) || die "mktemp failed"
+        fm=$(mktemp) || die "mktemp failed"
+        body=$(mktemp) || die "mktemp failed"
+        frontmatter_overlay "$src" "$tmpl" "$merged"
+        split_frontmatter "$merged" "$fm" "$body"
+        {
+            if [ -s "$fm" ]; then
+                printf -- '---\n'
+                cat -- "$fm"
+                printf -- '---\n'
+            fi
+            cat -- "$preamble"
+            printf '\n'
+            cat -- "$body"
+        } > "$tmp"
+        rm -f -- "$merged" "$fm" "$body"
+    else
+        frontmatter_overlay "$src" "$tmpl" "$tmp"
+    fi
+
     if [ -f "$suffix" ]; then
         printf '\n' >> "$tmp"
         cat -- "$suffix" >> "$tmp"
     fi
+
     SYNC_TO_LABEL="$kind/$name"
     sync_to "$tmp" "$dst"
     unset SYNC_TO_LABEL
@@ -249,17 +282,19 @@ sync_view_md() {
 # Emit a Gemini-flavoured TOML command (schema: description + prompt)
 # from the source markdown's frontmatter and body. Description comes
 # from the merged YAML frontmatter as a single-line scalar and is
-# emitted as a TOML basic string with " and \ escaped. Prompt is body
-# plus optional .body.md suffix, emitted as a TOML literal multiline
-# string ('''...''') so that backslashes and ${...} / {{...}}
-# placeholders pass through verbatim. Source bodies must not contain
-# the literal '''; markdown uses ``` for code fences, so this holds.
+# emitted as a TOML basic string with " and \ escaped. Prompt is the
+# optional .preamble.md, then the body, then the optional .body.md
+# suffix — emitted as a TOML literal multiline string ('''...''') so
+# that backslashes and ${...} / {{...}} placeholders pass through
+# verbatim. Source bodies must not contain the literal '''; markdown
+# uses ``` for code fences, so this holds.
 sync_view_toml() {
     kind=$1
     src=$2
     dst=$3
     name=$(basename -- "$src" .md)
     tmpl="$REPO_ROOT/templates/$kind/$name.yaml"
+    preamble="$REPO_ROOT/templates/$kind/$name.preamble.md"
     suffix="$REPO_ROOT/templates/$kind/$name.body.md"
 
     merged=$(mktemp) || die "mktemp failed"
@@ -283,6 +318,10 @@ sync_view_toml() {
     {
         printf 'description = "%s"\n' "$description_escaped"
         printf "prompt = '''\n"
+        if [ -f "$preamble" ]; then
+            cat -- "$preamble"
+            printf '\n'
+        fi
         cat -- "$body"
         if [ -f "$suffix" ]; then
             printf '\n'

@@ -1,0 +1,5 @@
+name: audit-spec
+argument-hint: Path to the specification file
+disable-model-invocation: true
+context: fork
+agent: arch-review

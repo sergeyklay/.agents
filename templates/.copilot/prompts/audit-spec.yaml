@@ -1,0 +1,3 @@
+name: auditSpec
+argument-hint: Path to the specification file
+agent: Reviewer
