@@ -11,10 +11,10 @@ metadata:
 
 ## Placeholders
 
-Examples below use two placeholders. They are not literal — substitute the actual names from the project being worked on, matching the case of the surrounding context:
+Examples below use two placeholders. They are not literal - substitute the actual names from the project being worked on, matching the case of the surrounding context:
 
-- `{PROJECT}` — the project's identifier (e.g. env-var prefix, repo name). In env vars: `MYAPP_…`. In prose: `MyApp` or `myapp`.
-- `{integration}` — an external system or adapter name (e.g. `jira`, `stripe`, `claude`). In paths: `internal/tracker/jira/`. In env vars: `JIRA_…`. In type names: `JiraAdapter`.
+- `{PROJECT}` - the project's identifier (e.g. env-var prefix, repo name). In env vars: `MYAPP_…`. In prose: `MyApp` or `myapp`.
+- `{integration}` - an external system or adapter name (e.g. `jira`, `stripe`, `claude`). In paths: `internal/tracker/jira/`. In env vars: `JIRA_…`. In type names: `JiraAdapter`.
 
 `.go` files in `assets/` use concrete-looking sample names (`Adapter`, `MYAPP_INTEGRATION_TEST`, etc.) so the templates stay syntactically valid Go; comments inside each template tell you what to rename.
 
@@ -306,7 +306,7 @@ This project uses three kinds of test doubles - pick the lightest one that works
 | **Fake** | Simplified working implementation        | `internal/agent/mock` package, `internal/tracker/file` adapter |
 | **Spy**  | Records interactions for later assertion | `httptest` handler with `atomic` counters                      |
 
-**Registered fakes** (when this project provides them, e.g. `internal/agent/mock/`, `internal/tracker/file/`) are first-class adapters in the registry. Use them for orchestrator-level tests that need controllable adapter behavior — check the project layout for the actual package paths.
+**Registered fakes** (when this project provides them, e.g. `internal/agent/mock/`, `internal/tracker/file/`) are first-class adapters in the registry. Use them for orchestrator-level tests that need controllable adapter behavior - check the project layout for the actual package paths.
 
 **Mock struct pattern:**
 

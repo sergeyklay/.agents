@@ -21,7 +21,7 @@ This project stores ADRs in `docs/decisions/` following [MADR 4.0](https://adr.g
 
 Script paths in this document (e.g. `scripts/`) are resolved relative to **this** SKILL.md file, not to your current working directory. If a relative command fails to resolve, prefix it with the path your platform loaded this SKILL.md from.
 
-**Fallback.** If `python3` is not installed or the script cannot be located, every procedure in this skill provides a manual alternative — follow those steps instead.
+**Fallback.** If `python3` is not installed or the script cannot be located, every procedure in this skill provides a manual alternative - follow those steps instead.
 
 ## Running scripts bundled with this skill
 
@@ -45,7 +45,7 @@ Key rules:
 
 Two strategies depending on context:
 
-**Pre-assigned number** (passed by caller or human): Use it directly. Do not call the script — this prevents duplicate numbers when multiple ADRs are created in parallel.
+**Pre-assigned number** (passed by caller or human): Use it directly. Do not call the script - this prevents duplicate numbers when multiple ADRs are created in parallel.
 
 **No number assigned** (standalone use) `python3 scripts/next_adr_number.py` to get the next available number:
 
@@ -64,7 +64,7 @@ For batch allocation (multiple ADRs in one session) `python3 scripts/next_adr_nu
 
 Allocate all numbers upfront before creating any files. This avoids the script returning the same number twice when files haven't been written yet.
 
-By default the script resolves `docs/decisions/` relative to its own location. If your ADRs live elsewhere — or the default path does not match the layout this skill was loaded from — pass `--decision-dir <path>` to override:
+By default the script resolves `docs/decisions/` relative to its own location. If your ADRs live elsewhere - or the default path does not match the layout this skill was loaded from - pass `--decision-dir <path>` to override:
 
 ```bash
 python3 scripts/next_adr_number.py --decision-dir docs/decisions
@@ -80,7 +80,7 @@ python3 scripts/next_adr_number.py --decision-dir docs/decisions --count 3
 3. Fill in frontmatter: `status: proposed`, `date: <today>`, `decision-makers: <name>`.
 4. Write Context, Decision Drivers, Considered Options, and Decision Outcome.
 5. Remove unused optional sections (Consequences, Confirmation).
-6. Update `docs/decisions/README.md` — add a row to the table.
+6. Update `docs/decisions/README.md` - add a row to the table.
 
 ### Update ADR Status
 

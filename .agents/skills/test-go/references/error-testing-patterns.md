@@ -1,6 +1,6 @@
 # Error Testing Patterns
 
-This project defines custom error types throughout its domain layer. Each carries structured context beyond a message string. Tests must validate error semantics through these types — substitute the actual type names in your `domain` package when applying the patterns below.
+This project defines custom error types throughout its domain layer. Each carries structured context beyond a message string. Tests must validate error semantics through these types - substitute the actual type names in your `domain` package when applying the patterns below.
 
 ## Domain Error Types
 

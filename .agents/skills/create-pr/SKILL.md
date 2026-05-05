@@ -51,9 +51,9 @@ Conventional Commits format: `<type>[scope]: <description>`
 
 Use the template from `assets/pull_request_template.md`. Three sections:
 
-1. **Scope & Context** — Type, Intent, Related Issues
-2. **Reviewer Guide** — Complexity (Low/Medium/High), Entry Point, Sensitive Areas
-3. **Risk Assessment** — Breaking Changes, Migrations/State
+1. **Scope & Context** - Type, Intent, Related Issues
+2. **Reviewer Guide** - Complexity (Low/Medium/High), Entry Point, Sensitive Areas
+3. **Risk Assessment** - Breaking Changes, Migrations/State
 
 Formatting rules:
 

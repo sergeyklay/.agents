@@ -86,16 +86,16 @@ h3. Sprint progress
 
 ### Step 1: Determine delivery method and content type
 
-**Delivery method — choose one path and follow it exclusively:**
+**Delivery method - choose one path and follow it exclusively:**
 
-- **Atlassian MCP tool** (`createJiraIssue`, `editJiraIssue`) — write in Markdown. The MCP server uses the v3 API and converts the `description` field from Markdown to ADF internally. Skip Steps 2 and 3, go directly to Step 4.
-- **Jira wiki editor or REST API v2** (`text/wiki` content type) — write in Jira wiki markup. Continue with Steps 2–4.
+- **Atlassian MCP tool** (`createJiraIssue`, `editJiraIssue`) - write in Markdown. The MCP server uses the v3 API and converts the `description` field from Markdown to ADF internally. Skip Steps 2 and 3, go directly to Step 4.
+- **Jira wiki editor or REST API v2** (`text/wiki` content type) - write in Jira wiki markup. Continue with Steps 2–4.
 
-**Content type — choose the appropriate template:**
+**Content type - choose the appropriate template:**
 
-- **Bug report** — read `assets/bug-report.md`
-- **Feature request** — read `assets/feature-request.md`
-- **Free-form content** — write directly using the conversion table and examples above
+- **Bug report** - read `assets/bug-report.md`
+- **Feature request** - read `assets/feature-request.md`
+- **Free-form content** - write directly using the conversion table and examples above
 
 ### Step 2: Write content in Jira wiki markup
 

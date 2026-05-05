@@ -33,7 +33,7 @@ h3. Actual behavior
 h3. Additional context
 * *Frequency:* [Always / Sometimes / Rare]
 * *User impact:* [Critical / High / Medium / Low]
-* *Workaround:* [Yes — describe / No]
+* *Workaround:* [Yes - describe / No]
 
 h3. Screenshots
 [^screenshot.png]

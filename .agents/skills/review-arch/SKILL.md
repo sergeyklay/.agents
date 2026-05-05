@@ -116,9 +116,9 @@ Copy the structure from [assets/review-template.md](assets/review-template.md) a
 
 ### Severity criteria
 
-- **Critical risk** — Data loss, security breach, correctness failure, or the architecture cannot meet a stated requirement even with remediation. Block until addressed.
-- **Significant concern** — Will cause pain at scale or over time. Technical debt, operational burden, coupling that will make change slow, a tradeoff that looks wrong for the priorities. Address before proceeding at non-trivial scale.
-- **Observation** — Worth noting. An alternative that may be better, a minor structural issue, a monitoring point.
+- **Critical risk** - Data loss, security breach, correctness failure, or the architecture cannot meet a stated requirement even with remediation. Block until addressed.
+- **Significant concern** - Will cause pain at scale or over time. Technical debt, operational burden, coupling that will make change slow, a tradeoff that looks wrong for the priorities. Address before proceeding at non-trivial scale.
+- **Observation** - Worth noting. An alternative that may be better, a minor structural issue, a monitoring point.
 
 ### Rules
 

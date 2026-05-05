@@ -1,4 +1,4 @@
-# Context7 Triage — Library Claim Heuristic
+# Context7 Triage - Library Claim Heuristic
 
 Use this reference at Step 2a (triage decisions) and Step 2b (executing the workflow). It defines the heuristic that decides which reviewer claims require Context7 validation, the categories of claims that do not, the cautious-default rule, and the procedure when Context7 lacks coverage.
 
@@ -21,7 +21,7 @@ A reviewer comment makes a **[C7-REQUIRED]** library claim when both conditions 
 - An external SDK, CLI, or service whose behavior the code depends on.
 - A framework's version-specific behavior (routing, middleware, lifecycle hooks, runtime configuration, build pipeline).
 
-**(2) The claim is specific.** Specific claims have a falsifiable kernel — Context7 either confirms or refutes them. Indicators:
+**(2) The claim is specific.** Specific claims have a falsifiable kernel - Context7 either confirms or refutes them. Indicators:
 
 - It names a symbol (function, method, class, constant, parameter, hook, decorator, attribute).
 - It asserts version-dependent behavior (a feature was added, removed, renamed, or reshaped in version X).
@@ -31,7 +31,7 @@ A reviewer comment makes a **[C7-REQUIRED]** library claim when both conditions 
 
 If both conditions hold, the comment is **[C7-REQUIRED]**.
 
-If either condition fails — the surface is internal, or the claim is too vague to falsify — the comment does not require Context7.
+If either condition fails - the surface is internal, or the claim is too vague to falsify - the comment does not require Context7.
 
 The project's context files (AGENTS.md, CLAUDE.md) and architecture documentation may further refine "external" for the project's stack. If those documents identify specific dependencies as well-known and stable enough to skip Context7 for, treat that as an authoritative override of the default cautious posture. In the absence of such an override, the heuristic above governs.
 
@@ -52,13 +52,13 @@ The default posture is cautious. A false positive (running Context7 when it turn
 
 The asymmetry favors running it.
 
-If a claim straddles the internal / external boundary — for example, a question about how the project's own wrapper around an external library behaves — split the claim. The wrapper is internal (no Context7); the wrapped library's behavior is external (Context7 if specific).
+If a claim straddles the internal / external boundary - for example, a question about how the project's own wrapper around an external library behaves - split the claim. The wrapper is internal (no Context7); the wrapped library's behavior is external (Context7 if specific).
 
 ## Examples that look safe but are not
 
 These claims look like they might be internal but turn out to involve external library behavior. Treat each as **[C7-REQUIRED]**:
 
-- "Pass a cancellation token / context to `<wrapper>.NewWatcher()`." Whether the wrapped library accepts a cancellation primitive — and how — is library- and version-specific.
+- "Pass a cancellation token / context to `<wrapper>.NewWatcher()`." Whether the wrapped library accepts a cancellation primitive - and how - is library- and version-specific.
 - "Use the new `<hook>` API instead of the deprecated `<previous>` hook." Deprecation timing and replacement semantics differ across major versions.
 - "Use the recommended `<helper>` for composition instead of the direct constructor." Recommendations evolve; the helper may not exist in the version pinned by this project.
 - "Page results with the standard `<header>` headers." Pagination conventions vary across REST / GraphQL / SDKs and across endpoint families.
@@ -87,7 +87,7 @@ If you catch yourself thinking "I already know how this library works" about any
 
 ### `query-docs` returns irrelevant content
 
-1. Narrow the `topic` parameter — use a single specific word (`transitions`, `pagination`, `webhooks`, `migrations`, `transactions`, `routing`, `caching`, `streaming`, `auth`, `middleware`).
-2. Rephrase the query to be more specific — name the exact symbol, the exact version, the exact scenario.
+1. Narrow the `topic` parameter - use a single specific word (`transitions`, `pagination`, `webhooks`, `migrations`, `transactions`, `routing`, `caching`, `streaming`, `auth`, `middleware`).
+2. Rephrase the query to be more specific - name the exact symbol, the exact version, the exact scenario.
 3. Reduce the `tokens` budget to force higher-relevance filtering.
 4. If the best result still does not address the claim, classify the comment as **Needs Discussion** per Binding Rule 4. Do not guess.

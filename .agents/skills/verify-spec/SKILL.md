@@ -15,15 +15,11 @@ You are conducting a **forensic verification** - a systematic, evidence-based co
 
 The specification is the product of deliberate architectural work. Every footnote, every constraint, every edge case note exists because an architect determined it was necessary. A missed requirement is a latent defect. A diverged algorithm is a behavioral bug. A weakened invariant is a potential security boundary violation. Your review is the last line of defense before the implementation is accepted as correct.
 
----
-
 ## Input
 
 **Specification file:** Provided by the user as a path to a markdown file. This file is the authoritative source of truth for what the implementation must do. It may define interfaces, data structures, algorithms, state machines, error handling, concurrency contracts, and more. Your review will be measured against this document - if the code does not meet the spec, that is a failure of the implementation, not the spec.
 
 Read the specification file in its entirety before proceeding.
-
----
 
 ## Phase 0 - Build Project Context
 
@@ -37,7 +33,7 @@ Search for and read all architectural and project documentation:
 - `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`
 - `docs/` or `doc/` directories - especially architecture, design, and ADR documents
 - Build/dependency manifests (`package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`, etc.) - to understand the tech stack
-- `.env.example`, `docker-compose.yml`, `Makefile` - to understand the runtime model
+- `.env.example`, `docker-compose.yml`, `compose.yml`, `Makefile` - to understand the runtime model
 
 ### 0b. Codebase Structure
 
@@ -50,8 +46,6 @@ List the project root and key subdirectories. Identify:
 ### 0c. Code Review Standards
 
 Search for any code review instructions, standards, or guidelines the project defines (e.g., `.claude/rules/`, `REVIEW.md`, `.github/instructions/`). If found, adopt their severity classification and review dimensions.
-
----
 
 ## Phase 1 - Exhaustive Requirement Extraction
 
@@ -89,8 +83,6 @@ For each requirement you extract, record:
 
 Output this phase as a numbered requirements table before proceeding.
 
----
-
 ## Phase 2 - Implementation Discovery
 
 **Objective:** Identify every source file that constitutes the implementation of this specification.
@@ -104,8 +96,6 @@ Build a file inventory:
 
 | File | Exists | Lines | Layer/Module | Role per spec |
 |---|---|---|---|---|
-
----
 
 ## Phase 3 - Requirement-by-Requirement Verification
 
@@ -137,8 +127,6 @@ For **every single requirement** (no exceptions, no batching, no "the rest are f
 
 Output this phase as a detailed findings table with evidence.
 
----
-
 ## Phase 4 - Cross-Cutting Verification
 
 **Objective:** Check properties that span multiple requirements and are easy to miss in line-by-line review.
@@ -156,8 +144,6 @@ Based on the project's architecture documentation (from Phase 0), verify:
 
 Skip any checks that are not relevant to the project's tech stack or the spec's domain.
 
----
-
 ## Phase 5 - Self-Verification
 
 **Objective:** Reduce false positives by independently verifying each non-PASS finding.
@@ -170,8 +156,6 @@ For each finding from Phases 3-4:
 4. Assign a confidence score: `high` (0.9+), `medium` (0.7-0.9). Drop findings below 0.7 confidence.
 
 This step is mandatory. Initial code review findings have a 15-30% false positive rate. Self-verification reduces this significantly.
-
----
 
 ## Phase 6 - Verdict and Remediation
 
@@ -228,8 +212,6 @@ After all fixes:
 - [ ] Each fix satisfies its "Done when" condition
 ```
 
----
-
 ## Critical Reminders
 
 - **The spec has no filler.** Every section, note, risk mitigation, and diagram encodes requirements. Treat the entire document as load-bearing.
@@ -245,7 +227,8 @@ Write the full review to a markdown file under `.reviews/`, creating the directo
 1. **Invoker-provided path.** If the invocation (typically an orchestrator or pipeline delegating to this skill) specifies an explicit output path - for example, "write the re-review to `.reviews/Review-ISSUE-42-r2.md`" - use that path verbatim. The invoker is authoritative: pipelines carry task-specific identifiers, iteration suffixes (`-r2`, `-r3`), and ticketing conventions this skill has no visibility into. Do not second-guess the filename, do not append your own suffix, do not run collision-avoidance - the invoker tracks that in their own state.
 2. **Default (no path provided).** Derive the filename from the specification path using the pattern `Review-{spec-name}.md`. If the spec filename starts with `Spec-`, strip that prefix. Examples:
    - `.specs/Spec-6.4-Worker-Attempt-Function.md` → `.reviews/Review-6.4-Worker-Attempt-Function.md`
-   - `specs/auth-service.md` → `.reviews/Review-auth-service.md`
+   - `.specs/Spec-BP-138.md` → `.reviews/Review-BP-138.md`
+   - `.specs/auth-service.md` → `.reviews/Review-auth-service.md`
 
    If the derived file already exists, append a numeric index: `.reviews/<name>-2.md`, `.reviews/<name>-3.md`, etc. Use the next available number.
 

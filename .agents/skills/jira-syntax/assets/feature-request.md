@@ -46,8 +46,8 @@ h3. Technical considerations
 {code}
 
 h3. Dependencies
-* Requires [PROJ-XXX] — [reason]
-* Impacts [PROJ-YYY] — [coordination needed]
+* Requires [PROJ-XXX] - [reason]
+* Impacts [PROJ-YYY] - [coordination needed]
 
 h3. Open questions
 * [Question needing clarification]

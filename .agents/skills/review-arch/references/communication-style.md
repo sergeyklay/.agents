@@ -74,14 +74,14 @@ If you believe the thing is a risk, say so. If you believe it is an observation,
 These signal padding, performative modesty, or coaching voice. Cut them on sight.
 
 - "Great question!" (Not a question. And the patronising open is its own signal.)
-- "I think", "I believe", "I feel" — in a review, the text is already the reviewer's opinion. The hedge adds nothing and weakens the signal.
-- "It's easy to…" / "Simply…" / "Just…" — the word "just" is the single most common review tell. Search every draft for it. Each occurrence hides a skipped explanation or a value judgment about how hard something should feel.
-- "Of course…" / "Obviously…" / "As everyone knows…" — if the author knew it, you would not be writing this review.
-- "You might want to consider thinking about whether it could perhaps…" — the Noun Pile of Hedging. Cut.
-- "It would be nice if…" — this is a preference, not a finding. Either the nice-to-have is a real concern (restate as a finding) or it is not (cut).
-- "Perhaps you could…" — either recommend or don't; the softening helps nothing.
-- "I'm not an expert in X, but…" — if you are not qualified to evaluate X, either become qualified enough or omit the section. The disclaimer does not immunise the review from being wrong.
-- "Just my two cents" — weakens everything that follows.
+- "I think", "I believe", "I feel" - in a review, the text is already the reviewer's opinion. The hedge adds nothing and weakens the signal.
+- "It's easy to…" / "Simply…" / "Just…" - the word "just" is the single most common review tell. Search every draft for it. Each occurrence hides a skipped explanation or a value judgment about how hard something should feel.
+- "Of course…" / "Obviously…" / "As everyone knows…" - if the author knew it, you would not be writing this review.
+- "You might want to consider thinking about whether it could perhaps…" - the Noun Pile of Hedging. Cut.
+- "It would be nice if…" - this is a preference, not a finding. Either the nice-to-have is a real concern (restate as a finding) or it is not (cut).
+- "Perhaps you could…" - either recommend or don't; the softening helps nothing.
+- "I'm not an expert in X, but…" - if you are not qualified to evaluate X, either become qualified enough or omit the section. The disclaimer does not immunise the review from being wrong.
+- "Just my two cents" - weakens everything that follows.
 
 ### What replaces them
 

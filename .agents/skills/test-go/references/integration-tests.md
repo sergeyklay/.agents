@@ -15,7 +15,7 @@ internal/agent/{integration}/integration_test.go
 
 ## Environment Gates
 
-Each adapter has its own gate variable. The test must skip — not fail — when the variable is absent.
+Each adapter has its own gate variable. The test must skip - not fail - when the variable is absent.
 
 | Adapter           | Gate Variable                  | Required Env Vars                                                                                       |
 | ----------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
@@ -91,7 +91,7 @@ func integrationConfig(t *testing.T) map[string]any {
 
 - Use isolated test identifiers and workspaces
 - Clean up tracker artifacts when practical
-- Do not rely on pre-existing external state — create what you need, verify, clean up
+- Do not rely on pre-existing external state - create what you need, verify, clean up
 
 ## Adding a New Integration Test Suite
 
