@@ -1,6 +1,6 @@
 ---
 name: review-impl
-description: "Review implementation changes for a given task against architectural standards. Use when reviewing a PR, evaluating recently committed code, assessing whether implementation changes are correct and architecturally sound, or when asked to 'review my changes', 'check this implementation', 'review what I built', 'is this PR ready', or 'audit recent commits'. Accepts a task description, GitHub issue URL, or issue shorthand (owner/repo#123, #123) as input. Produces a structured review with severity-rated findings, code evidence, and a verdict (Block / Request changes / Approve with notes / Approve). Saves the review to .reviews/Review-impl-{slug}.md. Do NOT use for specification review or spec-vs-implementation verification."
+description: "Review implementation changes for a given task against architectural standards. Use when reviewing a PR, evaluating recently committed code, assessing whether implementation changes are correct and architecturally sound, or when asked to 'review my changes', 'check this implementation', 'review what I built', 'is this PR ready', or 'audit recent commits'. Accepts a task description, task tracker URL, or issue shorthand (owner/repo#123, #123) as input. Produces a structured review with severity-rated findings, code evidence, and a verdict (Block / Request changes / Approve with notes / Approve). Saves the review to .reviews/Review-impl-{slug}.md. Do NOT use for specification review or spec-vs-implementation verification."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -11,15 +11,17 @@ metadata:
 
 ## Task
 
-**What was implemented:** Provided by the user as a task description or GitHub issue reference.
+**What was implemented:** Provided by the user as a task description or task tracker reference.
 
 ## Process
 
-### Step 0: Resolve Task Reference
+### Step 1: Resolve Task Reference
 
-If the task description above contains a GitHub issue URL (e.g. `https://github.com/owner/repo/issues/123`) or a shorthand reference (e.g. `owner/repo#123` or `#123`), run `gh issue view <url-or-reference> --json title,body` to fetch the issue title and body. Use the fetched title and body as the canonical task description for all subsequent steps. If the task description is plain text, skip this step.
+- If the task description above contains a GitHub issue URL (e.g. `https://github.com/owner/repo/issues/123`) or a shorthand reference (e.g. `owner/repo#123` or `#123`), run `gh issue view <url-or-reference> --json title,body` to fetch the issue title and body. Use the fetched title and body as the canonical task description for all subsequent steps.
+- If the task description above contains a Jira issue URL (e.g. `https://yourcompany.atlassian.net/browse/PROJ-123`), use appropriate Agent Skills and/or MCP tools to fetch the issue summary and description, and use those as the canonical task description for all subsequent steps.
+- If the task description is plain text, skip this step.
 
-### Step 1: Understand the Project
+### Step 2: Understand the Project
 
 Before evaluating any changes, build a mental model of the system:
 
@@ -28,7 +30,7 @@ Before evaluating any changes, build a mental model of the system:
 3. Read build/dependency manifests to understand the tech stack.
 4. Search for code review standards or guidelines the project defines.
 
-### Step 2: Understand the Task
+### Step 3: Understand the Task
 
 Analyze the task description to determine:
 
@@ -36,7 +38,7 @@ Analyze the task description to determine:
 - Which architectural layers and modules should be affected?
 - What quality attributes matter most for this change (correctness, performance, security, maintainability)?
 
-### Step 3: Discover What Changed
+### Step 4: Discover What Changed
 
 Identify the implementation changes using all available signals:
 
@@ -49,7 +51,7 @@ Build a change inventory:
 | File | Change type | Lines changed | Module/Layer |
 |---|---|---|---|
 
-### Step 4: Evaluate the Implementation
+### Step 5: Evaluate the Implementation
 
 For each changed file, assess:
 
@@ -61,7 +63,7 @@ For each changed file, assess:
 6. **Completeness** - Is anything missing that the task implies? Migrations, config changes, documentation updates, test coverage?
 7. **Simplicity** - Is the solution the simplest that works, or is there unnecessary complexity, indirection, or premature abstraction?
 
-### Step 5: Produce the Review
+### Step 6: Produce the Review
 
 ## Output Format
 
