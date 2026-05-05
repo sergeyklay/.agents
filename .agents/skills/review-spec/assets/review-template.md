@@ -1,7 +1,7 @@
 ## Spec Review: {Title}
 
 **Created at:** {ISO timestamp} \
-**Issue ID:** {#NNN or SORT-NNN or N/A} \
+**Issue ID:** {#NNN or ABC-NNN or N/A} \
 **Feature:** {One-sentence summary of the feature or change.} \
 **Source spec:** `.specs/Spec-{TASK_NAME}.md`
 

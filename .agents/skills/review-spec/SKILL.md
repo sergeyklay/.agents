@@ -98,8 +98,7 @@ Decide the filename in this priority order. Stop at the first matching rule.
 
 2. **Mirror the spec filename** (the default when the spec filename starts with `Spec-`). Strip the `Spec-` prefix and emit `Review-{rest}.md`. This preserves 1:1 traceability between spec and review:
    - `.specs/Spec-6.4-Worker-Attempt-Function.md` → `.reviews/Review-6.4-Worker-Attempt-Function.md`
-   - `.specs/Spec-SORT-42.md` → `.reviews/Review-SORT-42.md`
-   - `.specs/Spec-BP-138.md` → `.reviews/Review-BP-138.md`
+   - `.specs/Spec-ABC-42.md` → `.reviews/Review-ABC-42.md`
    - `.specs/Spec-238-codex-agent-adapter.md` → `.reviews/Review-238-codex-agent-adapter.md`
 
 3. **Spec filename does not start with `Spec-`** — derive a slug, in this sub-priority:
