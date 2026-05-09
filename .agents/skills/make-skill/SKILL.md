@@ -1,350 +1,309 @@
 ---
 name: make-skill
-description: "Use when creating, improving, comparing, evaluating or packaging Agent Skills following the agentskills.io specification. Also use when deciding whether a skill is the right solution vs MCP servers, custom instructions, AGENTS.md, or Cursor Rules. Handles SKILL.md authoring, frontmatter optimization, description writing, progressive disclosure, cross-platform compatibility, and distribution."
+description: "Use when creating, improving, comparing, evaluating, reviewing or packaging Agent Skills following the agentskills.io specification. Also use when deciding whether a skill is the right solution vs MCP servers, custom instructions, AGENTS.md, or Cursor Rules. Handles SKILL.md authoring, frontmatter optimization, description writing, progressive disclosure, platform targeting, invocation control, vendor-specific extensions, and distribution."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "2.0"
   category: meta
 ---
 
 # Creating Agent Skills
 
-Create first-class Agent Skills that work across every major agent platform. A skill is a self-contained package of instructions, scripts, and resources that transforms a general-purpose agent into a specialized one for a specific domain or task.
+Author Agent Skills against the agentskills.io specification. A skill is a self-contained directory of instructions, scripts, and resources that turns a general-purpose agent into a specialist for one focused domain.
 
 ## Core Philosophy
 
-**The context window is a shared resource.** Your skill competes for tokens with the system prompt, conversation history, other skills' metadata, and the user's actual request. Every line must earn its place.
+**Context is shared.** Your skill's tokens compete with the system prompt, conversation history, other skills, and the user's request. Once SKILL.md loads it stays in context for the rest of the turn. Every line must earn its place.
 
-**The agent is already smart.** Only add context it doesn't have. Before writing any instruction, ask: "Does the agent really need this?" If you're explaining what a PDF is, or how a for-loop works - cut it.
+**The agent is already smart.** Add only context it lacks. Cut explanations of well-known concepts (PDFs, for-loops, HTTP, JSON) and any sentence whose absence would not confuse a competent agent.
 
-**Explain WHY, not just WHAT.** Agents respond better to reasoning than rigid commands. Instead of "ALWAYS use pdfplumber" write "Use pdfplumber for text extraction because it handles multi-column layouts and rotated text better than alternatives."
+**Reason over command.** Prefer "Use pdfplumber because it handles multi-column layouts and rotated text better than alternatives" to "ALWAYS use pdfplumber". The reasoning becomes the rubric for cases the skill did not anticipate.
+
+**Write for the agent, not the human reader.** The audience is an LLM ingesting tokens, not a person browsing a wiki page. Optimize for density and clarity, not visual aesthetics. Visual decoration — hard wraps that imply meaningful line breaks, blockquotes around examples, redundant "why this works" paragraphs after every code block, three-deep ladders of indented bullets, decorative `Tip:`/`Note:` wrappers around single sentences — costs tokens and earns nothing. See [references/writing-patterns.md](references/writing-patterns.md) § Density for dense-vs-decorative examples.
 
 ## Skill Anatomy
 
 ```plaintext
 skill-name/
-├── SKILL.md              # Required: YAML frontmatter + markdown body
-├── scripts/              # Optional: executable code (runs via bash, output enters context)
-├── references/           # Optional: docs loaded into context on demand
-└── assets/               # Optional: templates, images, schemas for output generation
+├── SKILL.md       # required: YAML frontmatter + markdown body
+├── scripts/       # optional: executable code; output enters context
+├── references/    # optional: docs loaded on demand
+└── assets/        # optional: templates, schemas, images
 ```
 
-Only SKILL.md is required. Delete unused directories.
+Only `SKILL.md` is required. Drop empty directories.
 
 ## Running scripts bundled with this skill
 
-Script paths in this document (e.g. `scripts/`) are resolved relative to **this** SKILL.md file, not to your current working directory. If a relative command fails to resolve, prefix it with the path your platform loaded this SKILL.md from.
+Script paths are resolved relative to **this** SKILL.md, not the agent's CWD. If a relative command fails, prefix it with the directory the platform loaded SKILL.md from.
 
-**Fallback.** If `python3` is not installed or the script cannot be located, every procedure in this skill provides a manual alternative - follow those steps instead.
+**Fallback.** If `python3` is missing or a script cannot be located, every procedure here ships a manual alternative — follow that instead.
 
 ## Workflow
 
-### Phase 1: Understand Intent
+### Phase 1: Scope the skill
 
-Before writing anything, clarify:
+Before writing, answer all of:
 
-1. **Is a skill the right solution?** See [references/skills-ecosystem.md](references/skills-ecosystem.md) if the task might be better solved by custom instructions, AGENTS.md, MCP servers, or Cursor Rules
-2. **What capability** does this skill provide? (one focused domain)
-3. **When should it trigger?** (user phrases, file types, task contexts)
-4. **What does the agent lack?** (only add context it doesn't already have)
-5. **What does success look like?** (output format, quality bar)
-6. **Does it need scripts, references, or just instructions?**
+1. **Is a skill the right tool?** See [references/skills-ecosystem.md](references/skills-ecosystem.md). Live data, auth, write operations on external systems → MCP. Always-on rules → custom instructions. Project facts → AGENTS.md. User-triggered templates → prompt files. Reusable procedural how-to → skill.
+2. **What single capability** does this skill provide? One focused domain. If the answer requires "and", split.
+3. **Target platform(s).** Claude Code only? Codex only? Multiple? Determines which frontmatter fields are available — see § Platform targeting below.
+4. **Invocation model.** Model-invoked (the agent decides when to load it), user-invoked only (`/skill-name` or `$skill-name`), or both? Determines how the description should be written and which fields you set — see § Invocation model below and Phase 3.
+5. **What does the agent lack?** Add only that.
+6. **What does success look like?** Output format, validation step, quality bar.
 
-If the conversation already contains a workflow to capture ("turn this into a skill"), extract: steps taken, tools used, corrections made, I/O formats observed. Confirm with the user before proceeding.
+If the user is converting an existing workflow ("turn this into a skill"), extract: steps, tools, corrections, I/O formats. Confirm the four answers above before scaffolding.
 
 ### Phase 2: Initialize
-
-Scaffold the directory:
 
 ```bash
 python3 scripts/init_skill.py <skill-name> --path <output-directory>
 ```
 
-This creates the directory structure with a SKILL.md template.
+**Fallback.** Create the directory manually with the skill name; add a `SKILL.md` from the template in Phase 3 plus only the subdirectories you actually need.
 
-**Fallback.** If the script is unavailable or `python3` is missing, create the directory manually: a folder matching the skill name containing a SKILL.md (use the template shown in Phase 3) plus any subdirectories you actually need (`scripts/`, `references/`, `assets/`).
-
-### Phase 3: Write the Frontmatter
-
-The frontmatter is the most critical part. Agents scan 100+ skill descriptions at startup to decide which to load. A poor description means the skill never triggers.
+### Phase 3: Frontmatter
 
 ```yaml
 ---
 name: skill-name
-description: "What this skill does AND when to use it. Include trigger phrases, file types, task contexts. Be slightly pushy - agents under-trigger. Max 1024 characters."
+description: "What this skill does AND when to use it. Max 1024 chars."
 ---
 ```
 
-**Name rules** (must match directory name):
+**`name` rules** (must match the parent directory):
 
-- Lowercase alphanumeric + hyphens only, 1-64 chars
+- 1-64 chars; lowercase alphanumeric and single hyphens
 - No leading/trailing/consecutive hyphens
-- Cannot contain "anthropic" or "claude"
-- Prefer gerund form: `processing-pdfs`, `analyzing-data`, `testing-code`
+- No reserved words (`anthropic`, `claude`)
+- Prefer gerund: `processing-pdfs`, `analyzing-data`, `testing-code`
 
-**Description strategy**: The description serves two purposes - skill discovery and triggering. Include both WHAT it does and WHEN to use it. Include edge cases that should trigger it:
+#### Description by invocation model
 
-```yaml
-# ✅ Do - specific, pushy, includes edge cases
-description: "Build fast dashboards to display data. Use whenever the user mentions dashboards, data visualization, metrics, charts, graphs, or wants to display any kind of data visually, even if they don't explicitly ask for a dashboard."
+The description's *purpose* changes depending on who invokes the skill. Get this wrong and the description is either dead tokens or a missed trigger.
 
-# ❌ Don't - vague, no triggers
-description: "Helps with data display."
-```
+| Invocation             | What the description is for                                                                     | Style                                                                                          |
+| ---------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Model-invoked          | The model scans descriptions of every installed skill at startup to decide which to load.       | What it does + explicit triggers ("Use when ..."). Edge cases. Slightly pushy. Negative triggers if it over-fires. |
+| User-invoked only      | The slash-command picker / `$skill` autocomplete shows it to the user. The model never sees it. | Terse, accurate label of what the skill does. No "Use when ..." triggers. No marketing copy. The user already knows what they typed. |
+| Both                   | The model decides whether to auto-load; the user can also force-invoke.                         | Triggers for the model, kept concise so the user-facing label is still readable.               |
 
-**Always write in third person.** Descriptions are injected into system prompts. "Processes PDFs" not "I can help you process PDFs."
+**Invocation is a frontmatter decision, not a guess:**
 
-**Use negative triggers to prevent over-activation.** When a skill triggers too broadly, add explicit exclusions:
+- **Claude Code.** `disable-model-invocation: true` removes the description from the model's context entirely. Triggers in it are dead tokens. `user-invocable: false` does the inverse — only the model invokes; users do not see it.
+- **OpenAI Codex.** `policy.allow_implicit_invocation: false` in `agents/openai.yaml` makes the skill explicit-only (`$skill-name`); triggers in the description are equally dead.
+- **Cross-platform.** No standard equivalent. Either rely on description-driven discovery or ask the user to invoke explicitly.
+
+**Always third person.** Descriptions are injected into the system prompt. "Processes PDFs", not "I can help you process PDFs".
+
+**No XML tags, no `[TODO`, ≤ 1024 characters.**
+
+**Negative triggers** for model-invoked skills that fire too broadly:
 
 ```yaml
 description: "Advanced statistical analysis for CSV files. Use for regression, clustering, hypothesis testing. Do NOT use for basic data exploration, formatting, or simple aggregation."
 ```
 
-Negative triggers act as a filter. Without them, a broad description pulls the skill into conversations where it adds overhead without value.
+**Debug a model-invoked description by asking the agent**: "When would you use the [skill] skill?" Compare the agent's quoted understanding with your intent.
 
-**Debug descriptions by asking the agent.** Say: "When would you use the [skill-name] skill?" The agent will quote its understanding of the scope. Adjust based on what it reports vs. what you intended.
+For the full optional-field reference (`license`, `compatibility`, `metadata`, `allowed-tools`, plus Claude Code and Codex extensions), see [references/frontmatter-fields.md](references/frontmatter-fields.md).
 
-See [references/frontmatter-fields.md](references/frontmatter-fields.md) for all optional fields: `license`, `compatibility`, `metadata`, `allowed-tools`.
+### Phase 4: Body
 
-### Phase 4: Write the Instructions Body
+The body loads when the skill activates and stays in context for the rest of the turn. Keep it under 500 lines; split surplus into reference files.
 
-The body loads when the skill triggers. Target under 500 lines - split longer content into reference files.
+**Pick a structure:**
 
-**Choose a structure** based on the skill's nature:
+| Pattern     | Best for             | Key feature                              |
+| ----------- | -------------------- | ---------------------------------------- |
+| Workflow    | Sequential processes | Step-by-step with checklist              |
+| Task-based  | Tool collections     | Grouped by operation type                |
+| Reference   | Standards/specs      | Organized by domain                      |
+| Conditional | Branching logic      | Decision tree pointing to references     |
 
-| Pattern     | Best For             | Key Feature                               |
-| ----------- | -------------------- | ----------------------------------------- |
-| Workflow    | Sequential processes | Step-by-step with checklists              |
-| Task-based  | Tool collections     | Grouped by operation type                 |
-| Reference   | Standards/specs      | Organized by domain                       |
-| Conditional | Branching logic      | Decision tree with pointers to references |
-
-See [references/writing-patterns.md](references/writing-patterns.md) for detailed examples of each pattern, degrees of freedom calibration, multishot prompting, checklists, script integration, and progressive disclosure strategies.
-
+See [references/writing-patterns.md](references/writing-patterns.md) for examples, freedom calibration, multishot prompting, checklists, script integration, and progressive disclosure.
 
 **Match freedom to fragility:**
 
-- **High freedom** (code reviews, creative tasks): Give general direction, trust the agent
-- **Medium freedom** (report generation, data analysis): Provide templates with customization guidance
-- **Low freedom** (database migrations, file format operations): Exact scripts, specific sequences
+- High freedom (creative tasks, code review): general direction, trust the agent
+- Medium freedom (reports, analysis): templates with adaptation guidance
+- Low freedom (migrations, format ops): exact scripts, exact sequence
 
 **Writing principles:**
 
-- Use imperative form: "Extract text with pdfplumber" not "You can extract text..."
-- Provide one default approach per task, mention alternatives only when context requires them
-- Include concrete input/output examples - they communicate style better than descriptions
-- Use consistent terminology throughout (pick "field" or "control", not both)
-- For workflows: provide a checklist the agent can copy and track progress
+- Imperative: "Extract text with pdfplumber", not "You can extract text"
+- One default approach per task; mention alternatives only when context demands
+- Concrete I/O examples beat verbal descriptions for teaching style
+- Consistent terminology: pick one term ("field", not "field" / "control" / "box")
+- Workflows: ship a checklist the agent can copy and tick off
 
-**Example pattern** (input/output pairs teach style effectively):
+**Feedback-loop pattern** for quality-critical operations:
 
-```markdown
-## Commit message format
-
-**Example 1:**
-Input: Added user authentication with JWT tokens
-Output:
-feat(auth): implement JWT-based authentication
-Add login endpoint and token validation middleware
-
-**Example 2:**
-Input: Fixed bug where dates displayed incorrectly
-Output:
-fix(reports): correct date formatting in timezone conversion
+```
+1. Make the change
+2. Validate: <command>
+3. On failure: read error, fix, re-validate
+4. Proceed only when validation passes
 ```
 
-**Feedback loop pattern** (critical for quality-sensitive operations):
+When a script is unavailable, give the agent a manual checklist with the same checks.
 
-```markdown
-1. Make edits to the document
-2. Validate: python3 scripts/validate.py output/
-3. If validation fails: review errors, fix, validate again
-4. If python script is unavailable, use a checklist and verify each item manually:
-   - [ ] Step 1
-   - [ ] Step 2
-   - [ ] Step 3
-5. Only proceed when validation passes
-```
+### Phase 5: Bundle resources
 
-### Phase 5: Bundle Resources
+`scripts/` — executable code for deterministic operations. Output enters context; the source does not. Handle errors with helpful messages; document inputs, outputs, exit codes; test before bundling.
 
-**scripts/** - Executable code for deterministic operations. Scripts run via bash; only their output enters the context window. This makes them ideal for validation, file processing, and data transformation.
+`references/` — markdown loaded on demand. Keep one level deep from SKILL.md (chained references read as `head -100` previews and lose information). Files over 100 lines need a table of contents. Split by domain, not by size.
 
-- Handle errors explicitly with helpful messages
-- Document inputs, outputs, and exit codes
-- Test every script before including it
-
-**references/** - Additional documentation loaded on demand. Keep one level deep from SKILL.md (no nested references - agents may only partially read deeply nested files).
-
-- For files over 100 lines, include a table of contents at the top
-- Reference clearly from SKILL.md with guidance on WHEN to read each file
-- Split by domain, not by size: `references/aws.md`, `references/gcp.md`
-
-**assets/** - Templates, images, schemas used in output generation. Not loaded for reasoning.
+`assets/` — templates, images, schemas used in output generation. Not loaded for reasoning.
 
 ### Phase 6: Validate
 
-Run validation against the agentskills.io specification:
-
 ```bash
-python3 scripts/validate_skill.py <path-to-skill-dir>
+python3 scripts/validate_skill.py <path-to-skill>
 ```
 
-This checks frontmatter fields, name format, description constraints, body size, reference depth, and directory structure.
+The validator is invocation-aware: it skips trigger-keyword warnings when `disable-model-invocation: true` is set, and warns if a user-invoked-only description still contains `Use when ...` triggers.
 
-**Fallback.** If the script is unavailable or `python3` is missing, verify manually:
+**Fallback.** Manual check:
 
-- **Frontmatter**: valid YAML with `name` (lowercase, hyphens, ≤64 chars, no reserved words like `anthropic`/`claude`) and `description` (≤1024 chars, third person, no XML tags) - full field reference in [references/frontmatter-fields.md](references/frontmatter-fields.md)
-- **Name matches directory**: directory name equals the `name` field
-- **Body size**: SKILL.md under 500 lines (split excess into `references/`)
-- **Reference depth**: files in `references/` are one level deep - no nested subfolders
-- **Path separators**: forward slashes only; no Windows-style backslashes
+- Frontmatter parses; `name` and `description` valid
+- `name` matches directory; ≤ 64 chars; lowercase + hyphens; no reserved words
+- Description ≤ 1024 chars, third person, no XML tags
+- Triggers present iff model-invoked
+- Body ≤ 500 lines
+- References one level deep
+- Forward slashes only
 
-### Phase 7: Test and Iterate
+### Phase 7: Test and iterate
 
-A skill isn't done until tested with real prompts. Start by iterating on a single challenging task until the agent succeeds, then expand to broader coverage.
+A skill is not done until tested with real prompts.
 
-**Step 1: Single-task iteration.** Pick the hardest task the skill should handle. Run it repeatedly. Fix what breaks. This gives faster signal than testing broadly from the start.
+1. **Single hard task.** Pick the worst case the skill must handle. Run it repeatedly. Fix what breaks. Faster signal than broad coverage.
+2. **Triggering tests** *(model-invoked skills only)*. 10-20 queries: should-trigger obvious, should-trigger paraphrased, should-not-trigger. Target 80-90% correct activation. Under-trigger → add phrases. Over-trigger → narrow scope or add negative triggers.
+3. **Functional tests.** Run the same request 3-5 times. Steps in correct order; tool calls succeed; output format correct. Variance reveals ambiguity.
+4. **Performance comparison.** Same task with and without the skill. Messages exchanged, tool failures, total tokens. If no metric improves, simplify or delete.
+5. **Iterate.** Read the agent's reasoning, not just the output. Wasted steps, missed instructions, confusion → tighten the relevant section. Generalize from feedback rather than overfitting.
 
-**Step 2: Triggering tests.** Write 10-20 queries across three groups:
-
-- _Should trigger (obvious):_ "Help me set up a new project"
-- _Should trigger (paraphrased):_ "Initialize a workspace for Q4"
-- _Should NOT trigger:_ "Help me write Python code"
-
-Target: 80-90% correct activation. If under-triggering, add trigger phrases. If over-triggering, add negative triggers or narrow scope.
-
-**Step 3: Functional tests.** Run the same request 3-5 times. Verify:
-
-- Steps execute in correct order
-- Tool calls succeed
-- Output matches expected format
-- Inconsistent results reveal ambiguous instructions
-
-**Step 4: Performance comparison.** Compare the same task with and without the skill. Count messages exchanged, tool call failures, and total tokens. If the skill doesn't improve at least one metric, simplify it.
-
-**Step 5: Iterate.** Read the agent's thinking process, not only the output. Is it wasting time? Missing steps? Confused by instructions? Generalize from feedback rather than overfitting to specific examples. Keep instructions lean. Remove anything that isn't pulling its weight.
-
-If automated evaluation is desired, create `evals/evals.json`:
+For automated runs, place evals in `evals/evals.json`:
 
 ```json
 {
   "skill_name": "my-skill",
   "evals": [
-    {
-      "id": 1,
-      "prompt": "User's task prompt",
-      "expected_output": "Description of expected result",
-      "assertions": ["Output includes X", "Correctly handles Y"]
-    }
+    {"id": 1, "prompt": "...", "expected_output": "...", "assertions": ["Output includes X"]}
   ]
 }
 ```
 
 ## Progressive Disclosure
 
-Skills use three-level loading to manage context efficiently:
+Skills load in three tiers:
 
-1. **Metadata** (~100 tokens): `name` + `description` loaded at startup for ALL installed skills
-2. **Instructions** (<5000 tokens recommended): Full SKILL.md body loaded when skill triggers
-3. **Resources** (as needed): Referenced files loaded only when required
+1. **Metadata** (~100 tokens): `name` + `description` for every installed skill at startup
+2. **Instructions** (< 5000 tokens recommended): SKILL.md body, loaded on activation, retained for the rest of the turn
+3. **Resources**: bundled files loaded only when referenced
 
-This means your description must work hard at ~100 tokens to win selection, while SKILL.md body should be comprehensive but efficient.
+A model-invoked description fights at ~100 tokens. A user-invoked-only description fights for slash-menu legibility. The body should be comprehensive but lean.
 
-## Cross-Platform Compatibility
+## Invocation model
 
-The SKILL.md format, frontmatter schema, and progressive disclosure pattern are universal. Write once, use everywhere. Platform-specific differences are mainly about storage locations:
+Three modes, controlled by frontmatter:
 
-| Platform | Project Scope | User Scope | Notes |
-|----------|--------------|------------|-------|
-| VS Code / GitHub Copilot | `.github/skills/` | User profile (VS Code settings) | |
-| Claude Code | `.claude/skills/` | `~/.claude/skills/` | |
-| Cursor | `.cursor/skills/` | `~/.cursor/skills/` | |
-| Gemini CLI | `.gemini/skills/` | `~/.gemini/skills/` | Also reads `.agents/skills/` with priority |
-| OpenAI Codex | `.agents/skills/` | `~/.agents/skills/` | |
-| Generic (cross-platform) | `.agents/skills/` | N/A | |
+| Mode              | Set                                                                     | Effect                                                                                            |
+| ----------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Model + user      | nothing (default)                                                       | Description in model context; appears in slash menu; both can invoke.                             |
+| User-only         | `disable-model-invocation: true` (Claude Code) / `policy.allow_implicit_invocation: false` (Codex) | Description **not** in model context; appears in slash menu; only user invokes.                   |
+| Model-only        | `user-invocable: false` (Claude Code)                                   | Description in model context; **hidden** from slash menu; only the model invokes.                 |
 
-Note: `.agents/` is emerging as a cross-platform location. OpenAI Codex uses `.agents/skills/` (not `.codex/`). Gemini CLI supports both `.gemini/skills/` and `.agents/skills/`, with `.agents/skills/` taking precedence when both exist. Google Antigravity and OpenCode also use `.agents/`.
+**Pair invocation control with the right neighboring fields:**
 
-**Precedence**: Project-level skills override personal skills, which override extension/plugin skills. Exception: Codex shows both skills in selectors when names collide (no merge/override).
+- User-only skills (`/commit`, `/deploy`, `/send-slack-message`) often want `argument-hint` for autocomplete UX, `allowed-tools` to skip permission prompts, and `arguments` for positional args.
+- Model-only skills (background context like `legacy-system-conventions`) want a strong description with triggers — that is the only thing the model will see at startup.
+- Both-mode skills should keep the description tight enough to read in the slash menu while still containing triggers.
 
-**Codex-specific**: Scans `.agents/skills/` from CWD up to repo root, then `~/.agents/skills/`, then `/etc/codex/skills/`. Invoke with `$skill-name`. Built-in `$skill-creator` and `$skill-installer` help with authoring.
+## Platform targeting
+
+The agentskills.io spec is intentionally minimal: required `name` and `description`; optional `license`, `compatibility`, `metadata`, and experimental `allowed-tools`. Every vendor ships extensions on top.
+
+**Decide once, up front: cross-platform or single-vendor?**
+
+| Choice          | When                                                                              | What to use                                                                                |
+| --------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Cross-platform  | Public distribution; team uses multiple platforms; portability is the goal.       | Spec frontmatter only; no vendor-only fields; forward slashes; bundle deps; document target in `compatibility` if narrow. |
+| Single-vendor   | The skill exists for one platform and will not be used elsewhere.                 | Use vendor extensions where they help; declare the target in `compatibility`; ignore other platforms. |
+
+**Single-vendor is not a smell.** A `commit` skill that lives only in `~/.claude/skills/` should use `disable-model-invocation: true`, `argument-hint: "[scope]"`, `allowed-tools: Bash(git:*)`, and `context: fork` if those make the skill correct on its target. Refusing those features to "stay portable" produces a worse Claude Code skill that nobody else runs anyway. The cross-platform default applies when portability is an actual goal — not as a moral rule.
+
+**Platform-specific extensions** (full reference in [references/frontmatter-fields.md](references/frontmatter-fields.md)):
+
+- **Claude Code**: `disable-model-invocation`, `user-invocable`, `argument-hint`, `arguments`, `when_to_use`, `model`, `effort`, `context`, `agent`, `hooks`, `paths`, `shell`. Slash-command invocation `/skill-name`. Live change detection on `~/.claude/skills/` and `.claude/skills/`.
+- **OpenAI Codex**: `agents/openai.yaml` for UI metadata and `policy.allow_implicit_invocation`. Invocation `$skill-name`. Scans `.agents/skills/` from CWD upward, then `~/.agents/skills/`.
+- **Cursor**: `.cursor/skills/`; spec-compliant frontmatter only.
+- **Gemini CLI**: prefers `.agents/skills/` over `.gemini/skills/` when both exist.
+- **VS Code / Copilot**: `.github/skills/`; spec-compliant frontmatter only.
+
+**Storage matrix:**
+
+| Platform                | Project           | User                  |
+| ----------------------- | ----------------- | --------------------- |
+| Claude Code             | `.claude/skills/` | `~/.claude/skills/`   |
+| Cursor                  | `.cursor/skills/` | `~/.cursor/skills/`   |
+| Gemini CLI              | `.gemini/skills/` | `~/.gemini/skills/`   |
+| OpenAI Codex            | `.agents/skills/` | `~/.agents/skills/`   |
+| VS Code / Copilot       | `.github/skills/` | VS Code profile       |
+| Cross-platform fallback | `.agents/skills/` | n/a                   |
+
+`.agents/` is the emerging cross-platform convention. Codex uses it natively; Gemini reads it preferentially; Antigravity and OpenCode adopt it.
+
+**Precedence**: project > personal > extension/plugin. (Codex shows colliding skills in the selector instead of merging.)
 
 ## Distribution
 
-**Via skills.sh** (Vercel's package manager):
+- **skills.sh** (Vercel package manager): `npx skills add <owner>/<repo>` or `... --skill "<name>"` for a multi-skill repo. Publish to GitHub in standard layout.
+- **`.skill` package** (Claude.ai-specific): zip archive with `.skill` extension; upload via Settings → Features.
+- **Claude Code Plugin marketplace**: `/plugin marketplace add <owner>/<repo>`.
 
-```bash
-# Users install with:
-npx skills add <owner>/<repo>
-# Or specific skill from a multi-skill repo:
-npx skills add <owner>/<repo> --skill "skill-name"
-```
+## Reviewing an existing skill
 
-To make a skill distributable via https://skills.sh, publish it to a GitHub repository following the standard directory structure. For details see: https://skills.sh/docs/cli
+When the user asks to review or improve a skill, run all of these in addition to mechanical validation. Each step has a fix path, not just a diagnosis.
 
-**Via .skill package** (Claude-specific): A `.skill` file is a zip archive with `.skill` extension containing the skill directory. Users upload it in Claude.ai Settings > Features.
+1. **Parse intent.** Read the frontmatter for `disable-model-invocation`, `user-invocable`, and (for Codex) `agents/openai.yaml` `policy.allow_implicit_invocation`. The intended invocation model determines what counts as a problem in the description and elsewhere.
+2. **Description audit.**
+   - User-invoked only? Flag any "Use when ..." trigger phrases as dead tokens — propose a terse user-facing label instead.
+   - Model-invoked? Flag missing triggers, vagueness, first/second person, marketing fluff that crowds out actionable triggers, and over-broad scope without negative triggers.
+3. **Platform audit.** Confirm whether the skill is single-vendor or cross-platform.
+   - Single-vendor skill missing vendor extensions that would help (e.g., a Claude-only `commit` skill without `disable-model-invocation` or `argument-hint`)? Propose adding them.
+   - Cross-platform skill using vendor-only fields? Propose removing them or splitting the skill.
+4. **Density audit.** Scan the body and references for the patterns in [references/writing-patterns.md](references/writing-patterns.md) § Density: hard wraps that imply meaning, blockquote-wrapped examples, ladders of nested indented bullets, "why this works" paragraphs after every example, redundant restatements of a rule already stated by a code block, single-sentence `Tip:`/`Note:` wrappers, decorative external-spec citations, intra-document anchor links (use plain "see § X below" instead), bare citation URLs that the agent will never fetch. Flag and propose tighter alternatives. Lead by example: do not write the review report itself in the style being criticized.
+5. **Structural audit.** Run `scripts/validate_skill.py` for body length, reference depth, forward slashes, frontmatter validity.
 
-**Via Claude Code Plugin marketplace**:
-```bash
-/plugin marketplace add <owner>/<repo>
-```
+The order matters. Step 1 reframes Step 2; without it, you will give bad advice about the description.
 
-## Platform Extensions
+## Anti-patterns
 
-**OpenAI Codex** supports an optional `agents/openai.yaml` alongside SKILL.md for UI metadata and invocation control:
+**Critical** (skill never activates correctly):
 
-```yaml
-interface:
-  display_name: "My Skill"
-  short_description: "User-facing description"
-  icon_small: "./assets/icon.svg"
-  brand_color: "#3B82F6"
-policy:
-  allow_implicit_invocation: false  # require explicit $skill invocation
-dependencies:
-  tools:
-    - type: "mcp"
-      value: "serverName"
-      description: "Required MCP server"
-```
+- **Workflow summary in `description`.** The model may skip the body if the description tells the whole story. Description triggers; body teaches. Bad: `"Analyzes git diff, identifies the change type, generates a commit message"`. Good: `"Use when generating commit messages. Handles conventional commits, scope detection, breaking changes."`
+- **Vague description.** "Helps with documents" matches nothing.
+- **Monolithic skill.** "Handles all dev workflows" loads slowly and triggers imprecisely. Split.
 
-This file is Codex-specific and safely ignored by other platforms.
+**High impact** (degrade performance):
 
-## Anti-Patterns
+- **README-style content.** Skills teach how, not what. Procedures with steps, not narrated context.
+- **External fetch dependencies.** Network downloads at activation time are fragile. Bundle.
+- **Command lists without verification.** Add explicit checks and failure handling.
+- **First/second person in description.** "I can help" / "You can use" reads wrong from a system prompt.
+- **Cross-platform dogma on a single-vendor skill.** Refusing `disable-model-invocation`, `allowed-tools`, or `argument-hint` on a skill that lives only in `~/.claude/skills/` is missed value. Portability is a goal, not a moral rule.
+- **"Use when ..." triggers in a user-invoked-only description.** When `disable-model-invocation: true` (Claude Code) or `allow_implicit_invocation: false` (Codex), the model never reads the description. The triggers consume the user-facing label budget for nothing.
 
-**Critical (cause skill activation failures):**
+**Medium impact** (token bloat, lower quality):
 
-- **Workflow summary in the description** - If the description contains the procedure, the agent may skip the skill body entirely. Description triggers; body teaches.
-
-```yaml
-# BAD - this IS the workflow, agent may skip the body
-description: "Analyzes git diff, identifies the change type, generates a commit message"
-
-# GOOD - this tells WHEN to activate and WHAT capabilities exist
-description: "Use when generating commit messages. Handles conventional commits, scope detection, breaking changes."
-```
-
-- **Vague descriptions** - No trigger phrases means no activation. "Helps with documents" matches nothing.
-
-- **Monolithic skills** - A single skill covering "all development workflows" loads slowly and activates imprecisely. Split broad capabilities into focused skills (`run-tests`, `create-migration`, `deploy-staging`).
-
-**High impact (degrade agent performance):**
-
-- **README-style documentation** - Skills explain WHAT things are. Agents need HOW to do things. Write procedures with steps, not explanations with context.
-
-- **External dependencies** - Skills requiring `git clone` or network downloads before working are fragile. Bundle what you need in the skill directory.
-
-- **Command lists without verification** - Flat command lists without conditional logic or error handling produce brittle workflows. Include verification steps and failure handling.
-
-- **First/second person in descriptions** - Descriptions inject into system prompts (third person). "I can help you..." breaks voice. Use "Handles...", "Use when...".
-
-**Medium impact (reduce quality):**
-
-- **Verbose explanations** of concepts the agent already knows
-- **Multiple equivalent options** without a clear default
-- **Windows-style paths** (backslashes) - always use forward slashes
-- **Deeply nested references** (SKILL.md → advanced.md → details.md) - keep one level deep
-- **Time-sensitive information** ("After August 2025, use the new API")
-- **Inconsistent terminology** (mixing "field"/"box"/"element"/"control")
-- **Heavy-handed MUSTs without reasoning** - explain why, let the agent understand
+- **User-guide aesthetics.** Hard wraps that imply meaningful line breaks where there are none, blockquotes around examples (use code fences), three-deep ladders of indented bullets where one tight sentence suffices, "why this works" paragraphs after every example, restating a rule in prose immediately after a code block already showing it, `Tip:`/`Note:`/`Important:` wrappers around single sentences. The reader is a model; visual decoration costs tokens with no benefit. See [references/writing-patterns.md](references/writing-patterns.md) § Density.
+- **Decorative links to external specs and intra-document anchors.** `[agentskills.io spec](https://agentskills.io/specification)`, `[Platform targeting](#platform-targeting)`, bare citation URLs at the end of a sentence — these are documentation aesthetics. The agent does not click during normal execution; the whole SKILL.md is already in context. Anchor links break on heading rename and add nothing the model could not get from "see § Platform targeting below". External URLs are noise unless the agent is genuinely expected to `WebFetch` them as part of the procedure (rare). Functional links to bundled files — `[references/foo.md](references/foo.md)` — are different: the path is the operand the agent passes to Read/bash, the link text gives loading context. Keep those.
+- Verbose explanations of well-known concepts.
+- Multiple equivalent options without a default.
+- Windows backslash paths.
+- Deep reference chains (SKILL.md → a.md → b.md).
+- Time-sensitive notes ("After August 2025 ..."). Move to an "Old patterns" section.
+- Inconsistent terminology.
+- Heavy `MUST`s without reasoning.

@@ -1,9 +1,10 @@
 # Writing Patterns for Skill Instructions
 
-Concrete patterns for structuring skill instructions. Each pattern includes when to use it, a complete example, and common pitfalls.
+Concrete patterns for structuring skill instructions. Each pattern includes when to use it and a complete example.
 
 ## Contents
 
+- Density: write for the agent, not the reader
 - Degrees of freedom
 - Template pattern
 - Examples (multishot) pattern
@@ -15,11 +16,59 @@ Concrete patterns for structuring skill instructions. Each pattern includes when
 - Cross-references without force-loading
 - MCP tool references
 
+## Density: Write for the Agent, Not the Reader
+
+Skills are read by an LLM ingesting tokens, not by a person browsing a wiki page. Every line stays in context for the rest of the turn. Optimize for density and clarity, not visual aesthetics.
+
+**Decoration that costs tokens and earns nothing:**
+
+- Hard wraps inside a single logical paragraph that imply meaningful line breaks where there are none.
+- Blockquote framing (`> ...`) around examples — use a code fence; the agent does not benefit from a `>` border.
+- "Why this works" / "Why X here" paragraphs after every example. State the rule once with its reason, then trust the agent.
+- Three-deep ladders of indented bullets where a tight sentence does the job.
+- Restating a rule in prose immediately after a code block already showing it.
+- `Tip:` / `Note:` / `Important:` wrappers around single sentences — just write the sentence.
+- Decorative section dividers, repeated bold-headers-followed-by-the-same-text-as-prose, or "Step 1: …" preambles when the steps are already a numbered list.
+
+**Decorative (~85 tokens):**
+
+~~~markdown
+## Database migrations
+
+> **Important:** database migrations are fragile.
+
+Run exactly this script:
+
+```
+python scripts/migrate.py --verify --backup
+```
+
+Why this works: `--verify` prevents destructive changes without confirmation,
+and `--backup` creates a rollback point. These are critical safety flags
+that exist for important safety reasons.
+~~~
+
+**Dense (~35 tokens), same information:**
+
+~~~markdown
+## Database migrations
+
+```
+python scripts/migrate.py --verify --backup
+```
+
+`--verify` blocks destructive changes; `--backup` creates a rollback point. Do not drop these flags.
+~~~
+
+Density is not cryptic. Use headings, tables, code fences, and short paragraphs to give the agent navigation. Cut visual fluff that exists only because the page would feel "empty" without it.
+
+When you must explain *why* a rule exists (the reasoning helps the agent generalize to cases the skill did not anticipate), inline it in the same sentence as the rule. One sentence with reasoning beats a separate "rationale" paragraph that the model has to stitch back to the rule it justifies.
+
 ## Degrees of Freedom
 
 Match specificity to how fragile and variable the task is.
 
-**High freedom** - multiple valid approaches, context-dependent:
+**High freedom** — multiple valid approaches, context-dependent. Use when context drives the right answer (code review, creative writing, exploratory analysis):
 
 ```markdown
 ## Code review process
@@ -30,45 +79,33 @@ Match specificity to how fragile and variable the task is.
 4. Verify adherence to project conventions
 ```
 
-Why high freedom works here: code reviews depend heavily on context. The agent needs latitude to adapt its approach based on what it finds.
-
-**Medium freedom** - preferred pattern exists, some variation acceptable:
+**Medium freedom** — a preferred pattern exists, some variation acceptable:
 
 ```markdown
 ## Generate report
 
-Use this template and customize based on the data:
+Use this template, adapt sections to the data:
 
 # [Analysis Title]
-
 ## Executive summary
-
 [One-paragraph overview]
-
 ## Key findings
-
 [Adapt sections based on what you discover]
-
 ## Recommendations
-
-[Tailor to the specific context]
+[Tailor to context]
 ```
 
-**Low freedom** - fragile operations, consistency critical:
+**Low freedom** — fragile operations, consistency critical (migrations, format ops, anything where wrong = data loss):
 
 ```markdown
 ## Database migration
 
-Run exactly this script:
 python scripts/migrate.py --verify --backup
-Do not modify the command or add additional flags.
-The --verify flag prevents destructive changes without confirmation.
-The --backup flag creates a rollback point before any schema changes.
+
+Do not modify the command. `--verify` blocks destructive changes without confirmation; `--backup` creates a rollback point.
 ```
 
-Why low freedom works here: database migrations can cause data loss. The specific flags exist for safety, and skipping them creates real risk.
-
-**Choosing the right level**: If getting it wrong causes data loss or broken output, use low freedom. If the agent's creativity would improve the result, use high freedom. When in doubt, start with medium freedom and adjust based on testing.
+If wrong = data loss or broken output, use low freedom. If creativity improves the result, use high freedom. Default to medium.
 
 ## Template Pattern
 
@@ -147,7 +184,7 @@ chore: update dependencies and refactor error handling
 Follow this pattern: type(scope): brief description, then detailed explanation.
 ```
 
-**Tip**: Include at least one edge case example. If your skill handles "normal" cases well but fails on edge cases, add examples specifically for those.
+Include at least one edge-case example. Skills that handle "normal" cases well still fail on edges; show one explicitly.
 
 ## Workflow Pattern with Checklists
 
@@ -226,11 +263,11 @@ Each guide covers authentication, resource provisioning,
 deployment commands, and rollback procedures.
 ```
 
-The agent reads only the relevant reference file, keeping context usage minimal.
+The agent reads only the relevant reference file.
 
 ## Feedback Loop Pattern
 
-For quality-critical operations, implement a validate-fix-repeat cycle. This pattern catches errors early and prevents cascading failures.
+Validate-fix-repeat cycle for quality-critical operations.
 
 ```markdown
 ## Document editing process
@@ -311,12 +348,14 @@ Scripts run via bash without loading into context. Only their output enters the 
 
 ### Making script commands portable across agents
 
-Agents run Bash from the user's working directory - typically the project root - not from the skill directory. A bare `python scripts/foo.py` in a SKILL.md stored at `.claude/skills/my-skill/` fails to resolve for Copilot, Codex, Cursor, or Gemini users, because their platforms store the same skill at a different path (`.github/skills/...`, `.agents/skills/...`, `.cursor/skills/...`, `.gemini/skills/...`).
+Agents run Bash from the user's working directory — typically the project root — not from the skill directory. A bare `python scripts/foo.py` in a SKILL.md stored at `.claude/skills/my-skill/` fails to resolve for Copilot, Codex, Cursor, or Gemini users, because each platform stores the same skill at a different path (`.github/skills/...`, `.agents/skills/...`, `.cursor/skills/...`, `.gemini/skills/...`).
 
-Two rules for cross-platform script commands:
+For **cross-platform** skills, two rules:
 
-1. **Declare the path convention once**, near the top of SKILL.md, under a heading like `## Running scripts bundled with this skill`. State that script paths are relative to SKILL.md and list the common storage locations. See the parent `make-skill` skill's SKILL.md for the canonical wording.
-2. **Always pair each script command with a manual fallback.** If `python3` is missing or the script cannot be found, the agent must still be able to complete the task. The fallback lives next to each script reference, not only in one central place - agents that have jumped to a specific section may miss a preamble-only fallback.
+1. Declare the path convention once near the top of SKILL.md (`## Running scripts bundled with this skill`): paths are relative to SKILL.md, list the common storage locations.
+2. Pair every script command with a manual fallback at the same site. Fallbacks at the top of the file alone are missed when the agent jumps directly to a section.
+
+For **single-vendor** skills, prefer the platform's own absolute-path variable. Claude Code substitutes `${CLAUDE_SKILL_DIR}` to the skill's directory; use `python3 ${CLAUDE_SKILL_DIR}/scripts/foo.py` and stop worrying about CWD. Other platforms have analogues; check their docs before assuming the cross-platform rules apply.
 
 ### Execute pattern (most common)
 

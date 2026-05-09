@@ -506,6 +506,22 @@ def _check_name(fm: dict[str, Any], skill_dir: Path) -> Iterable[Issue]:
         )
 
 
+def _is_user_invoked_only(fm: dict[str, Any]) -> bool:
+    """Detect frontmatter that prevents model invocation.
+
+    Recognizes Claude Code's `disable-model-invocation: true`.
+    Codex's `policy.allow_implicit_invocation: false` lives in a sibling
+    `agents/openai.yaml`, not in the SKILL.md frontmatter, so it is not
+    detected here.
+    """
+    val = fm.get("disable-model-invocation")
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.strip().lower() in ("true", "yes", "1")
+    return False
+
+
 def _check_description(fm: dict[str, Any]) -> Iterable[Issue]:
     raw = fm.get("description")
     if raw is None:
@@ -537,12 +553,26 @@ def _check_description(fm: dict[str, Any]) -> Iterable[Issue]:
 
     desc_lower = desc.lower()
     has_trigger = any(kw in desc_lower for kw in TRIGGER_KEYWORDS)
-    if not has_trigger and len(desc) < 200:
-        yield Issue(
-            Severity.WARN,
-            "description may lack trigger phrases - "
-            "agents need explicit guidance on when to activate",
-        )
+    user_only = _is_user_invoked_only(fm)
+
+    if user_only:
+        # Triggers are noise here: the model never reads this description.
+        if has_trigger:
+            yield Issue(
+                Severity.WARN,
+                "description contains 'Use when ...' style triggers but "
+                "disable-model-invocation: true is set - the model never "
+                "reads this description; triggers consume the user-facing "
+                "label budget for nothing",
+            )
+    else:
+        # Model-invoked: short descriptions without triggers will under-fire.
+        if not has_trigger and len(desc) < 200:
+            yield Issue(
+                Severity.WARN,
+                "description may lack trigger phrases - "
+                "agents need explicit guidance on when to activate",
+            )
 
 
 def _check_compatibility(fm: dict[str, Any]) -> Iterable[Issue]:
