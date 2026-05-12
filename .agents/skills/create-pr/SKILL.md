@@ -3,7 +3,7 @@ name: create-pr
 description: "Use when asked to create a pull request, open a PR, or submit changes for review. Handles branch verification, change analysis, title and description generation, and gh pr create. Do NOT use for committing, pushing without PR, or reviewing existing PRs"
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: vcs
 ---
 
@@ -59,7 +59,8 @@ Formatting rules:
 
 - No fluff intros ("This PR updates...")
 - Filenames in backticks: \`path/to/file.ts\`
-- Use " - " (hyphen), not "—" (em-dash)
+- Use " - " (hyphen), not "-" (em-dash)
+- No hard-wrap in body prose: GitHub renders soft line breaks as `<br>` in PR descriptions, so wrapping at ~80 chars creates visible artificial breaks. Let paragraphs flow; break only for new paragraphs, list items, or code blocks
 - All sections required, sub-sections only when relevant data exists
 
 Do not reference `docs/architecture.md`, `docs/decisions/`, section numbers, or ADR numbers in pull request descriptions. Those belong in specs and plans, not in the git history.
