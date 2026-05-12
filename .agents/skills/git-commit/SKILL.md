@@ -3,7 +3,7 @@ name: git-commit
 description: "Use when asked to commit, save, or persist changes to Git. Handles atomic commits, branch safety, Conventional Commits format, and project style matching. Do NOT use for pushing, creating PRs, or branch management beyond safety checks."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: vcs
 ---
 
@@ -82,7 +82,7 @@ For multi-line messages:
 git commit -m "<subject>" -m "<body>"
 ```
 
-Subject line: imperative mood, under 72 chars, no period, English only. Body (if needed): wrap at 72 chars, explain what and why.
+Subject line: imperative mood, under 72 chars, no period, English only. Body (if needed): wrap at 72 chars, explain what and why. The 72-char body wrap is a commit-message convention - `git log` and most CLI tooling render bodies as plain text in a narrow column. It does not generalize to PR descriptions (where GitHub renders soft line breaks as `<br>` and wrapping creates visible artificial breaks), CHANGELOG prose (which follows that file's own readability conventions, not this one), or other Markdown rendered as HTML.
 
 Do not reference `docs/architecture.md`, `docs/decisions/`, section numbers, or ADR numbers in commit messages. Those belong in specs and plans, not in the git history.
 
