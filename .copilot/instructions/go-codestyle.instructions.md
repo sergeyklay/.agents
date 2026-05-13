@@ -6,7 +6,7 @@ applyTo: "**/*.go"
 
 # Go Code Style
 
-Companion to [Go Documentation and Comments](go-documentation.instructions.md). This file covers naming, comment structure, control flow, and Go idioms. For godoc and exported symbol comments see that file; for structured logging see [Go Structured Logging](go-logging.instructions.md).
+This file covers naming, comment structure, control flow, and Go idioms. For godoc and exported symbol comments see that file; for structured logging see Go Structured Logging instructions.
 
 ## Inline Comment Structure
 
