@@ -1,58 +1,13 @@
 #!/usr/bin/env node
-/**
- * analyze-chat-dump — Reports statistics for a VS Code Copilot Chat export.
- *
- * Reads a chat-session JSON dump and prints:
- *   - Session:    model(s), request count, slash command, task reference
- *   - Timeline:   start/end time (local), total duration, confirmation wait
- *   - Tokens:     input (prompt) and output (completion) totals
- *   - Subagents:  per-agent invocation counts
- *   - Tools:      per-tool invocation counts
- *
- * Usage:  node scripts/analyze-chat-dump.mjs <path-to-chat.json>
- *
- * Color output is enabled automatically when stdout is a TTY; it honors the
- * NO_COLOR and FORCE_COLOR environment variables.
- *
- * Schema references:
- *   - VS Code core: microsoft/vscode
- *     src/vs/workbench/contrib/chat/common/model/chatModel.ts
- *     ISerializableChatRequestData / ISerializableChatResponseData
- *     (timestamp, elapsedMs, timeSpentWaiting, completionTokens, message.parts).
- *   - Copilot Chat: microsoft/vscode-copilot-chat
- *     src/extension/intents/node/toolCallingLoop.ts — writes
- *     result.metadata.promptTokens / outputTokens via
- *     AnthropicTokenUsageMetadata; present only for Anthropic-family models,
- *     and reflects the LAST round of the request (not cumulative).
- *
- * Consequence: we report completionTokens as the authoritative output total
- * (accumulated by chatModel.ts across all tool-call rounds) and promptTokens
- * from result.metadata when available (Claude etc.), flagging partial
- * coverage when some requests used a non-Anthropic model like GPT-5.
- *
- * Per-subagent tokens: as of April 2026 the Copilot subagent serializer
- * (microsoft/vscode `searchSubagentTool.ts` / `executionSubagentToolCallingLoop.ts`)
- * does NOT persist token usage on the subagent record. The subagent's cost is
- * rolled into the request-level completionTokens accumulator. We still scan
- * for plausible token fields defensively so the script surfaces them for
- * free if the schema gains them later.
- */
+// Usage and cost report for a VS Code Copilot Chat export.
 import { readFile } from 'node:fs/promises';
 import { basename, extname } from 'node:path';
 import { parseArgs } from 'node:util';
-
-// ---------------------------------------------------------------------------
-// Logger — errors → stderr, output → stdout
-// ---------------------------------------------------------------------------
 
 const log = {
   info: (...a) => process.stdout.write(a.join(' ') + '\n'),
   error: (...a) => process.stderr.write('error: ' + a.join(' ') + '\n'),
 };
-
-// ---------------------------------------------------------------------------
-// CLI
-// ---------------------------------------------------------------------------
 
 const USAGE = 'Usage: node scripts/analyze-chat-dump.mjs <path-to-chat.json>';
 
@@ -89,66 +44,43 @@ function parseCliArgs() {
   return inputPath;
 }
 
-// ---------------------------------------------------------------------------
-// Color — auto-enable on TTY, respect NO_COLOR / FORCE_COLOR
-// ---------------------------------------------------------------------------
-
-// NO_COLOR always wins (https://no-color.org/). Otherwise FORCE_COLOR forces
-// colors on; otherwise auto-detect via stdout TTY.
-const SUPPORTS_COLOR = process.env.NO_COLOR
-  ? false
-  : process.env.FORCE_COLOR
-    ? true
-    : !!process.stdout.isTTY;
-
-const ansi = (open, close) =>
-  SUPPORTS_COLOR
-    ? (/** @type {string} */ s) => `\x1b[${open}m${s}\x1b[${close}m`
-    : (/** @type {string} */ s) => s;
-
-// Palette — three roles only:
-//   level1 → main section headers (Chat statistics, Session, Timeline, …)
-//   level2 → sub-block headers (Orchestrator, Coder, Architect, …)
-//   dim    → parenthetical notes only, nothing else
-// Everything else renders in the terminal's default foreground (white).
-const c = {
-  level1: ansi('1;36', '22;39'), // bold cyan
-  level2: ansi('1;33', '22;39'), // bold yellow
-  dim: ansi(2, 22),
-};
-
 const DASH = '—';
-
-// ---------------------------------------------------------------------------
-// Formatting helpers
-// ---------------------------------------------------------------------------
-
+const SEP = '·';
 const MS_PER_MINUTE = 60_000;
-const LABEL_WIDTH = 11;
-const MIN_TOOL_ID_WIDTH = 20;
 const MAX_TASK_FALLBACK = 72;
+const WRAP_WIDTH = 70;
 
 /** @param {number} ms */
 function fmtDuration(ms) {
   const totalMin = Math.floor(ms / MS_PER_MINUTE);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  return `${h}h ${m}m`;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-/**
- * Format a millisecond timestamp as `YYYY-MM-DD HH:MM:SS` in the system's
- * local timezone. Locale-independent, unambiguous.
- *
- * @param {number} ms
- */
-function fmtLocal(ms) {
+/** @param {number} ms */
+function fmtDate(ms) {
+  const d = new Date(ms);
+  const pad = (/** @type {number} */ n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** @param {number} ms */
+function fmtDateTime(ms) {
   const d = new Date(ms);
   const pad = (/** @type {number} */ n) => String(n).padStart(2, '0');
   return (
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
-    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+    `${pad(d.getHours())}:${pad(d.getMinutes())}`
   );
+}
+
+/** Compact period: `YYYY-MM-DD HH:MM → HH:MM` if same date, else full both. */
+function fmtPeriod(startMs, endMs) {
+  const start = fmtDateTime(startMs);
+  const end = fmtDateTime(endMs);
+  const sameDate = start.slice(0, 10) === end.slice(0, 10);
+  return `${start} → ${sameDate ? end.slice(11) : end}`;
 }
 
 /** @param {number} n */
@@ -156,20 +88,241 @@ function fmtInt(n) {
   return n.toLocaleString('en-US');
 }
 
-/** @param {string} label @param {string} value */
-function kv(label, value) {
-  return `  ${label.padEnd(LABEL_WIDTH)}${value}`;
+/** @param {number} usd */
+function fmtUsd(usd) {
+  return `$${usd.toFixed(2)}`;
 }
 
-// ---------------------------------------------------------------------------
-// Analysis
-// ---------------------------------------------------------------------------
+/** @param {number} credits */
+function fmtCredits(credits) {
+  return credits.toFixed(1);
+}
+
+/** Whitespace-aware wrap to a target line width. */
+function wrap(text, width) {
+  const words = text.split(/\s+/);
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    if (cur.length === 0) cur = w;
+    else if (cur.length + 1 + w.length <= width) cur += ' ' + w;
+    else {
+      lines.push(cur);
+      cur = w;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+// USD per 1,000,000 tokens. `cacheWrite` falls back to `cachedInput`.
+/** @type {Record<string, { input: number, cachedInput: number, cacheWrite?: number, output: number }>} */
+const MODEL_PRICES = {
+  'gpt-5-mini': { input: 0.25, cachedInput: 0.025, output: 2.0 },
+  'raptor-mini': { input: 0.25, cachedInput: 0.025, output: 2.0 },
+  'grok-code-fast-1': { input: 0.2, cachedInput: 0.02, output: 1.5 },
+  'gpt-4.1': { input: 2.0, cachedInput: 0.5, output: 8.0 },
+  'gpt-5.2': { input: 1.75, cachedInput: 0.175, output: 14.0 },
+  'gpt-5.2-codex': { input: 1.75, cachedInput: 0.175, output: 14.0 },
+  'gpt-5.3-codex': { input: 1.75, cachedInput: 0.175, output: 14.0 },
+  'gpt-5.4': { input: 2.5, cachedInput: 0.25, output: 15.0 },
+  'gpt-5.4-mini': { input: 0.75, cachedInput: 0.075, output: 4.5 },
+  'gpt-5.4-nano': { input: 0.2, cachedInput: 0.02, output: 1.25 },
+  'gpt-5.5': { input: 5.0, cachedInput: 0.5, output: 30.0 },
+  'claude-haiku-4.5': { input: 1.0, cachedInput: 0.1, cacheWrite: 1.25, output: 5.0 },
+  'claude-sonnet-4': { input: 3.0, cachedInput: 0.3, cacheWrite: 3.75, output: 15.0 },
+  'claude-sonnet-4.5': { input: 3.0, cachedInput: 0.3, cacheWrite: 3.75, output: 15.0 },
+  'claude-sonnet-4.6': { input: 3.0, cachedInput: 0.3, cacheWrite: 3.75, output: 15.0 },
+  'claude-opus-4.5': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
+  'claude-opus-4.6': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
+  'claude-opus-4.7': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
+  'gemini-2.5-pro': { input: 1.25, cachedInput: 0.125, output: 10.0 },
+  'gemini-3-flash': { input: 0.5, cachedInput: 0.05, output: 3.0 },
+  'gemini-3.1-pro': { input: 2.0, cachedInput: 0.2, output: 12.0 },
+  goldeneye: { input: 1.25, cachedInput: 0.125, output: 10.0 },
+};
+
+/** Retired or differently-named models routed to a priced equivalent. */
+const MODEL_ALIASES = {
+  'gpt-5.1': 'gpt-5.2',
+  'gpt-5.1-codex': 'gpt-5.2-codex',
+  'gpt-5.1-codex-mini': 'gpt-5.4-mini',
+  'gpt-5.1-codex-max': 'gpt-5.2-codex',
+  'gpt-4o': 'gpt-4.1',
+  'gpt-4o-mini': 'gpt-5-mini',
+  'oswe-vscode-prime': 'raptor-mini',
+  'gemini-3-pro': 'gemini-3.1-pro',
+  'gemini-3-flash-preview': 'gemini-3-flash',
+  'gemini-3-pro-preview': 'gemini-3.1-pro',
+  'gemini-3.1-pro-preview': 'gemini-3.1-pro',
+};
+
+/**
+ * Canonicalize a model identifier (case, vendor prefix, separators) so it can
+ * be looked up in MODEL_PRICES.
+ *
+ * @param {unknown} model
+ */
+function normalizeModel(model) {
+  return String(model ?? '')
+    .toLowerCase()
+    .replace(/^github-copilot\//, '')
+    .replace(/\s*\((preview)\)\s*/g, '-$1')
+    .replace(/_/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .trim();
+}
+
+/**
+ * Apply normalization and alias resolution. Returns the priced key when known,
+ * else the normalized name (so the caller can surface it as "unpriced").
+ *
+ * @param {unknown} model
+ */
+function resolveModel(model) {
+  const normalized = normalizeModel(model);
+  if (MODEL_PRICES[normalized]) return normalized;
+  if (normalized.endsWith('-preview')) {
+    const stable = normalized.slice(0, -'-preview'.length);
+    if (MODEL_PRICES[stable]) return stable;
+  }
+  return MODEL_ALIASES[normalized] ?? normalized;
+}
+
+/**
+ * Extract a canonical, normalized model name from a request. VS Code stores
+ * the authoritative model under different fields depending on whether the
+ * user selected a specific model or "auto" — `details` wins when it names a
+ * model, then `resolvedModel`, then the bare `modelId` minus `copilot/`.
+ *
+ * @param {any} req
+ */
+function modelFromRequest(req) {
+  const details = String(req?.details ?? '').toLowerCase();
+  if (details.includes('claude haiku 4.5')) return 'claude-haiku-4.5';
+  if (details.includes('raptor mini')) return 'raptor-mini';
+  if (details.includes('gpt-5 mini')) return 'gpt-5-mini';
+
+  const resolved = String(req?.resolvedModel ?? '').toLowerCase();
+  if (resolved.includes('gpt-5-mini')) return 'gpt-5-mini';
+  if (resolved.includes('grok')) return 'grok-code-fast-1';
+
+  const raw = String(req?.modelId ?? '').replace(/^copilot\//, '');
+  return normalizeModel(raw);
+}
+
+/**
+ * Approximate token count for arbitrary content (~4 chars per token).
+ *
+ * @param {unknown} value
+ */
+function roughTokens(value) {
+  if (value == null) return 0;
+  return Math.ceil(JSON.stringify(value).length / 4);
+}
+
+/**
+ * Cumulative input tokens billed across the request. For an agentic chat the
+ * model is invoked once per tool-call round, each invocation reshipping the
+ * initial prompt plus the conversation accumulated so far. The total is
+ * approximated as `N * initial + history * (N - 1) / 2`, where `history` is
+ * the size of `toolCallRounds + toolCallResults` and the triangular factor
+ * reflects history growing one round at a time. Anthropic's
+ * metadata.promptTokens reflects only the LAST round and is not used here.
+ * For single-shot chats (no rounds) Anthropic's exact count is used when
+ * present, falling back to the rendered prompt size.
+ *
+ * @param {any} req
+ * @returns {{ tokens: number, estimated: boolean }}
+ */
+function inputTokensForRequest(req) {
+  const md = req?.result?.metadata ?? {};
+  const rounds = Array.isArray(md.toolCallRounds) ? md.toolCallRounds : [];
+  const N = rounds.length;
+
+  if (N === 0) {
+    const exact = md.promptTokens;
+    if (typeof exact === 'number' && Number.isFinite(exact)) {
+      return { tokens: exact, estimated: false };
+    }
+    const initial = roughTokens(md.renderedUserMessage) + roughTokens(md.renderedGlobalContext);
+    return { tokens: initial, estimated: true };
+  }
+
+  const initial = roughTokens(md.renderedUserMessage) + roughTokens(md.renderedGlobalContext);
+  const history = roughTokens(md.toolCallRounds) + roughTokens(md.toolCallResults);
+  return {
+    tokens: Math.round(N * initial + (history * (N - 1)) / 2),
+    estimated: true,
+  };
+}
+
+/**
+ * USD cost for one token bundle at a given rate. cacheRead/cacheWrite are
+ * always 0 for VS Code chatSessions (the cache breakdown is not persisted),
+ * but the formula carries them so this stays a drop-in for richer sources.
+ *
+ * @param {{ input: number, cachedInput: number, cacheWrite?: number, output: number }} rate
+ * @param {{ input: number, cacheRead: number, cacheWrite: number, output: number }} tokens
+ */
+function priceTokens(rate, tokens) {
+  const nonCachedInput = Math.max(0, tokens.input - tokens.cacheRead);
+  return (
+    (nonCachedInput * rate.input +
+      tokens.cacheRead * rate.cachedInput +
+      tokens.cacheWrite * (rate.cacheWrite ?? rate.cachedInput) +
+      tokens.output * rate.output) /
+    1_000_000
+  );
+}
+
+/**
+ * Fold over requests to produce token totals and USD cost. Tracks any models
+ * with no priced rate so the caller can mark the cost as partial.
+ *
+ * @param {any[]} reqs
+ */
+function computeCost(reqs) {
+  let inputTotal = 0;
+  let outputTotal = 0;
+  let usdTotal = 0;
+  let anyEstimated = false;
+  let unpricedCount = 0;
+  const unpricedModels = new Set();
+
+  for (const r of reqs) {
+    const { tokens: input, estimated } = inputTokensForRequest(r);
+    const output = r?.completionTokens ?? 0;
+    inputTotal += input;
+    outputTotal += output;
+    anyEstimated ||= estimated;
+
+    const priced = resolveModel(modelFromRequest(r));
+    const rate = MODEL_PRICES[priced];
+    if (!rate) {
+      unpricedCount += 1;
+      unpricedModels.add(priced || 'unspecified');
+      continue;
+    }
+    usdTotal += priceTokens(rate, { input, cacheRead: 0, cacheWrite: 0, output });
+  }
+
+  return {
+    inputTotal,
+    outputTotal,
+    inputEstimated: anyEstimated,
+    usdTotal,
+    creditsTotal: usdTotal * 100,
+    unpricedCount,
+    unpricedModels: [...unpricedModels].sort(),
+  };
+}
 
 /**
  * Guard against a historical VS Code bug where `timeSpentWaiting` was
  * serialized as the absolute wait-start timestamp instead of a duration.
- * If the value is not smaller than the request's own start timestamp,
- * it cannot be a valid duration within that request.
  *
  * @param {{ timestamp?: number, timeSpentWaiting?: number }} req
  */
@@ -180,8 +333,7 @@ function sanitizedWait(req) {
 }
 
 /**
- * Slash commands live in `message.parts[].kind === 'prompt'`, with the
- * command name (minus the leading slash) in `.name`.
+ * Slash commands live in `message.parts[].kind === 'prompt'`.
  *
  * @param {any} req
  */
@@ -192,13 +344,9 @@ function extractSlashCommand(req) {
 }
 
 /**
- * Extract a task reference from the first user message and its attachments.
- * Strategy:
- *   1. Collect every `BP-\d+` identifier from the message text and from
- *      attachment names in variableData (e.g. `Spec-BP-247.md`).
- *   2. If found → return comma-joined sorted list.
- *   3. Else → fall back to the slash-command argument (trimmed, truncated).
- *   4. Else → return null.
+ * Task reference from the first user message: every `BP-\d+` in message text
+ * and `variableData` attachment names (sorted, comma-joined), falling back to
+ * the slash-command argument when no BP id is found.
  *
  * @param {any} req
  * @param {string | null} slash
@@ -206,8 +354,6 @@ function extractSlashCommand(req) {
 function extractTaskRef(req, slash) {
   const ids = new Set();
   const text = req?.message?.text ?? '';
-  // Case-insensitive because attachment names sometimes use "Spec-bp-96.md".
-  // Normalize every match to uppercase so `bp-96` and `BP-96` dedup.
   const BP_RE = /\bBP-\d+\b/gi;
   for (const m of text.matchAll(BP_RE)) ids.add(m[0].toUpperCase());
 
@@ -219,15 +365,10 @@ function extractTaskRef(req, slash) {
 
   if (ids.size > 0) {
     return [...ids]
-      .sort((a, b) => {
-        const na = Number(a.slice(3));
-        const nb = Number(b.slice(3));
-        return na - nb;
-      })
+      .sort((a, b) => Number(a.slice(3)) - Number(b.slice(3)))
       .join(', ');
   }
 
-  // Fallback: slash-command argument on the first line
   if (slash && text.startsWith(`/${slash}`)) {
     const rest = text.slice(`/${slash}`.length).split('\n')[0].trim();
     if (rest) {
@@ -241,38 +382,15 @@ function extractTaskRef(req, slash) {
 }
 
 /**
- * Defensively pull per-subagent token usage out of any field VS Code might
- * use now or in the future. As of April 2026, the VS Code / Copilot Chat
- * subagent serialization does not persist token counts (verified against
- * microsoft/vscode `searchSubagentTool.ts` and `executionSubagentToolCallingLoop.ts`),
- * so in all current dumps this returns `{ input: null, output: null }`.
- * If the schema ever gains token fields, they show up without a code change.
+ * Human-readable orchestrator name. VS Code stores the loaded agent file's
+ * display name in `modeInfo.modeInstructions.name` (e.g. "ImplPipeline" when
+ * the user activated /implPipeline). Falls back to `modeInfo.modeId`, then
+ * to a generic label.
  *
- * @param {any} tsd   toolSpecificData for a subagent invocation
- * @param {any} item  the enclosing toolInvocationSerialized entry
- * @returns {{ input: number | null, output: number | null }}
+ * @param {any} req
  */
-function extractSubagentTokens(tsd, item) {
-  const pickInt = (/** @type {any} */ v) =>
-    typeof v === 'number' && Number.isFinite(v) ? v : null;
-
-  const input =
-    pickInt(tsd?.promptTokens) ??
-    pickInt(tsd?.inputTokens) ??
-    pickInt(tsd?.usage?.prompt_tokens) ??
-    pickInt(tsd?.usage?.promptTokens) ??
-    pickInt(item?.promptTokens) ??
-    pickInt(item?.usage?.prompt_tokens);
-
-  const output =
-    pickInt(tsd?.completionTokens) ??
-    pickInt(tsd?.outputTokens) ??
-    pickInt(tsd?.usage?.completion_tokens) ??
-    pickInt(tsd?.usage?.completionTokens) ??
-    pickInt(item?.completionTokens) ??
-    pickInt(item?.usage?.completion_tokens);
-
-  return { input, output };
+function extractOrchestratorName(req) {
+  return req?.modeInfo?.modeInstructions?.name || req?.modeInfo?.modeId || 'Generic';
 }
 
 /**
@@ -290,153 +408,294 @@ function analyze(chat) {
 
   const slash = extractSlashCommand(first);
   const taskRef = extractTaskRef(first, slash);
+  const orchName = extractOrchestratorName(first);
 
-  let completionTotal = 0;
-  let promptMdTotal = 0;
-  let reqsWithPromptMd = 0;
   let totalWait = 0;
 
-  // Subagent launches:
-  //   `runSubagent` tool invocations carry `toolSpecificData.kind === 'subagent'`
-  //   with the spawned agent's `agentName` and `modelName`. Each launch has its
-  //   own `toolCallId`, which nested tool invocations reference via
-  //   `subAgentInvocationId` — this is how we attribute internal tool calls to
-  //   the subagent that made them (vs the orchestrator).
+  // Indexed by the launch's toolCallId so nested invocations
+  // (subAgentInvocationId) can be attributed to their owning (name, model).
+  /** @type {Map<string, { name: string, model: string }>} */
+  const launchById = new Map();
 
-  /** @type {Map<string, { agentName: string, modelName: string | null }>} */
-  const subagentById = new Map();
+  // The orchestrator participates as an agent on equal footing: `launches`
+  // counts requests for it and runSubagent invocations for subagents.
+  /** @type {Map<string, { name: string, model: string, launches: number, toolCalls: number }>} */
+  const agents = new Map();
 
-  /** @type {Map<string, { count: number, models: Set<string>, inputTokens: number | null, outputTokens: number | null }>} */
-  const subagentLaunches = new Map();
+  // Tools aggregate over models per agent; the model dimension is preserved
+  // in `agents` above and intentionally dropped here.
+  /** @type {Map<string, { agent: string, tool: string, count: number }>} */
+  const tools = new Map();
 
-  const ORCH = 'Orchestrator';
+  const agentKey = (/** @type {string} */ name, /** @type {string} */ model) =>
+    `${name}${model}`;
 
-  /** @type {Map<string, { name: string, models: Set<string>, tools: Map<string, { count: number, source: string }>, totalCalls: number }>} */
-  const owners = new Map();
-  owners.set(ORCH, { name: ORCH, models: new Set(), tools: new Map(), totalCalls: 0 });
+  const bumpAgent = (
+    /** @type {string} */ name,
+    /** @type {string} */ model,
+    /** @type {'launches' | 'toolCalls'} */ field,
+  ) => {
+    const k = agentKey(name, model);
+    const a = agents.get(k) ?? { name, model, launches: 0, toolCalls: 0 };
+    a[field] += 1;
+    agents.set(k, a);
+  };
 
-  const getOwner = (/** @type {string} */ key) => {
-    let o = owners.get(key);
-    if (!o) {
-      o = { name: key, models: new Set(), tools: new Map(), totalCalls: 0 };
-      owners.set(key, o);
-    }
-    return o;
+  const bumpTool = (/** @type {string} */ agent, /** @type {string} */ tool) => {
+    const k = `${agent}${tool}`;
+    const t = tools.get(k) ?? { agent, tool, count: 0 };
+    t.count += 1;
+    tools.set(k, t);
   };
 
   for (const r of reqs) {
-    completionTotal += r.completionTokens ?? 0;
     totalWait += sanitizedWait(r);
-    if (r.modelId) owners.get(ORCH).models.add(r.modelId);
-
-    const md = r.result?.metadata;
-    if (md?.promptTokens != null) {
-      promptMdTotal += md.promptTokens;
-      reqsWithPromptMd += 1;
-    }
+    const orchModel = modelFromRequest(r);
+    bumpAgent(orchName, orchModel, 'launches');
 
     const resp = Array.isArray(r.response) ? r.response : [];
 
-    // Pass 1 — register every subagent launch so nested items can resolve.
+    // Pass 1 — register every subagent launch.
     for (const item of resp) {
       if (item?.kind !== 'toolInvocationSerialized') continue;
       const tsd = item.toolSpecificData;
       if (tsd?.kind !== 'subagent') continue;
       const name = tsd.agentName || '(ad-hoc)';
-      const modelName = tsd.modelName || null;
-      if (item.toolCallId) subagentById.set(item.toolCallId, { agentName: name, modelName });
-      const launch = subagentLaunches.get(name) ?? {
-        count: 0,
-        models: new Set(),
-        inputTokens: null,
-        outputTokens: null,
-      };
-      launch.count += 1;
-      if (modelName) launch.models.add(modelName);
-      const { input, output } = extractSubagentTokens(tsd, item);
-      if (input != null) launch.inputTokens = (launch.inputTokens ?? 0) + input;
-      if (output != null) launch.outputTokens = (launch.outputTokens ?? 0) + output;
-      subagentLaunches.set(name, launch);
+      const model = normalizeModel(tsd.modelName ?? '') || DASH;
+      if (item.toolCallId) launchById.set(item.toolCallId, { name, model });
+      bumpAgent(name, model, 'launches');
     }
 
-    // Pass 2 — attribute each tool invocation to its owner.
+    // Pass 2 — attribute each tool invocation.
     for (const item of resp) {
       if (item?.kind !== 'toolInvocationSerialized') continue;
-
       const subId = item.subAgentInvocationId;
-      let ownerKey = ORCH;
-      if (subId) {
-        const sub = subagentById.get(subId);
-        ownerKey = sub?.agentName ?? '(ad-hoc)';
-        if (sub?.modelName) getOwner(ownerKey).models.add(sub.modelName);
-      }
-
-      const owner = getOwner(ownerKey);
-      const id = item.toolId ?? '(unknown)';
-      const source = item.source?.label ?? item.source?.type ?? '';
-      const cur = owner.tools.get(id) ?? { count: 0, source };
-      cur.count += 1;
-      owner.tools.set(id, cur);
-      owner.totalCalls += 1;
+      const owner =
+        subId && launchById.has(subId)
+          ? launchById.get(subId)
+          : { name: orchName, model: orchModel };
+      const toolId = item.toolId ?? '(unknown)';
+      bumpAgent(owner.name, owner.model, 'toolCalls');
+      bumpTool(owner.name, toolId);
     }
   }
 
-  // Owner blocks: Orchestrator first, then subagents ranked by call count.
-  const ownerBlocks = [...owners.values()]
-    .filter((o) => o.totalCalls > 0)
-    .map((o) => ({
-      name: o.name,
-      models: [...o.models].sort(),
-      totalCalls: o.totalCalls,
-      tools: [...o.tools.entries()]
-        .map(([id, { count, source }]) => ({ id, count, source }))
-        .sort((a, b) => b.count - a.count || a.id.localeCompare(b.id)),
-    }))
-    .sort((a, b) => {
-      if (a.name === ORCH) return -1;
-      if (b.name === ORCH) return 1;
-      return b.totalCalls - a.totalCalls || a.name.localeCompare(b.name);
-    });
+  // Order: orchestrator rows first, then by tool calls desc, then by name.
+  const agentRows = [...agents.values()].sort((a, b) => {
+    if (a.name === orchName && b.name !== orchName) return -1;
+    if (b.name === orchName && a.name !== orchName) return 1;
+    return b.toolCalls - a.toolCalls || a.name.localeCompare(b.name);
+  });
 
-  const totalToolCalls = ownerBlocks.reduce((s, b) => s + b.totalCalls, 0);
-
-  const subagentRows = [...subagentLaunches.entries()]
-    .map(([name, { count, models, inputTokens, outputTokens }]) => ({
-      name,
-      count,
-      models: [...models].sort(),
-      inputTokens,
-      outputTokens,
-    }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  const totalSubagentLaunches = subagentRows.reduce((s, r) => s + r.count, 0);
-  const anySubagentTokens = subagentRows.some(
-    (r) => r.inputTokens != null || r.outputTokens != null,
-  );
+  // Tools grouped by agent in agentRows order, then by count desc.
+  const agentOrder = new Map();
+  for (const a of agentRows) {
+    if (!agentOrder.has(a.name)) agentOrder.set(a.name, agentOrder.size);
+  }
+  const toolRows = [...tools.values()].sort((a, b) => {
+    const ai = agentOrder.get(a.agent) ?? Infinity;
+    const bi = agentOrder.get(b.agent) ?? Infinity;
+    return ai - bi || b.count - a.count || a.tool.localeCompare(b.tool);
+  });
 
   return {
     requestCount: reqs.length,
-    orchestratorModels: [...owners.get(ORCH).models].sort(),
     slash,
     taskRef,
     start,
     end,
     durationMs: end - start,
     waitMs: totalWait,
-    completionTotal,
-    promptMdTotal,
-    promptCoverage: { covered: reqsWithPromptMd, total: reqs.length },
-    totalToolCalls,
-    ownerBlocks,
-    totalSubagentLaunches,
-    subagentRows,
-    anySubagentTokens,
+    orchName,
+    cost: computeCost(reqs),
+    agentRows,
+    toolRows,
+    hasSubagents: agentRows.some((a) => a.name !== orchName),
   };
 }
 
-// ---------------------------------------------------------------------------
-// Rendering
-// ---------------------------------------------------------------------------
+/**
+ * Render rows as aligned columns.
+ *
+ * @template T
+ * @param {T[]} rows
+ * @param {Array<{ value: (row: T) => string, align?: 'left' | 'right', minWidth?: number }>} columns
+ * @param {{ indent?: string, gap?: string, header?: string[], total?: string[], minRuleWidth?: number }} [opts]
+ */
+function renderTable(rows, columns, opts = {}) {
+  const indent = opts.indent ?? '  ';
+  const gap = opts.gap ?? '  ';
+
+  const rendered = rows.map((r) => columns.map((col) => col.value(r)));
+
+  const widths = columns.map((col, i) => {
+    const headerLen = opts.header?.[i]?.length ?? 0;
+    const totalLen = opts.total?.[i]?.length ?? 0;
+    const rowLen = rendered.length
+      ? Math.max(...rendered.map((r) => r[i]?.length ?? 0))
+      : 0;
+    return Math.max(col.minWidth ?? 0, headerLen, rowLen, totalLen);
+  });
+
+  // Expand the last left-aligned column to reach minRuleWidth, used to sync
+  // sibling tables to the same total width.
+  if (opts.minRuleWidth) {
+    const currentW = widths.reduce((s, w, i) => s + w + (i > 0 ? gap.length : 0), 0);
+    if (currentW < opts.minRuleWidth) {
+      const deficit = opts.minRuleWidth - currentW;
+      for (let i = columns.length - 1; i >= 0; i--) {
+        if (columns[i].align !== 'right') {
+          widths[i] += deficit;
+          break;
+        }
+      }
+    }
+  }
+
+  const padCell = (val, i) =>
+    columns[i].align === 'right' ? val.padStart(widths[i]) : val.padEnd(widths[i]);
+
+  // The final left-aligned cell needs no trailing padding (nothing follows
+  // it on the line); right-aligned cells always pad because their leading
+  // whitespace is structural.
+  const renderRow = (cells) =>
+    indent +
+    cells
+      .map((c, i) => {
+        const v = c ?? '';
+        const isLast = i === cells.length - 1;
+        return isLast && columns[i].align !== 'right' ? v : padCell(v, i);
+      })
+      .join(gap);
+
+  const lines = [];
+
+  if (opts.header && opts.header.some((h) => h.length > 0)) {
+    lines.push(renderRow(opts.header));
+  }
+  for (const row of rendered) {
+    lines.push(renderRow(row));
+  }
+  if (opts.total) {
+    const ruleW = widths.reduce((s, w, i) => s + w + (i > 0 ? gap.length : 0), 0);
+    lines.push(indent + '─'.repeat(ruleW));
+    lines.push(renderRow(opts.total));
+  }
+
+  return lines.join('\n');
+}
+
+/** Count the `─` characters on a rendered table's rule line. */
+function measureRuleWidth(tableText) {
+  for (const line of tableText.split('\n')) {
+    const trimmed = line.replace(/^ +/, '');
+    if (trimmed.startsWith('─')) {
+      return [...trimmed].filter((c) => c === '─').length;
+    }
+  }
+  return 0;
+}
+
+/** One-line Cost value, with `~` prefix when input estimated or unpriced. */
+function renderCostValue(cost, requestCount) {
+  const allUnpriced = cost.unpricedCount === requestCount && cost.unpricedCount > 0;
+  if (allUnpriced) return `${DASH}  ${SEP}  ${DASH}`;
+  const prefix = cost.inputEstimated || cost.unpricedCount > 0 ? '~' : '';
+  return `${prefix}${fmtUsd(cost.usdTotal)}  ${SEP}  ${prefix}${fmtCredits(cost.creditsTotal)} AI credits`;
+}
+
+function renderTokens(cost) {
+  const rows = [
+    { cat: 'input', count: fmtInt(cost.inputTotal), prov: cost.inputEstimated ? 'estimated' : 'exact' },
+    { cat: 'output', count: fmtInt(cost.outputTotal), prov: 'exact' },
+    { cat: 'cache', count: DASH, prov: 'not persisted' },
+  ];
+  return renderTable(rows, [
+    { value: (r) => r.cat, align: 'left' },
+    { value: (r) => r.count, align: 'right' },
+    { value: (r) => r.prov, align: 'left' },
+  ]);
+}
+
+function renderAgents(rows, minRuleWidth) {
+  const data = rows.map((a) => ({
+    name: a.name,
+    model: a.model || DASH,
+    launches: fmtInt(a.launches),
+    toolCalls: fmtInt(a.toolCalls),
+  }));
+  const totalLaunches = rows.reduce((s, a) => s + a.launches, 0);
+  const totalCalls = rows.reduce((s, a) => s + a.toolCalls, 0);
+  return renderTable(
+    data,
+    [
+      { value: (r) => r.name, align: 'left' },
+      { value: (r) => r.model, align: 'left' },
+      { value: (r) => r.launches, align: 'right' },
+      { value: (r) => r.toolCalls, align: 'right' },
+    ],
+    {
+      header: ['', 'model', 'launches', 'tool calls'],
+      total: ['total', '', fmtInt(totalLaunches), fmtInt(totalCalls)],
+      minRuleWidth,
+    },
+  );
+}
+
+function renderTools(rows, minRuleWidth) {
+  const data = rows.map((t) => ({
+    agent: t.agent,
+    tool: t.tool,
+    count: fmtInt(t.count),
+  }));
+  const total = rows.reduce((s, t) => s + t.count, 0);
+  return renderTable(
+    data,
+    [
+      { value: (r) => r.agent, align: 'left' },
+      { value: (r) => r.tool, align: 'left' },
+      { value: (r) => r.count, align: 'right' },
+    ],
+    {
+      header: ['', 'tool', 'calls'],
+      total: ['total', '', fmtInt(total)],
+      minRuleWidth,
+    },
+  );
+}
+
+function buildCaveats(s) {
+  const parts = [];
+
+  if (s.cost.inputEstimated) {
+    parts.push(
+      'Input is an upper-bound estimate. Agentic chats reship the ' +
+        'conversation on every tool-call round, summed across rounds. ' +
+        'VS Code does not expose prompt-cache hits — actual billed input ' +
+        'may be substantially lower.',
+    );
+  }
+
+  if (s.hasSubagents) {
+    parts.push(
+      "Subagent token usage is rolled into the orchestrator's request and " +
+        "priced at the orchestrator's rate; if subagents ran on a different " +
+        'model, the figure above diverges from the true cost.',
+    );
+  }
+
+  if (s.cost.unpricedCount > 0) {
+    const word = s.cost.unpricedCount === 1 ? 'request' : 'requests';
+    parts.push(
+      `Cost excludes ${s.cost.unpricedCount} ${word} with no priced rate ` +
+        `(${s.cost.unpricedModels.join(', ')}).`,
+    );
+  }
+
+  return parts
+    .map((p) => wrap(p, WRAP_WIDTH).map((line) => `  ${line}`).join('\n'))
+    .join('\n\n');
+}
 
 /**
  * @param {ReturnType<typeof analyze>} s
@@ -445,159 +704,62 @@ function analyze(chat) {
 function render(s, fileLabel) {
   if (!s) return '';
 
-  // Source tags render as dim parentheticals ("(snyk)"), per the palette rule
-  // that grey is reserved for parenthetical notes only.
-  const fmtSource = (/** @type {string} */ source) =>
-    source && source !== 'Built-In' ? `   ${c.dim(`(${source})`)}` : '';
-
-  // Composite label for a subagent row — same `name  ·  model` shape Tools
-  // uses in its sub-block headers, so Subagents reads as one of that family.
-  const composite = (/** @type {{ name: string, models: string[] }} */ r) =>
-    `${r.name}  ·  ${r.models.join(', ') || DASH}`;
-
-  // Global count-column alignment.
-  // Subagent rows render at indent 2 (peers of a section header); Tools tool
-  // rows render at indent 4 (nested under a sub-block header). We want the
-  // count column to land at the same visual column in both, so every row's
-  // "indent + first-column width" must resolve to the same total.
-  const SUBAGENT_INDENT = 2;
-  const TOOL_ROW_INDENT = 4;
-
-  const allCounts = [
-    ...s.subagentRows.map((r) => r.count),
-    ...s.ownerBlocks.flatMap((b) => b.tools.map((t) => t.count)),
-  ];
-  const countW = String(Math.max(1, ...allCounts)).length;
-
-  const firstColTotals = [
-    // MIN keeps the column legible even when every tool name is short.
-    TOOL_ROW_INDENT + MIN_TOOL_ID_WIDTH,
-    ...s.subagentRows.map((r) => SUBAGENT_INDENT + composite(r).length),
-    ...s.ownerBlocks.flatMap((b) => b.tools.map((t) => TOOL_ROW_INDENT + t.id.length)),
-  ];
-  const firstColMax = Math.max(1, ...firstColTotals);
-  const compW = firstColMax - SUBAGENT_INDENT;
-  const idW = firstColMax - TOOL_ROW_INDENT;
-
   const out = [];
-  out.push(`${c.level1('Chat statistics')}  —  ${fileLabel}`);
+
+  out.push(`Chat report ${SEP} ${fmtDate(Date.now())}`);
+  out.push('');
   out.push('');
 
-  // Session ---------------------------------------------------------------
-  out.push(c.level1('Session'));
-  const orchLabel = s.orchestratorModels.length > 1 ? 'Models' : 'Model';
-  out.push(kv(orchLabel, s.orchestratorModels.join(', ') || c.dim('(unspecified)')));
-  out.push(kv('Requests', String(s.requestCount)));
-  out.push(kv('Command', s.slash ? '/' + s.slash : DASH));
-  out.push(kv('Task', s.taskRef ?? DASH));
+  out.push(`  ${fileLabel}`);
+  const ctx = [];
+  if (s.taskRef) ctx.push(s.taskRef);
+  if (s.slash) ctx.push('/' + s.slash);
+  ctx.push(fmtPeriod(s.start, s.end));
+  ctx.push(fmtDuration(s.durationMs));
+  out.push(`  ${ctx.join(`  ${SEP}  `)}`);
+  out.push('');
   out.push('');
 
-  // Timeline --------------------------------------------------------------
-  const durMin = Math.round(s.durationMs / MS_PER_MINUTE);
-  out.push(c.level1('Timeline'));
-  out.push(kv('Started', fmtLocal(s.start)));
-  out.push(kv('Ended', fmtLocal(s.end)));
-  out.push(kv('Duration', `${fmtDuration(s.durationMs)}  ${c.dim(`(${fmtInt(durMin)} min)`)}`));
-  if (s.waitMs >= MS_PER_MINUTE) {
-    out.push(kv('Waiting', `${fmtDuration(s.waitMs)}  ${c.dim('(confirmation prompts)')}`));
+  out.push('Cost');
+  out.push(`  ${renderCostValue(s.cost, s.requestCount)}`);
+  out.push('');
+
+  out.push('Tokens');
+  out.push(renderTokens(s.cost));
+  out.push('');
+
+  // Sync Agents and Tools to the same rule width: render once to measure,
+  // re-render the narrower with explicit minRuleWidth.
+  let agentsBlock = renderAgents(s.agentRows);
+  let toolsBlock = s.toolRows.length > 0 ? renderTools(s.toolRows) : null;
+  if (toolsBlock) {
+    const agentsW = measureRuleWidth(agentsBlock);
+    const toolsW = measureRuleWidth(toolsBlock);
+    const target = Math.max(agentsW, toolsW);
+    if (agentsW < target) agentsBlock = renderAgents(s.agentRows, target);
+    if (toolsW < target) toolsBlock = renderTools(s.toolRows, target);
   }
+
+  out.push('Agents');
+  out.push(agentsBlock);
   out.push('');
 
-  // Tokens ----------------------------------------------------------------
-  out.push(c.level1('Tokens'));
-  if (s.promptCoverage.covered === 0) {
-    out.push(kv('Input', `${DASH}  ${c.dim('(non-Anthropic model; not persisted by VS Code)')}`));
-  } else {
-    const partial =
-      s.promptCoverage.covered < s.promptCoverage.total
-        ? `  ${c.dim(`(partial: ${s.promptCoverage.covered} of ${s.promptCoverage.total} requests had Anthropic metadata)`)}`
-        : '';
-    out.push(kv('Input', `${fmtInt(s.promptMdTotal)}${partial}`));
+  if (toolsBlock) {
+    out.push('Tools');
+    out.push(toolsBlock);
   }
-  out.push(kv('Output', fmtInt(s.completionTotal)));
-  out.push('');
 
-  // Subagents -------------------------------------------------------------
-  if (s.subagentRows.length > 0) {
-    out.push(
-      c.level1('Subagents') +
-        `  ${c.dim(`(${s.totalSubagentLaunches} launches, ${s.subagentRows.length} distinct)`)}`,
-    );
-
-    if (s.anySubagentTokens) {
-      // Token columns: right-aligned, sized to the widest formatted number.
-      // With tokens present the row is no longer a simple 2-column table, so
-      // it keeps its own alignment — the global count column does not apply.
-      const fmtTok = (/** @type {number | null} */ v) => (v == null ? DASH : fmtInt(v));
-      const inW = Math.max(5, ...s.subagentRows.map((r) => fmtTok(r.inputTokens).length));
-      const outW = Math.max(6, ...s.subagentRows.map((r) => fmtTok(r.outputTokens).length));
-      out.push(
-        `  ${''.padEnd(compW)}  ${''.padStart(countW)}  ${c.dim('input'.padStart(inW))}  ${c.dim('output'.padStart(outW))}`,
-      );
-      for (const r of s.subagentRows) {
-        const inCol = fmtTok(r.inputTokens).padStart(inW);
-        const outCol = fmtTok(r.outputTokens).padStart(outW);
-        out.push(
-          `  ${composite(r).padEnd(compW)}  ${String(r.count).padStart(countW)}  ${inCol}  ${outCol}`,
-        );
-      }
-    } else {
-      for (const r of s.subagentRows) {
-        out.push(`  ${composite(r).padEnd(compW)}  ${String(r.count).padStart(countW)}`);
-      }
-    }
+  const caveats = buildCaveats(s);
+  if (caveats) {
     out.push('');
-  }
-
-  // Tools -----------------------------------------------------------------
-  if (s.ownerBlocks.length === 0) {
-    out.push(c.level1('Tools') + `  ${c.dim('(0 calls)')}`);
-    out.push(`  ${c.dim('(none used)')}`);
-    return out.join('\n');
-  }
-
-  // Flat layout when only the orchestrator used tools. Tool rows render at
-  // indent 2 (same as Subagents rows) so we use `compW` — the Subagents-side
-  // first-column width — to keep the count column aligned with Subagents.
-  if (s.ownerBlocks.length === 1 && s.ownerBlocks[0].name === 'Orchestrator') {
-    const block = s.ownerBlocks[0];
-    out.push(
-      c.level1('Tools') +
-        `  ${c.dim(`(${block.totalCalls} calls, ${block.tools.length} distinct)`)}`,
-    );
-    for (const { id, count, source } of block.tools) {
-      out.push(`  ${id.padEnd(compW)}  ${String(count).padStart(countW)}${fmtSource(source)}`);
-    }
-    return out.join('\n');
-  }
-
-  // Split layout: one sub-block per actor. Tool-ID column is sized per block,
-  // so short blocks (e.g. Orchestrator, Planner) stay compact while wide tool
-  // names only stretch the blocks that contain them.
-  const actors = s.ownerBlocks.length;
-  out.push(
-    c.level1('Tools') +
-      `  ${c.dim(`(${s.totalToolCalls} calls across ${actors} actor${actors === 1 ? '' : 's'})`)}`,
-  );
-
-  for (const block of s.ownerBlocks) {
     out.push('');
-    const head =
-      block.models.length > 0 && block.name !== 'Orchestrator'
-        ? c.level2(`${block.name}  ·  ${block.models.join(', ')}`)
-        : c.level2(block.name);
-    out.push(`  ${head}  ${c.dim(`(${block.totalCalls} calls, ${block.tools.length} distinct)`)}`);
-    for (const { id, count, source } of block.tools) {
-      out.push(`    ${id.padEnd(idW)}  ${String(count).padStart(countW)}${fmtSource(source)}`);
-    }
+    out.push(caveats);
   }
 
-  return out.join('\n');
+  // Collapse runs of 3+ blank lines (from conditionally skipped sections)
+  // down to 2, then trim trailing blanks.
+  return out.join('\n').replace(/\n{4,}/g, '\n\n\n').replace(/\n+$/, '');
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 const inputPath = parseCliArgs();
 
