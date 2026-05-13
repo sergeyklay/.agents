@@ -2,12 +2,14 @@
 # sync — mirror agent assets from this repository into host-specific
 # directories under $HOME.
 #
-# Per-host overlay: when templates/<vendor>/<name>.yaml exists, its
-# top-level keys are merged onto the agent's frontmatter before the
-# mirror, replacing matching source fields and adding the rest. The
-# vendor token matches the destination's hidden-directory name
-# (.claude, .copilot, .gemini); a missing template yields a verbatim
-# copy.
+# Per-host overlay: when templates/<vendor>/<kind>/<name>.yaml exists,
+# its top-level keys are merged onto the source's frontmatter before
+# the mirror, replacing matching source fields and adding the rest.
+# <vendor> matches the destination's hidden-directory name (.claude,
+# .copilot, .gemini); <kind> matches the destination subdirectory
+# (agents, commands, prompts, instructions, rules). Sources without
+# frontmatter take the template wholesale; a missing template yields
+# a verbatim copy.
 
 set -eu
 
@@ -194,7 +196,7 @@ overlay_with_awk() (
 # `---` carries no frontmatter to merge, so the template content is
 # wrapped in `---` markers and prepended to the body verbatim --
 # the path taken by .agents/rules/, which keep all host-specific
-# YAML in templates/<vendor>/.
+# YAML in templates/<vendor>/<kind>/.
 frontmatter_overlay() (
     src=$1
     tmpl=$2
