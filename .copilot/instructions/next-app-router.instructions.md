@@ -34,7 +34,7 @@ Rules for App Router code.
 
 - Render dates with a hydration-stable client component (e.g. `<ClientDate />`) so server- and client-rendered output match.
 - Use the `'use cache'` directive for cached data functions.
-- Do not use `cache: 'force-cache'` or `export const revalidate` for ad-hoc caching — prefer `'use cache'` with explicit tags.
+- Do not use `cache: 'force-cache'` or `export const revalidate` for ad-hoc caching - prefer `'use cache'` with explicit tags.
 - After mutations, invalidate cached reads with `revalidateTag()`.
 
 ## Reading Data

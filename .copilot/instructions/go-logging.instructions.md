@@ -6,17 +6,17 @@ applyTo: "**/*.go"
 
 # Go Structured Logging
 
-This project uses `log/slog` exclusively. No external logging libraries (zap, zerolog, logr) — the stdlib handler is sufficient and preserves the zero-dependency deployment model.
+This project uses `log/slog` exclusively. No external logging libraries (zap, zerolog, logr) - the stdlib handler is sufficient and preserves the zero-dependency deployment model.
 
 ## Handler and Setup
 
 - One `slog.TextHandler` configured at startup via `logging.Setup`. All loggers descend from `slog.Default()`.
-- TextHandler in development, JSONHandler in production deployments (decided by the operator, not the code). The `logging` package owns handler construction — never create handlers elsewhere.
+- TextHandler in development, JSONHandler in production deployments (decided by the operator, not the code). The `logging` package owns handler construction - never create handlers elsewhere.
 - Never call `slog.SetDefault` outside `logging.Setup`.
 
 ## Attribute Style
 
-Use typed `slog.Attr` constructors exclusively. Never use the alternating `key, value` shorthand — it silently produces `!BADKEY` on arity mismatches.
+Use typed `slog.Attr` constructors exclusively. Never use the alternating `key, value` shorthand - it silently produces `!BADKEY` on arity mismatches.
 
 ```go
 // ✅ Typed attributes, compile-time safe.
@@ -39,7 +39,7 @@ logger := logging.WithIssue(base, issueID, issueIdentifier)
 logger  = logging.WithSession(logger, sessionID)
 ```
 
-Never attach these fields manually with `logger.With(...)` — the helper functions guarantee consistent key names and ordering.
+Never attach these fields manually with `logger.With(...)` - the helper functions guarantee consistent key names and ordering.
 
 ### Logger Derivation Patterns
 
@@ -76,13 +76,13 @@ if !exists {
     log.Debug("retry timer for unknown entry", slog.String("issue_id", issueID))
     return
 }
-// Identifier now available — derive scoped logger for remaining logic.
+// Identifier now available - derive scoped logger for remaining logic.
 log = logging.WithIssue(log, issueID, popped.Identifier)
 ```
 
 ### Composing `WithSession`
 
-When the session ID is known, compose `WithSession` onto the issue-scoped logger so all subsequent logs carry `session_id`. Apply conditionally — the session ID may be empty early in a lifecycle or absent entirely.
+When the session ID is known, compose `WithSession` onto the issue-scoped logger so all subsequent logs carry `session_id`. Apply conditionally - the session ID may be empty early in a lifecycle or absent entirely.
 
 ```go
 log := logging.WithIssue(logger, issueID, entry.Identifier)
@@ -135,17 +135,17 @@ Event handlers called on every agent event (e.g., `HandleAgentEvent`) use `Debug
 Messages are lowercase verb phrases describing the action and its outcome:
 
 ```
-"workspace prepared"                 — success, Info
-"turn exit reason indicates failure" — degraded, Warn
-"failed to persist retry entry"      — failure, Error
-"agent event processed"              — hot-path detail, Debug
+"workspace prepared"                 - success, Info
+"turn exit reason indicates failure" - degraded, Warn
+"failed to persist retry entry"      - failure, Error
+"agent event processed"              - hot-path detail, Debug
 ```
 
 Rules:
 
 - Start with a lowercase verb or past participle. No sentence-case, no trailing period.
 - Include the **outcome** in the message itself (`completed`, `failed`, `retrying`, `skipped`).
-- Keep messages stable across releases — operators build alerts on them. Changing a message string is a behavioral change.
+- Keep messages stable across releases - operators build alerts on them. Changing a message string is a behavioral change.
 - Never interpolate variable data into the message string. Variables go in attributes:
 
 ```go
@@ -164,16 +164,16 @@ logger.Error(fmt.Sprintf("failed to persist retry entry for %s: %v", issueID, er
 Reserve `"error"` exclusively for Go `error` values logged via `slog.Any("error", err)`. This preserves the full error chain for log processors that support `errors.Is`/`errors.As`.
 
 ```go
-// ✅ error value via slog.Any — preserves chain.
+// ✅ error value via slog.Any - preserves chain.
 logger.Error("persistence failed", slog.Any("error", err))
 
-// ❌ Stringified error — strips unwrap chain.
+// ❌ Stringified error - strips unwrap chain.
 logger.Error("persistence failed", slog.String("error", err.Error()))
 ```
 
 ### Non-error diagnostic strings
 
-For diagnostic strings that are not Go `error` values and the source type does not satisfy the `error` interface, use a descriptive key — never `"error"`:
+For diagnostic strings that are not Go `error` values and the source type does not satisfy the `error` interface, use a descriptive key - never `"error"`:
 
 ```go
 // ✅ Distinct key for a plain string diagnostic.
@@ -185,18 +185,18 @@ logger.Warn("hook output unexpected",
     slog.String("error", truncatedOutput))
 ```
 
-If the source type satisfies `error` (has an `Error() string` method), use `slog.Any("error", val)` — even if it wraps a validation summary rather than a runtime failure:
+If the source type satisfies `error` (has an `Error() string` method), use `slog.Any("error", val)` - even if it wraps a validation summary rather than a runtime failure:
 
 ```go
-// ✅ PreflightResult satisfies error — use slog.Any.
+// ✅ PreflightResult satisfies error - use slog.Any.
 logger.Error("dispatch preflight failed", slog.Any("error", validation))
 ```
 
 ### Decision-point logging
 
-- Log errors at the **point of decision**, not at every intermediate return. If a function returns an error to its caller, it should not also log it — that produces duplicates.
+- Log errors at the **point of decision**, not at every intermediate return. If a function returns an error to its caller, it should not also log it - that produces duplicates.
 - The orchestrator layer (`internal/orchestrator`) is the primary decision point. Adapter and domain packages return errors; the orchestrator logs them.
-- After a panic recovery, log at `Error` with the panic value and then continue — never `log.Fatal` or `os.Exit` from a worker goroutine.
+- After a panic recovery, log at `Error` with the panic value and then continue - never `log.Fatal` or `os.Exit` from a worker goroutine.
 
 ## What Not to Log
 
@@ -232,4 +232,4 @@ if !strings.Contains(output, "issue_id=") { t.Error("missing issue_id") }
 Rules:
 - Never assert on exact timestamp values.
 - Assert on attribute key presence and expected values, not full line formatting.
-- For functions that accept `*slog.Logger`, pass the test logger — never rely on `slog.Default()` in tests.
+- For functions that accept `*slog.Logger`, pass the test logger - never rely on `slog.Default()` in tests.

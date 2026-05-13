@@ -163,7 +163,7 @@ When in doubt, extract.
 
 ## ORM Import Policy
 
-Prisma (or another generated ORM client) must be imported only through the project's configured alias — typically `@db` and `@db/*`, or `@/lib/db`. Discover the alias from `tsconfig.json#paths`.
+Prisma (or another generated ORM client) must be imported only through the project's configured alias - typically `@db` and `@db/*`, or `@/lib/db`. Discover the alias from `tsconfig.json#paths`.
 
 - Never import from a relative path into the generated ORM directory.
 - Import runtime enums and the namespace from the alias root.

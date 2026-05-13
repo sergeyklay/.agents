@@ -1,6 +1,6 @@
 ---
 name: "Go Code Style"
-description: "Naming, control flow, comment structure, and idiomatic Go patterns — prohibits labeled/numbered inline comments and other non-idiomatic habits"
+description: "Naming, control flow, comment structure, and idiomatic Go patterns - prohibits labeled/numbered inline comments and other non-idiomatic habits"
 applyTo: "**/*.go"
 ---
 
@@ -13,7 +13,7 @@ This file covers naming, comment structure, control flow, and Go idioms. For god
 Never prefix inline comments with labels, sequence numbers, or hierarchical markers. Write the comment content directly.
 
 ```go
-// ❌ Labeled — the number is noise; the reason is what matters.
+// ❌ Labeled - the number is noise; the reason is what matters.
 // Rule 1: required fields.
 if issue.ID == "" || issue.Identifier == "" {
     return false
@@ -29,7 +29,7 @@ validation := ValidateDispatchConfig(params)
 ```
 
 ```go
-// ✅ Reason first — state the invariant or constraint being enforced.
+// ✅ Reason first - state the invariant or constraint being enforced.
 // Issues with missing required fields are not eligible for dispatch.
 if issue.ID == "" || issue.Identifier == "" {
     return false
@@ -59,32 +59,32 @@ When a sequence genuinely matters (e.g., a three-phase commit), use a prose desc
 
 Never cite `docs/architecture.md`, `docs/decisions/`, section numbers, ADR numbers, or internal project tracker tickets (e.g., `SORT-42`) in any comment. Source files must stand alone; internal references create maintenance debt and break when documents are reorganized or the tracker migrates.
 
-Upstream external references — Go issue tracker (`golang/go#NNNNN`), GitHub issues in third-party repos, RFC numbers, CVE IDs — are permitted when they explain a non-obvious workaround or constraint that cannot be fully described in prose alone. The reference must accompany an explanation, not replace it.
+Upstream external references - Go issue tracker (`golang/go#NNNNN`), GitHub issues in third-party repos, RFC numbers, CVE IDs - are permitted when they explain a non-obvious workaround or constraint that cannot be fully described in prose alone. The reference must accompany an explanation, not replace it.
 
 ```go
-// ❌ Section reference — useless if the doc is renamed or restructured.
+// ❌ Section reference - useless if the doc is renamed or restructured.
 // Section 3.4: continuation turns must produce shorter output than first turns.
 if turn > 1 && len(output) >= len(prev) {
 
-// ❌ ADR reference — meaningless to someone reading the code cold.
+// ❌ ADR reference - meaningless to someone reading the code cold.
 // ADR-0003: use modernc.org/sqlite to avoid CGo.
 db, err := sql.Open("sqlite", path)
 
-// ❌ Internal ticket — rots when the tracker migrates.
+// ❌ Internal ticket - rots when the tracker migrates.
 // SORT-42: workaround for upstream pagination off-by-one.
 offset := 0
 
-// ❌ Upstream reference with no explanation — the link alone is useless.
+// ❌ Upstream reference with no explanation - the link alone is useless.
 // golang/go#22315
 n := runtime.NumCPU()
 
-// ✅ State the invariant directly — no internal document required.
+// ✅ State the invariant directly - no internal document required.
 // Continuation turns must be shorter than the first turn; longer output
 // indicates the model is re-summarizing instead of continuing.
 if turn > 1 && len(output) >= len(prev) {
 
 // ✅ Name the constraint in the code itself.
-// modernc.org/sqlite is the only permitted SQLite driver — CGo breaks
+// modernc.org/sqlite is the only permitted SQLite driver - CGo breaks
 // the single-binary zero-dependency deployment model.
 db, err := sql.Open("sqlite", path)
 
@@ -109,7 +109,7 @@ Prefer names proportional to scope. Short names (`i`, `err`, `ok`, `n`, `id`) ar
 Never use `data`, `info`, `val`, `item`, `obj`, or `result` as variable names. Name the thing.
 
 ```go
-// ❌ Generic — tells nothing about what is being iterated or processed.
+// ❌ Generic - tells nothing about what is being iterated or processed.
 for _, item := range issues {
     data := fetch(item)
 }
@@ -131,7 +131,7 @@ sessionID  string
 apiURL     string
 httpClient *http.Client
 
-// ❌ Incorrect — breaks Go stdlib convention.
+// ❌ Incorrect - breaks Go stdlib convention.
 issueId    string
 sessionId  string
 apiUrl     string
@@ -159,7 +159,7 @@ var noSlotsAvailable bool
 Return (or `continue`) at guard clauses and error conditions. Do not nest the happy path inside conditionals.
 
 ```go
-// ❌ Nested happy path — every guard adds one indentation level.
+// ❌ Nested happy path - every guard adds one indentation level.
 func process(issue domain.Issue) error {
     if issue.ID != "" {
         if !state.IsRunning(issue.ID) {
@@ -169,7 +169,7 @@ func process(issue domain.Issue) error {
     return nil
 }
 
-// ✅ Flat — guards are at the top, happy path at the bottom.
+// ✅ Flat - guards are at the top, happy path at the bottom.
 func process(issue domain.Issue) error {
     if issue.ID == "" {
         return nil
@@ -205,7 +205,7 @@ doWork()
 Use `switch` when comparing a single expression against three or more values.
 
 ```go
-// ❌ Chain — hard to scan.
+// ❌ Chain - hard to scan.
 if state == "open" {
     ...
 } else if state == "in_progress" {
@@ -214,7 +214,7 @@ if state == "open" {
     ...
 }
 
-// ✅ Switch — each case aligns.
+// ✅ Switch - each case aligns.
 switch state {
 case "open":
     ...
@@ -234,7 +234,7 @@ Error strings are lowercase with no trailing punctuation. Callers wrap them; the
 fmt.Errorf("failed to open workspace: %w", err)
 fmt.Errorf("issue %s not found", id)
 
-// ❌ Capital letter or trailing punctuation — breaks wrapping.
+// ❌ Capital letter or trailing punctuation - breaks wrapping.
 fmt.Errorf("Failed to open workspace: %w", err)
 fmt.Errorf("issue %s not found.", id)
 ```
@@ -245,7 +245,7 @@ Include the resource identifier being operated on so the wrapped chain is useful
 // ✅ Caller can identify which workspace and why it failed.
 fmt.Errorf("prepare workspace for issue %s: %w", issue.ID, err)
 
-// ❌ No context — caller cannot tell which workspace.
+// ❌ No context - caller cannot tell which workspace.
 fmt.Errorf("prepare workspace: %w", err)
 ```
 
@@ -254,13 +254,13 @@ fmt.Errorf("prepare workspace: %w", err)
 Initialize only non-zero fields. Explicitly setting zero values adds noise and implies they were chosen deliberately when they were not.
 
 ```go
-// ✅ Only meaningful fields — intent is unambiguous.
+// ✅ Only meaningful fields - intent is unambiguous.
 entry := RunningEntry{
     Identifier: issue.Identifier,
     StartedAt:  time.Now(),
 }
 
-// ❌ Redundant zero values — reader must verify these are intentional.
+// ❌ Redundant zero values - reader must verify these are intentional.
 entry := RunningEntry{
     Identifier: issue.Identifier,
     SessionID:  "",
@@ -314,7 +314,7 @@ This project targets Go 1.26. Use the modern forms below; without explicit instr
 Go 1.22 gives each loop iteration its own copy of the loop variables. The `v := v` shadowing workaround is no longer needed and should not be written.
 
 ```go
-// ❌ Stale — unnecessary and misleading since Go 1.22.
+// ❌ Stale - unnecessary and misleading since Go 1.22.
 for _, url := range urls {
     url := url
     go func() { fetch(url) }()
@@ -372,11 +372,11 @@ for k, v := range slices.Sorted(maps.All(m)) { ... } // sorted map iteration
 Use `strings.Cut` to split a string on a delimiter. Do not use `strings.SplitN(s, sep, 2)`.
 
 ```go
-// ❌ SplitN — does not signal whether the delimiter was found.
+// ❌ SplitN - does not signal whether the delimiter was found.
 parts := strings.SplitN(line, "=", 2)
 key, value := parts[0], parts[1]
 
-// ✅ Cut — returns a found flag and handles the missing-delimiter case cleanly.
+// ✅ Cut - returns a found flag and handles the missing-delimiter case cleanly.
 key, value, ok := strings.Cut(line, "=")
 if !ok { ... }
 ```

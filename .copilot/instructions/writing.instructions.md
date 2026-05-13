@@ -10,13 +10,13 @@ These rules govern all prose in this project: architecture documents, ADRs, issu
 
 ## Core Principles
 
-**State facts. Do not speculate.** Write declarative, present-tense sentences. "The orchestrator serializes all state mutations" — not "The orchestrator might serialize state mutations." Reserve hedging for genuine uncertainty, and name the uncertainty explicitly when you use it.
+**State facts. Do not speculate.** Write declarative, present-tense sentences. "The orchestrator serializes all state mutations" - not "The orchestrator might serialize state mutations." Reserve hedging for genuine uncertainty, and name the uncertainty explicitly when you use it.
 
 **Every sentence must earn its place.** If a sentence can be removed without losing information, remove it. Introductions that restate the heading, transitions that connect nothing, and conclusions that summarize the obvious are all candidates for deletion.
 
 **One term per concept.** Choose a name for each domain concept and use it everywhere. Do not alternate between synonyms for variety. If the spec calls it a "workspace key," never call it a "directory name" or "folder identifier" in the same document.
 
-**Active voice by default.** "The adapter normalizes labels" — not "Labels are normalized by the adapter." Passive voice is acceptable when the actor is irrelevant or unknown: "Errors are logged to stderr."
+**Active voice by default.** "The adapter normalizes labels" - not "Labels are normalized by the adapter." Passive voice is acceptable when the actor is irrelevant or unknown: "Errors are logged to stderr."
 
 **Write for the reader who will implement this.** Assume the audience is a TypeScript/React engineer familiar with component architecture, async patterns, and state management. Do not explain Promises, hooks, or the React rendering model from first principles. Do explain project-specific invariants, non-obvious constraints, and decisions that deviate from common practice.
 
@@ -47,23 +47,23 @@ Bad:  "Workspace Path Containment"
 Bad:  "WORKSPACE PATH CONTAINMENT"
 ```
 
-Headings describe content, not category. "Retry backoff algorithm" — not "Details" or "Additional information."
+Headings describe content, not category. "Retry backoff algorithm" - not "Details" or "Additional information."
 
 Do not skip heading levels. H1 appears once per document. Sections use H2, subsections H3. Rarely go deeper than H4.
 
 ### When to use each format
 
-**Prose paragraphs** — for rationale, context, and narrative explanation of how components interact. Use when relationships between ideas matter more than individual items.
+**Prose paragraphs** - for rationale, context, and narrative explanation of how components interact. Use when relationships between ideas matter more than individual items.
 
-**Bulleted lists** — for unordered collections of related items, constraints, or properties. Use when each item is independent and the reader needs to scan.
+**Bulleted lists** - for unordered collections of related items, constraints, or properties. Use when each item is independent and the reader needs to scan.
 
-**Numbered lists** — for sequential steps where order matters. Use for procedures, algorithms, and workflows.
+**Numbered lists** - for sequential steps where order matters. Use for procedures, algorithms, and workflows.
 
-**Tables** — for structured reference data with consistent attributes across rows. Use when the reader needs to compare or look up values. Do not use tables for prose that happens to have two columns.
+**Tables** - for structured reference data with consistent attributes across rows. Use when the reader needs to compare or look up values. Do not use tables for prose that happens to have two columns.
 
-**Code blocks** — for anything the reader might execute, copy, or treat as literal syntax. Pseudocode, SQL schemas, CLI commands, TypeScript/React snippets.
+**Code blocks** - for anything the reader might execute, copy, or treat as literal syntax. Pseudocode, SQL schemas, CLI commands, TypeScript/React snippets.
 
-**Mermaid diagrams** — for system context, sequence flows, and state machines where visual structure communicates relationships that prose cannot.
+**Mermaid diagrams** - for system context, sequence flows, and state machines where visual structure communicates relationships that prose cannot.
 
 ### Cross-references
 
@@ -127,7 +127,7 @@ Architecture Decision Records are reference documents, not essays. Target 200-50
 
 **Trade-off honesty is mandatory.** Acknowledge what the chosen option makes harder. "Zustand has a smaller API surface than Redux but lacks first-class support for normalized cache" is honest. "Zustand is the best choice in every dimension" is not credible.
 
-**Compare concretely.** "React Query caches server state automatically and revalidates on window focus; SWR offers a simpler API but fewer configuration hooks for mutation side-effects" — not "React Query is better."
+**Compare concretely.** "React Query caches server state automatically and revalidates on window focus; SWR offers a simpler API but fewer configuration hooks for mutation side-effects" - not "React Query is better."
 
 ## Inline Comments and Commit Messages
 
@@ -135,7 +135,7 @@ Architecture Decision Records are reference documents, not essays. Target 200-50
 
 ```ts
 // Good: Explain a non-obvious constraint
-// Stable reference required — passing an inline object here would trigger
+// Stable reference required - passing an inline object here would trigger
 // an infinite render loop because the parent re-creates it on every render.
 const options = useMemo(() => ({ retry: false }), []);
 
@@ -192,7 +192,7 @@ Delete entirely. These add no information.
 
 These patterns signal machine-generated text. Avoid them in all project documents.
 
-**Em-dash ban.** Em-dashes (—) MUST NOT appear anywhere in project documents. They are a strong LLM-generated-text signal. Replace with commas, parentheses, periods, or semicolons. If a dash is genuinely needed, use a spaced en-dash (" – "), never an em-dash.
+**Em-dash ban.** Em-dashes (-) MUST NOT appear anywhere in project documents. They are a strong LLM-generated-text signal. Replace with commas, parentheses, periods, or semicolons. If a dash is genuinely needed, use a spaced en-dash (" – "), never an em-dash.
 
 **Transition word stacking.** Do not use "Furthermore," "Additionally," "Moreover," or "In addition" as paragraph openers. Use "And," "But," "So," or restructure to eliminate the transition.
 
@@ -220,4 +220,4 @@ These patterns signal machine-generated text. Avoid them in all project document
 
 All project prose is in American English. Use American spelling in all identifiers, comments, docs, and messages: "initialize", "normalize", "behavior", "color".
 
-This rule applies regardless of the language the user communicates in. Even if instructions, questions, or feedback arrive in Russian, Ukrainian, or any other language, all output — code, comments, docs, commit messages, PR descriptions — MUST be in American English. The only exception is when the user explicitly and unambiguously requests otherwise for a specific artifact.
+This rule applies regardless of the language the user communicates in. Even if instructions, questions, or feedback arrive in Russian, Ukrainian, or any other language, all output - code, comments, docs, commit messages, PR descriptions - MUST be in American English. The only exception is when the user explicitly and unambiguously requests otherwise for a specific artifact.

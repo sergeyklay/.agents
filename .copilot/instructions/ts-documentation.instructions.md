@@ -29,7 +29,7 @@ import { ReportBuilder } from './report-builder';
 
 // ❌ Restates the filename; no architectural context.
 /**
- * report.ts — contains report stuff
+ * report.ts - contains report stuff
  */
 ```
 
@@ -43,7 +43,7 @@ Omit the file-level comment entirely when the filename and its single export are
 
 Every exported function, class, method, constant, and type alias must have a JSDoc comment. The comment follows a strict two-part structure.
 
-**First line — mandatory summary.**
+**First line - mandatory summary.**
 Begin with the symbol name as the grammatical subject. End at the first period. This line appears in IDE hover tooltips and TypeDoc index pages and must be self-contained.
 
 ```typescript
@@ -53,14 +53,14 @@ Begin with the symbol name as the grammatical subject. End at the first period. 
 export function formatCurrency(amount: number, currency: string): string {
 ```
 
-**Continuation block — conditional.**
+**Continuation block - conditional.**
 Add a second paragraph only when the first sentence does not fully convey the contract: error behaviour, `null`/`undefined`-input semantics, side effects, or non-obvious preconditions. Limit to 3–4 sentences. A third paragraph is justified only for a separate semantic topic (e.g., a usage example after describing error behaviour).
 
 ```typescript
 /**
  * Fetches the paginated list of documents owned by the given user.
  *
- * Returns an empty array when no documents exist — never `null`. Throws
+ * Returns an empty array when no documents exist - never `null`. Throws
  * {@link UnauthorizedError} if the session token is missing or expired.
  * Results are sorted by `updatedAt` descending.
  */
@@ -77,7 +77,7 @@ Use declarative, present-tense statements. Name what the symbol *does or reports
 // Reports whether the subscription plan includes the given feature flag.
 // Resolves to the first matching record, or undefined if none exists.
 
-// ❌ Imperative — tells the caller what to do, not what the symbol is.
+// ❌ Imperative - tells the caller what to do, not what the symbol is.
 // Call validate() to check the form values.
 // Use this to check if the plan includes the feature.
 // Returns first matching record.
@@ -118,7 +118,7 @@ export function scheduleReport(reportId: string, delayMs: number): JobHandle {
 | Parameter has a non-obvious valid range or format | Yes |
 | Parameter interacts with another parameter in a non-obvious way | Yes |
 | Parameter has a special sentinel value (e.g., `0` means unlimited) | Yes |
-| Callback parameter — document what it is called with | Yes |
+| Callback parameter - document what it is called with | Yes |
 
 **When to include `@returns`:**
 
@@ -181,7 +181,7 @@ Document every thrown error that the caller is expected to handle. Use `@throws`
 export function parseWebhookPayload(raw: string, signature: string): WebhookEvent {
 ```
 
-Do not document errors that are programming mistakes (e.g., passing `null` where the type disallows it) — those are type system violations, not contractual errors.
+Do not document errors that are programming mistakes (e.g., passing `null` where the type disallows it) - those are type system violations, not contractual errors.
 
 ---
 
@@ -264,8 +264,8 @@ export async function ActivityFeed({ userId }: ActivityFeedProps) {
 Hooks require the most thorough documentation because their return shape, side-effect lifecycle, and dependency constraints are rarely obvious from the signature.
 
 **Required sections for non-trivial hooks:**
-1. Summary — what the hook manages.
-2. Side-effect contract — what effects it registers and when they clean up.
+1. Summary - what the hook manages.
+2. Side-effect contract - what effects it registers and when they clean up.
 3. `@param` for non-obvious parameters.
 4. `@returns` describing the shape and key invariants of the returned object.
 5. `@example` when the hook has a non-trivial call site.
@@ -331,7 +331,7 @@ Document a type alias when it encodes a domain constraint that the structural ty
 ```typescript
 /**
  * An ISO-8601 date string in UTC, e.g. `"2025-03-14T00:00:00Z"`.
- * Do not pass local-time strings — the API rejects them.
+ * Do not pass local-time strings - the API rejects them.
  */
 export type UtcDateString = string;
 ```
@@ -366,13 +366,13 @@ Mark deprecated symbols with `@deprecated`. Include the version or date of depre
 export function createReport(template: string): Report {
 ```
 
-Do not silently delete deprecated exports — consumers depend on them. Add `@deprecated` first; remove in the next major version.
+Do not silently delete deprecated exports - consumers depend on them. Add `@deprecated` first; remove in the next major version.
 
 ---
 
 ## Code Examples
 
-Include `@example` only when the composition pattern or call site is genuinely non-obvious. Keep examples minimal — they are not tutorials.
+Include `@example` only when the composition pattern or call site is genuinely non-obvious. Keep examples minimal - they are not tutorials.
 
 ```typescript
 /**
@@ -406,7 +406,7 @@ const MAX_PAGE_HEIGHT_PX = 14_400;
 // responsive; rolled back in the onError callback.
 setItems((prev) => [optimisticItem, ...prev]);
 
-// ❌ Narrates the code — the reader can see this.
+// ❌ Narrates the code - the reader can see this.
 // Set the variable to true
 let isLoading = true;
 
@@ -419,7 +419,7 @@ for (const item of items) {
 **Never** place inline comments that:
 - Restate a variable name in prose (`// user id` above `const userId`).
 - Label obvious control flow (`// return`, `// if error`).
-- Reference internal ticket numbers, sprint sections, or wiki links — these rot.
+- Reference internal ticket numbers, sprint sections, or wiki links - these rot.
 
 Upstream workaround references (MDN issue numbers, browser bug IDs, `react/issues/NNNN`) are permitted **only** when they explain a hack that cannot be fully described in one sentence of prose.
 
@@ -429,8 +429,8 @@ Upstream workaround references (MDN issue numbers, browser bug IDs, `react/issue
 
 | Pattern | Why to avoid |
 |---|---|
-| `@param {string} name` — type in `@param` | TypeScript already documents the type; repeating it creates drift |
-| `@returns {Promise<User>}` — type in `@returns` | Same reason |
+| `@param {string} name` - type in `@param` | TypeScript already documents the type; repeating it creates drift |
+| `@returns {Promise<User>}` - type in `@returns` | Same reason |
 | Comments on every property of a simple DTO | Adds noise; reserve for non-obvious fields only |
 | `// TODO: fix later` without owner or ticket | Unactionable; use a tracked issue |
 | Comments referencing internal docs, ADRs, or sprint numbers | These rot; put the relevant context directly in the comment |
@@ -451,7 +451,7 @@ const handler = (payload: any) => processEvent(payload);
 ```
 
 - Never use a bare `// eslint-disable` without a specific rule.
-- Never suppress `@typescript-eslint/no-unsafe-*` rules across an entire file — fix the typing instead.
+- Never suppress `@typescript-eslint/no-unsafe-*` rules across an entire file - fix the typing instead.
 - Prefer fixing the code. Suppression is a last resort when the linter is provably wrong or the fix would harm readability more than the suppression harms safety.
 
 ---

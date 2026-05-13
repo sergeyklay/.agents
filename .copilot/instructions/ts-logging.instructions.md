@@ -23,7 +23,7 @@ import { getLogger } from '@/lib/logger';
 const logger = getLogger('UserService'); // Context name is mandatory
 ```
 
-Use PascalCase names that match the service, component, or pipeline stage — e.g. `UserService`, `PaymentService`, `OAuthService`, `WorkflowRunner`, `IngestPipeline`.
+Use PascalCase names that match the service, component, or pipeline stage - e.g. `UserService`, `PaymentService`, `OAuthService`, `WorkflowRunner`, `IngestPipeline`.
 
 ## 3. Logging Patterns
 
