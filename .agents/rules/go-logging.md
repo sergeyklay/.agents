@@ -1,8 +1,3 @@
----
-name: "Go Structured Logging"
-description: "Logging conventions, log levels, context fields, message formatting, error logging, and observability rules for Go code in this project"
-applyTo: "**/*.go"
----
 
 # Go Structured Logging
 

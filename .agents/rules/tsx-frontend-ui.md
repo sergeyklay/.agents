@@ -1,7 +1,3 @@
----
-description: 'Use when editing React UI with Tailwind v4 or shadcn/ui. Covers cn, cva, design tokens, and composition rules.'
-applyTo: '**/app/**/*.tsx,**/components/**/*.tsx'
----
 
 # Frontend UI Rules
 

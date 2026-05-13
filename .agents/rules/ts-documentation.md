@@ -1,7 +1,3 @@
----
-description: 'JSDoc comment style, exported symbol documentation, inline comment rules, and deprecation patterns for TypeScript and React code.'
-applyTo: '**/*.ts,**/*.tsx'
----
 
 # TypeScript & React Documentation and Comments
 

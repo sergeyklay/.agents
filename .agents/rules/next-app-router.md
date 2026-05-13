@@ -1,7 +1,3 @@
----
-description: 'Use when editing Next.js App Router routes, Server Components, Server Actions, route view-models, caching, or rendered dates.'
-applyTo: '**/app/**/*.{ts,tsx},**/lib/actions/**/*.ts,**/actions/**/*.ts'
----
 
 # Next.js App Router Rules
 

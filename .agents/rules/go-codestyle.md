@@ -1,8 +1,3 @@
----
-name: "Go Code Style"
-description: "Naming, control flow, comment structure, and idiomatic Go patterns - prohibits labeled/numbered inline comments and other non-idiomatic habits"
-applyTo: "**/*.go"
----
 
 # Go Code Style
 

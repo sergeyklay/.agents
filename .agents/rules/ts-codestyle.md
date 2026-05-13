@@ -1,7 +1,3 @@
----
-description: 'Use when editing TypeScript or React code. Covers core TypeScript rules, naming, type placement, constants ownership, ORM imports, and React component fundamentals.'
-applyTo: '**/*.ts,**/*.tsx'
----
 
 # TypeScript & React Codestyle
 

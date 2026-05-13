@@ -1,8 +1,3 @@
----
-name: "Go Documentation and Comments"
-description: "Package comments, exported symbol docs, inline comment style, and lint suppression rules for Go code"
-applyTo: "**/*.go"
----
 
 # Go Documentation and Comments
 

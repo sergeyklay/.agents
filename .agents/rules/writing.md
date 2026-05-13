@@ -1,8 +1,3 @@
----
-name: "Technical Writing"
-description: "Prose standards for architecture documents, ADRs and user guides"
-applyTo: "**/docs/*.md"
----
 
 # Technical Writing Standards
 

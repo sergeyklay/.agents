@@ -1,7 +1,3 @@
----
-description: 'Structured logging discipline for Node.js services using pino: call-site patterns, log levels, security redaction, and environment behaviour.'
-applyTo: '**/*.ts,**/*.tsx'
----
 
 # Logging & Observability
 

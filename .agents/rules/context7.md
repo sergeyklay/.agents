@@ -1,8 +1,3 @@
----
-name: "Context7 Documentation Retrieval"
-description: "When and how to use Context7 MCP to fetch live library documentation instead of relying on training data"
-applyTo: '**'
----
 
 # Context7 Usage
 

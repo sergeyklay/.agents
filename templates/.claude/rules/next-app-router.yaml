@@ -1,0 +1,4 @@
+paths:
+  - "**/app/**/*.{ts,tsx}"
+  - "**/lib/actions/**/*.ts"
+  - "**/actions/**/*.ts"

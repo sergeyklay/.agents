@@ -1,7 +1,3 @@
----
-description: "Use the toolchain the project already pins; detect runtime, package manager, and scripts before acting."
-applyTo: "**/*.{ts,tsx,mjs,cjs,js,jsx},**/package.json,**/package-lock.json,**/yarn.lock,**/pnpm-lock.yaml,**/bun.lock,**/bun.lockb"
----
 
 # Node Toolchain
 

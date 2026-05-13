@@ -15,7 +15,7 @@ SCRIPT_DIR=$(CDPATH="" cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH="" cd -- "$SCRIPT_DIR/.." && pwd)
 
 # Sync kinds dispatched by main; --all expands to this list.
-ALL_ACTIONS='agents commands hooks instructions settings skills'
+ALL_ACTIONS='agents commands hooks rules settings skills'
 
 usage() {
     cat <<EOF
@@ -24,14 +24,14 @@ Usage: $(basename "$0") [options]
 Install agent assets from this repository to user home.
 
 Options:
-  --all           Install all.
-  --agents        Install agents to user home.
-  --commands      Install commands to user home.
-  --hooks         Install agent hooks to user home.
-  --instructions  Install agent instructions to user home.
-  --settings      Install agents settings to user home.
-  --skills        Install skills to registered skill destinations.
-  -h, --help      Show this help and exit.
+  --all       Install all.
+  --agents    Install agents to user home.
+  --commands  Install commands to user home.
+  --hooks     Install agent hooks to user home.
+  --rules     Install agent rules to user home.
+  --settings  Install agents settings to user home.
+  --skills    Install skills to registered skill destinations.
+  -h, --help  Show this help and exit.
 EOF
 }
 
@@ -190,7 +190,11 @@ overlay_with_awk() (
 
 # Apply $2's overlay to $1's frontmatter; write the result to $3.
 # Selects the yq backend when available, otherwise the awk backend.
-# A missing $2 yields a verbatim copy of $1.
+# A missing $2 yields a verbatim copy of $1. A $1 without leading
+# `---` carries no frontmatter to merge, so the template content is
+# wrapped in `---` markers and prepended to the body verbatim --
+# the path taken by .agents/rules/, which keep all host-specific
+# YAML in templates/<vendor>/.
 frontmatter_overlay() (
     src=$1
     tmpl=$2
@@ -198,6 +202,16 @@ frontmatter_overlay() (
 
     if [ ! -f "$tmpl" ]; then
         cp -- "$src" "$dst"
+        return 0
+    fi
+
+    if [ "$(head -n 1 -- "$src")" != "---" ]; then
+        {
+            printf -- '---\n'
+            cat -- "$tmpl"
+            printf -- '---\n'
+            cat -- "$src"
+        } > "$dst"
         return 0
     fi
 
@@ -411,10 +425,33 @@ sync_settings() {
     sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
 }
 
-sync_instructions() {
-    printf 'syncing instructions...\n'
+sync_rules() {
+    printf 'syncing rules...\n'
 
-    sync_to "$REPO_ROOT/.copilot/instructions" "$HOME/.copilot/instructions"
+    src_dir="$REPO_ROOT/.agents/rules"
+    [ -d "$src_dir" ] || die "source missing: $src_dir"
+
+    # Pre-create per-host destination directories so the per-file mirrors
+    # below are not skipped on a missing parent. Each host gates itself
+    # on its own root, so an uninstalled tool stays untouched.
+    [ -d "$HOME/.claude" ]  && mkdir -p "$HOME/.claude/rules"
+    [ -d "$HOME/.copilot" ] && mkdir -p "$HOME/.copilot/instructions"
+
+    for f in "$src_dir/"*.md; do
+        [ -f "$f" ] || continue
+        name=$(basename -- "$f" .md)
+
+        # Claude Code: ~/.claude/rules/<name>.md. The optional
+        # templates/.claude/rules/<name>.yaml supplies `paths:` for
+        # path-scoped rules; rules without one install as verbatim
+        # markdown and load unconditionally on session start.
+        sync_view ".claude/rules" "$f" "$HOME/.claude/rules/$name.md"
+
+        # VS Code Copilot: ~/.copilot/instructions/<name>.instructions.md.
+        # templates/.copilot/instructions/<name>.yaml carries the
+        # name/description/applyTo frontmatter Copilot expects.
+        sync_view ".copilot/instructions" "$f" "$HOME/.copilot/instructions/$name.instructions.md"
+    done
 }
 
 sync_hooks() {
@@ -427,16 +464,16 @@ main() {
     actions=
     while [ $# -gt 0 ]; do
         case $1 in
-            --all)           actions="$actions $ALL_ACTIONS" ;;
-            --agents)        actions="$actions agents" ;;
-            --commands)      actions="$actions commands" ;;
-            --hooks)         actions="$actions hooks" ;;
-            --instructions)  actions="$actions instructions" ;;
-            --skills)        actions="$actions skills" ;;
-            --settings)      actions="$actions settings" ;;
-            -h|--help)       usage; exit 0 ;;
-            -*)              die "unknown option: $1" ;;
-            *)               die "unexpected argument: $1" ;;
+            --all)       actions="$actions $ALL_ACTIONS" ;;
+            --agents)    actions="$actions agents" ;;
+            --commands)  actions="$actions commands" ;;
+            --hooks)     actions="$actions hooks" ;;
+            --rules)     actions="$actions rules" ;;
+            --skills)    actions="$actions skills" ;;
+            --settings)  actions="$actions settings" ;;
+            -h|--help)   usage; exit 0 ;;
+            -*)          die "unknown option: $1" ;;
+            *)           die "unexpected argument: $1" ;;
         esac
         shift
     done
