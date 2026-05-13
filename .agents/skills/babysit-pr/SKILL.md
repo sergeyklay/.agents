@@ -19,7 +19,7 @@ Project context (AGENTS.md, CLAUDE.md, architecture documentation) is reference 
 
 Script paths in this document (e.g. `scripts/`) are resolved relative to **this** SKILL.md file, not to your current working directory. If a relative command fails to resolve, prefix it with the path your platform loaded this SKILL.md from.
 
-**Fallback.** If `python3` is not installed or the script cannot be located, every procedure in this skill provides a manual alternative - follow those steps instead.
+**Fallback.** If `python3` is not installed or the script cannot be located, analyze the script's purpose and logic and execute its intent with available tools, but warn the user that python is not available and the logic was executed with a fallback approach that may not be perfect.
 
 ## Prerequisites
 
