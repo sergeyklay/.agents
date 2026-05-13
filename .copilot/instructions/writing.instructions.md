@@ -129,7 +129,7 @@ Architecture Decision Records are reference documents, not essays. Target 200-50
 
 **Compare concretely.** "React Query caches server state automatically and revalidates on window focus; SWR offers a simpler API but fewer configuration hooks for mutation side-effects" - not "React Query is better."
 
-## Inline Comments and Commit Messages
+## Inline Comments
 
 **Comments explain why, not what.** Code shows what. Comments explain non-obvious invariants, safety constraints, workarounds, and intentional deviations.
 
@@ -143,15 +143,6 @@ const options = useMemo(() => ({ retry: false }), []);
 // Create options with retry set to false
 const options = useMemo(() => ({ retry: false }), []);
 ```
-
-**Commit messages** follow Conventional Commits. Subject line under 72 characters, imperative mood, body explains why.
-
-## PR Descriptions
-
-**Structure:** What problem this solves (1-2 sentences), how it solves it (key changes), what was tested (commands, results), what could break (risk assessment).
-
-Do not narrate the git log. The reviewer can read the diff. Describe the intent and the risk.
-
 ## Banned Language
 
 ### Words to replace
@@ -220,4 +211,4 @@ These patterns signal machine-generated text. Avoid them in all project document
 
 All project prose is in American English. Use American spelling in all identifiers, comments, docs, and messages: "initialize", "normalize", "behavior", "color".
 
-This rule applies regardless of the language the user communicates in. Even if instructions, questions, or feedback arrive in Russian, Ukrainian, or any other language, all output - code, comments, docs, commit messages, PR descriptions - MUST be in American English. The only exception is when the user explicitly and unambiguously requests otherwise for a specific artifact.
+This rule applies regardless of the language the user communicates in. Even if instructions, questions, or feedback arrive in Chinese, Russian, Ukrainian, or any other language, all output - code, comments, docs - MUST be in American English. The only exception is when the user explicitly and unambiguously requests otherwise for a specific artifact.
