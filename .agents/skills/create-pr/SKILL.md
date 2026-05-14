@@ -47,6 +47,18 @@ Conventional Commits format: `<type>[scope]: <description>`
 - Imperative mood, under 72 chars, no period, English only
 - Match the project's commit style (check `git log --format="%s" -20`)
 
+NEVER add task ID, issue number, or other metadata to the title:
+
+**❌ Wrong:**
+```
+feat(messages): add server-only synthetic mailbox archive parser (BP-1234)
+```
+
+**✅ Correct:**
+```
+feat(messages): add server-only synthetic mailbox archive parser
+```
+
 ### Step 4: Generate description
 
 Use the template from `assets/pull_request_template.md`. Three sections:
@@ -63,7 +75,7 @@ Formatting rules:
 - No hard-wrap in body prose: GitHub renders soft line breaks as `<br>` in PR descriptions, so wrapping at ~80 chars creates visible artificial breaks. Let paragraphs flow; break only for new paragraphs, list items, or code blocks
 - All sections required, sub-sections only when relevant data exists
 
-Do not reference `docs/architecture.md`, `docs/decisions/`, section numbers, or ADR numbers in pull request descriptions. Those belong in specs and plans, not in the git history.
+Do NOT reference specifications (`./specs/*.md`), plans (`./plans/*.md`), its section numbers, or `TODO.md` in pull request descriptions. These are internal artifacts for agent coordination and should not be exposed to human reviewers. If you need to explain a design decision, implementation detail, or rationale, do so in the description without citing internal documents. The description should be self-contained and understandable on its own.
 
 Complexity guide:
 
