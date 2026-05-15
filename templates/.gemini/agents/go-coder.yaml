@@ -1,0 +1,14 @@
+tools:
+  - read_file
+  - write_file
+  - replace
+  - glob
+  - grep_search
+  - list_directory
+  - run_shell_command
+  - web_fetch
+  - google_web_search
+  - write_todos
+  - mcp_context7_*
+kind: local
+model: gemini-3.1-pro-preview

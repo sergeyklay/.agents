@@ -1,0 +1,14 @@
+name: GoCoder
+argument-hint: Specify the execution plan step or file to implement
+model: GPT-5.5 (copilot)
+tools:
+  - execute/getTerminalOutput
+  - execute/killTerminal
+  - execute/runInTerminal
+  - read/readFile
+  - edit/createDirectory
+  - edit/createFile
+  - edit/editFiles
+  - search
+  - web
+  - context7/*
