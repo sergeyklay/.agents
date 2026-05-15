@@ -1,0 +1,6 @@
+name: implement
+argument-hint: Plan path, issue reference, or feature description
+disable-model-invocation: true
+model: sonnet
+context: fork
+agent: conductor

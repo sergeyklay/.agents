@@ -1,0 +1,15 @@
+tools:
+  - Agent
+  - Read
+  - TaskCreate
+  - TaskGet
+  - TaskList
+  - TaskUpdate
+  - mcp__atlassian__getJiraIssue
+  - mcp__atlassian__searchJiraIssuesUsingJql
+  - mcp__atlassian__searchConfluenceUsingCql
+  - mcp__atlassian__getJiraIssueTypeMetaWithFields
+  - mcp__atlassian__getConfluencePage
+  - mcp__atlassian__getAccessibleAtlassianResources
+  - mcp__atlassian__getVisibleJiraProjects
+model: opus

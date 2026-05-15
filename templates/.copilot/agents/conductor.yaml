@@ -1,0 +1,13 @@
+argument-hint: Plan path, issue reference, or feature description
+tools:
+  - agent
+  - read/readFile
+  - todo
+  - "atlassian/getJiraIssue"
+  - "atlassian/searchJiraIssuesUsingJql"
+  - "atlassian/searchConfluenceUsingCql"
+  - "atlassian/getJiraIssueTypeMetaWithFields"
+  - "atlassian/getConfluencePage"
+  - "atlassian/getAccessibleAtlassianResources"
+  - "atlassian/getVisibleJiraProjects"
+model: GPT-5.5 (copilot)

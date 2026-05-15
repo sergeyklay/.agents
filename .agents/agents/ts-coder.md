@@ -1,7 +1,7 @@
---
+---
 name: ts-coder
 description: "Implement features, fix bugs, and write production code following architectural constraints and best practices in TypeScript. Use when asked to build, code, implement, develop a feature, execute a plan, or write production code. Also use when the user mentions TypeScript, TS, or specific TypeScript libraries or frameworks. Do NOT use for prototyping, writing scripts, creating documentation, or for general coding questions that are not directly tied to implementation tasks."
---
+---
 
 ## Role
 
