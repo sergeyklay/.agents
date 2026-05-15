@@ -1,0 +1,36 @@
+tools:
+  - read_file
+  - write_file
+  - replace
+  - glob
+  - grep_search
+  - list_directory
+  - run_shell_command
+  - web_fetch
+  - google_web_search
+  - write_todos
+  - mcp_context7_*
+  - mcp_bpdb_*
+  - mcp_snyk_snyk_auth
+  - mcp_snyk_snyk_logout
+  - mcp_snyk_snyk_trust
+  - mcp_snyk_snyk_code_scan
+  - mcp_snyk_snyk_sca_scan
+  - mcp_snyk_snyk_version
+  - mcp_atlassian_createIssueLink
+  - mcp_atlassian_createJiraIssue
+  - mcp_atlassian_editJiraIssue
+  - mcp_atlassian_getAccessibleAtlassianResources
+  - mcp_atlassian_getConfluencePage
+  - mcp_atlassian_getIssueLinkTypes
+  - mcp_atlassian_getJiraIssue
+  - mcp_atlassian_getJiraIssueTypeMetaWithFields
+  - mcp_atlassian_getJiraProjectIssueTypesMetadata
+  - mcp_atlassian_getTransitionsForJiraIssue
+  - mcp_atlassian_getVisibleJiraProjects
+  - mcp_atlassian_lookupJiraAccountId
+  - mcp_atlassian_searchConfluenceUsingCql
+  - mcp_atlassian_searchJiraIssuesUsingJql
+  - mcp_atlassian_transitionJiraIssue
+kind: local
+model: gemini-3.1-pro-preview

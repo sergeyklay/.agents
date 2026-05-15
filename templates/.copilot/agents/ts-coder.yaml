@@ -1,0 +1,31 @@
+name: TSCoder
+argument-hint: Specify the execution plan step or file to implement
+model: GPT-5.5 (copilot)
+tools:
+  - execute/getTerminalOutput
+  - execute/killTerminal
+  - execute/runInTerminal
+  - read/readFile
+  - edit/createDirectory
+  - edit/createFile
+  - edit/editFiles
+  - search
+  - web
+  - context7/*
+  - bpdb/*
+  - snyk/*
+  - "atlassian/createIssueLink"
+  - "atlassian/createJiraIssue"
+  - "atlassian/editJiraIssue"
+  - "atlassian/getAccessibleAtlassianResources"
+  - "atlassian/getConfluencePage"
+  - "atlassian/getIssueLinkTypes"
+  - "atlassian/getJiraIssue"
+  - "atlassian/getJiraIssueTypeMetaWithFields"
+  - "atlassian/getJiraProjectIssueTypesMetadata"
+  - "atlassian/getTransitionsForJiraIssue"
+  - "atlassian/getVisibleJiraProjects"
+  - "atlassian/lookupJiraAccountId"
+  - "atlassian/searchConfluenceUsingCql"
+  - "atlassian/searchJiraIssuesUsingJql"
+  - "atlassian/transitionJiraIssue"
