@@ -10,21 +10,21 @@ tools:
   - TaskStop
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
-  - mcp__plugin_atlassian_atlassian__createIssueLink
-  - mcp__plugin_atlassian_atlassian__createJiraIssue
-  - mcp__plugin_atlassian_atlassian__editJiraIssue
-  - mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources
-  - mcp__plugin_atlassian_atlassian__getConfluencePage
-  - mcp__plugin_atlassian_atlassian__getIssueLinkTypes
-  - mcp__plugin_atlassian_atlassian__getJiraIssue
-  - mcp__plugin_atlassian_atlassian__getJiraIssueTypeMetaWithFields
-  - mcp__plugin_atlassian_atlassian__getJiraProjectIssueTypesMetadata
-  - mcp__plugin_atlassian_atlassian__getTransitionsForJiraIssue
-  - mcp__plugin_atlassian_atlassian__getVisibleJiraProjects
-  - mcp__plugin_atlassian_atlassian__lookupJiraAccountId
-  - mcp__plugin_atlassian_atlassian__searchConfluenceUsingCql
-  - mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql
-  - mcp__plugin_atlassian_atlassian__transitionJiraIssue
+  - mcp__atlassian__createIssueLink
+  - mcp__atlassian__createJiraIssue
+  - mcp__atlassian__editJiraIssue
+  - mcp__atlassian__getAccessibleAtlassianResources
+  - mcp__atlassian__getConfluencePage
+  - mcp__atlassian__getIssueLinkTypes
+  - mcp__atlassian__getJiraIssue
+  - mcp__atlassian__getJiraIssueTypeMetaWithFields
+  - mcp__atlassian__getJiraProjectIssueTypesMetadata
+  - mcp__atlassian__getTransitionsForJiraIssue
+  - mcp__atlassian__getVisibleJiraProjects
+  - mcp__atlassian__lookupJiraAccountId
+  - mcp__atlassian__searchConfluenceUsingCql
+  - mcp__atlassian__searchJiraIssuesUsingJql
+  - mcp__atlassian__transitionJiraIssue
 skills:
   - research-it
   - explain-it
