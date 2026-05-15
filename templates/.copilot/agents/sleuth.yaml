@@ -1,5 +1,5 @@
 name: Sleuth
-argument-hint: "Given a problem statement, research the topic and explain it in detail."
+argument-hint: Given a problem statement, research the topic and explain it in detail
 model: Claude Opus 4.7 (copilot)
 tools:
   - execute/getTerminalOutput

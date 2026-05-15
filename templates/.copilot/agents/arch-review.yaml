@@ -1,5 +1,5 @@
 name: Reviewer
-argument-hint: "Describe what to review (code changes, spec file, or implementation)"
+argument-hint: Describe what to review (code changes, spec file, or implementation)
 model: Gemini 3.1 Pro (Preview) (copilot)
 tools:
   - read/readFile

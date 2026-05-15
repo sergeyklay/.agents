@@ -7,6 +7,10 @@ tools:
   - Grep
   - WebFetch
   - WebSearch
+  - TaskCreate
+  - TaskGet
+  - TaskList
+  - TaskUpdate
   - TaskStop
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
