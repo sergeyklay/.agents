@@ -9,5 +9,20 @@ tools:
   - web_fetch
   - google_web_search
   - mcp_context7_*
+  - mcp_atlassian-mcp-server_createIssueLink
+  - mcp_atlassian-mcp-server_createJiraIssue
+  - mcp_atlassian-mcp-server_editJiraIssue
+  - mcp_atlassian-mcp-server_getAccessibleAtlassianResources
+  - mcp_atlassian-mcp-server_getConfluencePage
+  - mcp_atlassian-mcp-server_getIssueLinkTypes
+  - mcp_atlassian-mcp-server_getJiraIssue
+  - mcp_atlassian-mcp-server_getJiraIssueTypeMetaWithFields
+  - mcp_atlassian-mcp-server_getJiraProjectIssueTypesMetadata
+  - mcp_atlassian-mcp-server_getTransitionsForJiraIssue
+  - mcp_atlassian-mcp-server_getVisibleJiraProjects
+  - mcp_atlassian-mcp-server_lookupJiraAccountId
+  - mcp_atlassian-mcp-server_searchConfluenceUsingCql
+  - mcp_atlassian-mcp-server_searchJiraIssuesUsingJql
+  - mcp_atlassian-mcp-server_transitionJiraIssue
 kind: local
 model: gemini-3.1-pro-preview
