@@ -1,25 +1,14 @@
 # `.agents`
 
-My personal, curated set of artifacts for AI coding agents that I actually use day-to-day. I port this around alongside my dotfiles, so the same capabilities follow me between machines.
+My personal, curated set of artifacts for AI coding agents that I actually use day-to-day, permissively licensed for others to adapt. I port this around alongside my dotfiles, so the same capabilities follow me between machines.
 
-## Scope
-
-Let's be clear about what this is **not**:
+## This is NOT
 
 - an "awesome-*" list,
 - a dump of AI slop scraped off the internet,
 - a showcase of every trending prompt the algorithm pushed this week.
 
 Everything here earns its place by being something I actually reach for in daily work. When something stops pulling its weight, it gets deleted - no sentimentality, no "maybe later." Borrow what's useful, but don't mistake this for a general recommendation: it reflects my workflow, not yours.
-
-## Contents
-
-- **`.agents/skills/`:** standalone agent skills, each in its own subdirectory. Each skill is self-contained (`SKILL.md` plus optional `scripts/`, `references/`, and `assets/`) and follows the [agentskills.io specification](https://agentskills.io). The skills are agent-agnostic and location-agnostic: they are not tied to any specific agent (Claude, Copilot, Cursor, etc.) or to a fixed path on disk. Place them wherever your agent expects skills to live.
-- **`.agents/agents/`:** my collection of "agents" I find useful in daily work. Strictly speaking these are not agents but system prompts (personas, role definitions, operating instructions) for real agents - GitHub Copilot, Claude Code, Gemini, Cursor, and the like. Each file defines a focused mode of work (e.g. a deep-research investigator) that orchestrates the relevant skills and constrains how the underlying agent should behave. Drop them into whatever location your host expects custom agents/modes/personas to live (e.g. `.github/agents/`, `.claude/agents/`, etc), or load them manually as a system prompt.
-- **`.agents/rules/`:** user wide agent rules. These are guidlines I want evevery agent to follow, regardless of specific use-case or project. Drop them into whatever location your agent expects custom rules (e.g. `.github/instructions/{name}.instructions.md`, `.claude/rules/{name}.md`, etc).
-- **`.claude/`:** Claude-specific configuration, including `settings.json` and any custom hooks. This directory is for configuration that only applies to Claude Code. It does not contain any skills or agents - those go in `.agents/`.
-- **`.gemini/`:** Gemini-specific configuration and instructions, including `settings.json` and  policies. This directory is for configuration that only applies to Gemini. It does not contain any skills or agents - those go in `.agents/`.
-- **`scripts/`:** small utilities that support the rest of this repo.
 
 ## Note on agents
 
@@ -33,6 +22,6 @@ No bootstrapper. Clone the repo, then symlink (or copy) what you need into the d
 
 ## License
 
-Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution and trademark notes.
+This project is open source software licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution and trademark notes.
 
 Copyright © 2026 Serghei Iakovlev
