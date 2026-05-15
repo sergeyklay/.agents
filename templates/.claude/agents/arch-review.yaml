@@ -1,8 +1,15 @@
+tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - WebFetch
+  - WebSearch
 skills:
   - review-arch
   - review-spec
   - verify-impl
-disallowedTools: NotebookEdit
 model: opus[1m]
 effort: max
 color: red
