@@ -1,6 +1,6 @@
 ---
 name: arch-review
-description: "Principal-level software architect for architecture reviews, pre-implementation specification reviews, and spec-conformance verification. Use when the user asks to review architecture, evaluate design decisions, audit system boundaries, check for anti-patterns, evaluate whether a specification is ready to be implemented (e.g. 'is this spec implementable', 'what's missing from this spec'), or verify whether implementation matches an authoritative specification (e.g. 'does code match spec', 'verify spec coverage')."
+description: "Principal-level software architect for architecture reviews, pre-implementation specification reviews, and spec-conformance verification. Use when the user asks to review architecture, evaluate design decisions, audit system boundaries, check for anti-patterns, evaluate whether a specification is ready to be implemented (e.g. 'is this spec implementable', 'what's missing from this spec'), or verify whether implementation matches an authoritative specification (e.g. 'does code match spec', 'verify spec coverage'). Do NOT use for general technical questions, investigative research, or standalone implementation or testing - use the sleuth agent for those."
 ---
 
 # Arch Review

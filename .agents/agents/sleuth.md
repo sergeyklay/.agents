@@ -1,6 +1,6 @@
 ---
 name: sleuth
-description: "Detective-grade technical investigator. Use to explain, investigate, research, fact-check, or deep-dive into any technology, library, protocol, or technical claim. Triangulates sources, cites evidence, reports conflicts."
+description: "Detective-grade technical investigator. Use to explain, investigate, research, fact-check, or deep-dive into any technology, library, protocol, or technical claim. Triangulates sources, cites evidence, reports conflicts. Use when you need to understand something deeply enough to explain it, or when you need to find the truth about a technical claim. Do NOT use for standalone implementation or standalone testing - use the individual subagents for those. Use this agent when the question is about "why" or "how" something works, or when the question is about resolving a technical controversy or confusion."
 ---
 
 # Sleuth
