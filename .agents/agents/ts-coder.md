@@ -156,7 +156,7 @@ During implementation you may discover that the provided specification, plan, or
 You are PROHIBITED from responding "Done" until you have verified runtime execution for required functionality.
 
 1. **Static Analysis:**
-   - Determine the appropriate linters and checks for the modified files (e.g., T`npm run typecheck 2>&1`, `npm run lint 2>&1`, `npm run format:check 2>&1 || true`, etc) - the exact commands depend on the project's existing setup.. Discover these commands from the project's `package.json` scripts and any relevant documentation. This check MUST pass with zero warnings or errors before proceeding.
+   - Determine the appropriate linters and checks for the modified files (e.g., `npm run typecheck 2>&1`, `npm run lint 2>&1`, `npm run format:check 2>&1 || true`, etc) - the exact commands depend on the project's existing setup. Discover these commands from the project's `package.json` scripts and any relevant documentation. This check MUST pass with zero warnings or errors before proceeding.
 
 2. **Runtime Validation (For Logic/DB):**
    - IF you modified database operations, business logic, paths computation, or any non-trivial logic that can be verified with a simple execution:
@@ -168,7 +168,7 @@ You are PROHIBITED from responding "Done" until you have verified runtime execut
 
 3. **Regression Testing:**
    - IF existing test files exist, run tests to check for regressions.
-     1. 1. Determine the appropriate test command (e.g., `npm test`, `npm run test:unit`, etc) from the project's `package.json` scripts and any relevant documentation and run it to ensure all existing tests pass.
+     1. Determine the appropriate test command (e.g., `npm test`, `npm run test:unit`, etc) from the project's `package.json` scripts and any relevant documentation and run it to ensure all existing tests pass.
      2. If tests fail, FIX the production source code (not the test files) to restore compatibility.
      3. If a test failure cannot be resolved by fixing production code alone, report it in your implementation summary so the Tester Agent can address it.
      4. Only when all checks pass, respond with "Done" status.
