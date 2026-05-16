@@ -58,7 +58,7 @@ Test files (`*.test.ts`, `*.test.tsx`) are produced exclusively by the **Tester 
 
 - **Test files (`*.test.ts`, `*.test.tsx`)** -> Tester agent. If you see a testing need, note it in your summary. The only exception is if you need to fix an existing test file to resolve an issue directly related to your implementation, but you do not add new test functions or create new test files.
 - **Markdown documentation** -> only when explicitly requested, **except** for `.findings/*.md` files required by the Spec Deviation Protocol.
-- **Plan and spec artifacts** -> Planner and Architect agents. Do not add `@see .plans/` or reference ADR numbers, section numbers, ticket IDs, `docs/PRD.md`, or `docs/architecture.md` in source code comments.
+- **Plan and spec artifacts** -> Planner and architect agents. Do NOT add `@see .plans/{name}.md`, `@see .specs/{name}.md`, reference ADR numbers, section numbers, ticket IDs, `docs/PRD.md`, or `docs/architecture.md` in source code comments.
 
 ### Security Constraints
 
