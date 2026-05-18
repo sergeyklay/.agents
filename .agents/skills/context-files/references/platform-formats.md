@@ -50,7 +50,7 @@ Details on how each platform loads context files, their unique features, and bri
 ```json
 {
   "context": {
-    "fileName": ["AGENTS.md", "GEMINI.md"]
+    "fileName": ["CLAUDE.md", "AGENTS.md", "GEMINI.md"]
   }
 }
 ```
@@ -70,7 +70,7 @@ When a team uses multiple platforms, maintain one canonical file (`AGENTS.md`) a
 | -------------- | --------------------------------------------------------------------------------- |
 | Claude Code    | `CLAUDE.md` containing `@AGENTS.md`                                               |
 | GitHub Copilot | `.github/copilot-instructions.md` containing `Refer to [AGENTS.MD](../AGENTS.md)` |
-| Gemini CLI     | `.gemini/settings.json` with `"context": { "fileName": ["AGENTS.md"] }`           |
+| Gemini CLI     | `.gemini/settings.json` with `"context": { "fileName": ["CLAUDE.md", "AGENTS.md", "GEMINI.md"] }` |
 | Cursor         | Native support, no bridge needed                                                  |
 | Codex          | Native support, no bridge needed                                                  |
 

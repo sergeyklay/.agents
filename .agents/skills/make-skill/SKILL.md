@@ -1,9 +1,9 @@
 ---
 name: make-skill
-description: "Use when creating, improving, comparing, evaluating, reviewing or packaging Agent Skills following the agentskills.io specification. Also use when deciding whether a skill is the right solution vs MCP servers, custom instructions, AGENTS.md, or Cursor Rules. Handles SKILL.md authoring, frontmatter optimization, description writing, progressive disclosure, platform targeting, invocation control, vendor-specific extensions, and distribution."
+description: "Use when creating, improving, comparing, evaluating, reviewing or packaging Agent Skills following the agentskills.io specification. Also use when deciding whether a skill is the right solution vs MCP servers, Claude Rules Files, CLAUDE.md or AGENTS.md. Handles SKILL.md authoring, frontmatter optimization, description writing, progressive disclosure, platform targeting, invocation control, vendor-specific extensions, and distribution."
 metadata:
   author: Serghei Iakovlev
-  version: "2.0"
+  version: "2.1"
   category: meta
 ---
 

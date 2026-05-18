@@ -3,7 +3,7 @@ name: log-changes
 description: "Use when asked to update the changelog, document version changes, prepare a release, or add entries for recent work. Handles CHANGELOG.md updates following Keep a Changelog format and Semantic Versioning. Do NOT use for committing or creating release notes outside CHANGELOG.md."
 metadata:
   author: Serghei Iakovlev
-  version: "1.1"
+  version: "1.2"
   category: documentation
 ---
 
@@ -123,7 +123,7 @@ Apply the following filter to every commit or change before writing an entry.
 | Test-only changes (new tests, test refactors)             | Not shipped to consumers              |
 | CI/CD pipeline changes (workflows, actions)               | Not shipped to consumers              |
 | Dotfile changes (`.gitignore`, `.github/*`, `CODEOWNERS`) | Not shipped to consumers              |
-| Documentation-only changes (README, AGENTS.md, comments)  | Not shipped to consumers              |
+| Documentation-only changes (README, CLAUDE.md, AGENTS.md, comments)  | Not shipped to consumers              |
 | Merge commits                                             | Infrastructure artifact, not a change |
 | Internal refactoring with no behavior change              | No observable effect on consumers     |
 | Dev-only dependency bumps                                 | Not shipped to consumers              |

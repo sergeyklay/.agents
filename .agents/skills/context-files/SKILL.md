@@ -3,7 +3,7 @@ name: context-files
 description: "Create or validate project context files (AGENTS.md, CLAUDE.md, GEMINI.md). Use when bootstrapping a new project, initializing agent configuration, writing a context file, or when asked to create, review, audit, or validate an existing context file. Handles codebase archaeology, user interviews, golden-rule validation, and platform-specific formatting. Do NOT use for creating Agent Skills, rules or .instructions.md files."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: meta
 ---
 
@@ -31,10 +31,10 @@ Ask the user which file they need, or infer from their project:
 | File | Platform | Notes |
 |------|----------|-------|
 | `AGENTS.md` | Universal (Codex, Cursor, Copilot) | Preferred for multi-platform teams |
-| `CLAUDE.md` | Claude Code | Supports `@import` syntax |
+| `CLAUDE.md` | Claude Code | Supports `@path` import syntax |
 | `GEMINI.md` | Gemini CLI | Configurable name via `settings.json` |
 
-If the project uses multiple platforms, recommend `AGENTS.md` as the canonical file with bridge files for others. See `references/platform-formats.md` for platform-specific details.
+If the project uses multiple platforms, recommend `AGENTS.md` as the canonical file with bridge files for others. See `references/platform-formats.md` for platform-specific details. `CLAUDE.md` or `GEMINI.md` is usable though if the project only needs one platform support or if the user prefers.
 
 ---
 
@@ -132,7 +132,7 @@ If the user needs multi-platform support, generate bridge files:
 
 - **CLAUDE.md** bridge: `@AGENTS.md`
 - **Copilot** bridge: add `Refer to [AGENTS.MD](../AGENTS.md)` in `.github/copilot-instructions.md`
-- **GEMINI.md** bridge: set `context.fileName` to `["AGENTS.md", "GEMINI.md"]` in `.gemini/settings.json`
+- **GEMINI.md** bridge: set `context.fileName` to `["CLAUDE.md", "AGENTS.md", "GEMINI.md"]` in `.gemini/settings.json`
 
 Do not duplicate content across platform files. One source of truth, references everywhere else.
 

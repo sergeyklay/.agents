@@ -3,7 +3,7 @@ name: babysit-pr
 description: "Resolve reviewer comments on a pull request or pasted feedback using a six-step evidence-grounded protocol. Use when asked to resolve review feedback, address reviewer comments, process PR comments, triage review feedback, apply review suggestions, handle code review feedback, decide which review comments to accept or reject, or babysit a PR through its review lifecycle. The protocol verifies every library claim with Context7, classifies each comment across seven categories, applies changes surgically or defers them to the project's issue tracker, and emits the summary directly in the chat response for the human operator (never to a file). The skill NEVER posts replies, reactions, or messages back to the reviewer. Do NOT use for authoring a new code review, for security scans, or for opening a new PR."
 metadata:
   author: Serghei Iakovlev
-  version: "2.0"
+  version: "2.1"
   category: review
 ---
 
