@@ -17,11 +17,13 @@ Determine what was provided and choose a route.
 
 **Read the input carefully.** Classify it into one of these categories:
 
-- Path to a `.specs/Spec-*.md` is provided but no plan `.plans/Plan-*.md` is provided: **Spec-driven route**.  The spec exists but has no plan yet. This pipeline does not create plans. Recommend the **Create Specification First** or ask the user to create the plan first. STOP EXECUTION after the recommendation.
-- Path to a `.plans/Plan-*.md` is provided: **Plan-driven route**.  Read the plan. Proceed to Phase 2 with the plan as the primary input.
-- GitHub issue URL or `#N` shorthand is provided: **Issue-driven route**. Run `gh issue view <ref> --json title,body,labels` to fetch details. Assess scope (see below).
-- Jira issue ID or URL is provided: **Issue-driven route**. Fetch via `getJiraIssue` MCP tool. Assess scope (see Scope Assessment below).
-- Raw feature description or bug report: **Description-driven route**. Assess scope (see Scope Assessment below).
+| Input | Route | Action |
+|---|---|---|
+| Path to a `.specs/Spec-*.md` file, no `.plans/Plan-*.md` provided | **Spec-driven** | This pipeline does not create plans. Recommend **Create Specification First** or ask the user to create the plan first. STOP EXECUTION. |
+| Path to a `.plans/Plan-*.md` file | **Plan-driven** | Read the plan. Proceed to Phase 2 with the plan as the primary input. |
+| GitHub issue URL or `#N` shorthand | **Issue-driven** | Run `gh issue view <ref> --json title,body,labels`. Assess scope (see below). |
+| Jira issue ID or URL | **Issue-driven** | Fetch via the `getJiraIssue` MCP tool. Assess scope (see below). |
+| Raw feature description or bug report | **Description-driven** | Assess scope (see below). |
 
 If none of the above apply, ask the user for clarification or additional information and STOP EXECUTION until you receive it.
 
@@ -49,7 +51,7 @@ Your prompt to the implementation subagent must include:
    - The plan file path (plan-driven): _"Execute the plan at `{path}` strictly phase by phase."_. If specification is provided in addition to the plan, include the spec path and instruction: _"Refer to the specification at `{spec_path}` as needed, but follow the plan strictly. If you encounter any contradictions between the plan and the spec, follow your Spec Deviation Protocol."_
    - The issue title, body, and labels (issue-driven): _"Implement the following issue. No plan exists - analyze the request, identify required changes, and implement atomically."_
    - The raw description (description-driven): same as issue-driven
-3. The instruction to read project architecture and product documentation (for example `docs/architecture.md` and `docs/PRD.md`) before writing any code
+3. The instruction to ground the implementation in project context before writing any code, in this reading order: (a) agent-instruction files the project ships (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) for boundary rules; (b) if `docs/` exists, the documentation index (`docs/README.md`, or the closest equivalent: `docs/index.md`, `docs/SUMMARY.md`, `docs/DIGEST.md`) for orientation; (c) architecture or product documents the index references (e.g. `docs/architecture.md`, `docs/PRD.md`, or `*-digest.md` variants when present) only for the sections the feature actually touches; (d) decision records (`docs/decisions/`, `docs/adr/`, `adr/`, `ADR/`) when the implementation touches a previously decided area; (e) language and code-style rules the project ships under `.agents/rules/`, `.github/instructions/`, `.copilot/instructions/`, `.claude/rules/`, or referenced from the agent-instruction file. Skip tiers the project does not ship; do not load files that do not exist.
 4. The instruction to apply constraints from relevant coding rules and instructions
 5. The instruction: _"If you encounter spec deviations - where the specification, plan, or architecture doc contradicts the actual codebase - follow your Spec Deviation Protocol. Create `.findings/Finding-{SLUG}.md` for each deviation. Continue implementing what you can."_
 6. The instruction to **provide an implementation summary** when finished, including any spec deviation files created, and to report the paths of any `.findings/` files so the orchestrator can enumerate them without re-scanning the workspace
@@ -62,25 +64,24 @@ Use the list of `.findings/Finding-*.md` file paths reported by the implementati
 
 **If no finding files exist:** proceed to Phase 4.
 
-**If finding files exist:** read each one. Produce a findings summary:
+**If finding files exist:** read each one. Produce a findings summary with one row per finding:
 
 <summary_template>
 ### Spec Deviations Found
 
-- **Finding**: [filename, e.g. `Finding-MissingInterface.md`]
-- **Severity**: [minor, major, blocking]
-- **Spec Reference**: [quote the relevant spec text that was violated, if applicable]
-- **Impact**: [describe the impact of the deviation - does it cause bugs, does it contradict the architecture, does it violate a safety invariant, etc.]
+| Finding | Severity | Spec Reference | Impact |
+|---|---|---|---|
+| [filename, e.g. `Finding-MissingInterface.md`] | [minor / major / blocking] | [quoted spec text that was violated, or `N/A`] | [bug introduced / architecture contradicted / safety invariant violated / etc.] |
 </summary_template>
 
-Do NOT improvise the spec deviation summary. Use the content of the finding files directly. If the finding files do not include all the above fields, summarize based on the content but do NOT invent details that are not present.
+Add one row per `.findings/Finding-*.md` file. Do NOT improvise the spec deviation summary; use the content of the finding files directly. If a finding file does not include all the columns, fill what is present and write `N/A` for missing fields. Do NOT invent details that are not in the file.
 
 Then assess:
 
-- **If all findings are minor** (naming inconsistencies, documentation gaps, non-blocking style issues) - note them in the final summary and proceed to Phase 3.
-- **If any finding is blocking** (spec contradicts codebase, missing interface, impossible state transition, safety invariant violation) - **HALT the pipeline**. Do NOT proceed to testing. Produce the Halted summary (see Phase 4). Recommend the revise specification.
+- **If all findings are minor** (naming inconsistencies, documentation gaps, non-blocking style issues) - note them in the final summary and proceed to Phase 4.
+- **If any finding is blocking** (spec contradicts codebase, missing interface, impossible state transition, safety invariant violation) - **HALT the pipeline**. Do NOT proceed to testing. Produce the Halted summary (see Phase 5). Recommend the revise specification.
 
-### Phase 3: Test
+### Phase 4: Test
 
 1. Discover available testing skill and rules relevant based on the implementation summary and the files changed and instruct the tester to apply them.
 2. Discover which commands are relevant based on the project technology stack and the implementation summary (for example, `make lint`, `make build`, `npm run typecheck`, `npm test`, `npm run format:check`, `npm run lint`, `npm run build`, etc.).
@@ -92,13 +93,13 @@ Then prompt the tester subagent with:
 2. The instruction to load and follow the available testing skill and rules
 3. The instruction to study the relevant spec sections and the actual implementation source files
 4. The instruction to apply the Testing Analyze Protocol before writing any test
-5. The instruction to verify with appropriate project commands that the tests pass, the code is properly formatted, and there are no lint errors, and to **return the final exit status of each command** in the subagent result on its own labeled lines: `typecheck=pass`, `test=pass`, `format=pass`, `lint=pass`, `build=pass`. You WILL parse these lines directly into the Phase 4 summary; you do NOT re-run the commands.
+5. The instruction to verify with whichever project commands are relevant to the stack (tests pass, types check, code formatted, lint clean, build succeeds, race detector clean, etc.), and to **return the final exit status of each command run** in the subagent result on its own labeled line in the form `<check>=pass|fail`. The set of labels is determined by the project's stack and tooling, not by this prompt: typical JS/TS projects emit `typecheck`, `test`, `format`, `lint`, `build`; typical Go projects emit `test`, `lint`, `vet`, `build`, `race`; typical Python projects emit `typecheck`, `test`, `lint`, `format`. The tester emits a labeled line only for checks it actually ran. You WILL parse whatever labeled lines the tester emits directly into the Phase 5 summary; you do NOT re-run the commands and you do NOT require a fixed set of labels.
 
-If the tester subagent violates the protocol, and does not return the labeled status lines run it with the prompt: _"Your previous response did not include the required command exit status lines. Please provide the exit status of each relevant command in the format `typecheck=pass`, `test=pass`, `format=pass`, `lint=pass`, `build=pass`. This information is crucial for the final summary. Run necessary commands and provide the exit status lines."_
+If the tester subagent violates the protocol and does not return any labeled status lines, re-prompt it with: _"Your previous response did not include any command exit status lines. Identify the verification commands relevant to this project's stack (test, lint, build, format, typecheck, and any others), run them, and report each result on its own line in the form `<check>=pass|fail`. This information is crucial for the final summary."_
 
-After the  tester subagent returns status lines, proceed to Phase 4.
+After the tester subagent returns status lines, proceed to Phase 5.
 
-### Phase 4: Summary
+### Phase 5: Summary
 
 After all phases complete, produce a structured summary:
 
@@ -142,9 +143,10 @@ implementation subagent completed partial implementation. The following code cha
 [implementation subagent's implementation summary]
 
 ### Blocking Spec Deviations
-| Finding | Severity | Impact |
-|---|---|---|
-| [from .findings/] | ... | ... |
+
+| Finding | Severity | Spec Reference | Impact |
+|---|---|---|---|
+| [filename from `.findings/`] | blocking | [quoted spec text that was violated, or `N/A`] | [what cannot be implemented as specified] |
 
 ### Next Steps
 Revise Specification to address the deviations, then re-run the pipeline.
