@@ -1,5 +1,13 @@
 {
   "dependencies": {
-    "skills": "^1.5.2"
+    "skills": "^1.5.2",
+    "pg": "^8.20.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25",
+    "@types/pg": "^8.20.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^17.4.2"
   }
 }
