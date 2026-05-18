@@ -7,8 +7,5 @@ tools:
   - Grep
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
-  - mcp__bpdb__search_schema
-  - mcp__bpdb__explain
-  - mcp__bpdb__query
 model: sonet
 color: green
