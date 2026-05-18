@@ -12,18 +12,18 @@ tools:
   - search
   - web
   - context7/*
-  - "atlassian/createIssueLink"
-  - "atlassian/createJiraIssue"
-  - "atlassian/editJiraIssue"
-  - "atlassian/getAccessibleAtlassianResources"
-  - "atlassian/getConfluencePage"
-  - "atlassian/getIssueLinkTypes"
-  - "atlassian/getJiraIssue"
-  - "atlassian/getJiraIssueTypeMetaWithFields"
-  - "atlassian/getJiraProjectIssueTypesMetadata"
-  - "atlassian/getTransitionsForJiraIssue"
-  - "atlassian/getVisibleJiraProjects"
-  - "atlassian/lookupJiraAccountId"
-  - "atlassian/searchConfluenceUsingCql"
-  - "atlassian/searchJiraIssuesUsingJql"
-  - "atlassian/transitionJiraIssue"
+  - atlassian/createIssueLink
+  - atlassian/createJiraIssue
+  - atlassian/editJiraIssue
+  - atlassian/getAccessibleAtlassianResources
+  - atlassian/getConfluencePage
+  - atlassian/getIssueLinkTypes
+  - atlassian/getJiraIssue
+  - atlassian/getJiraIssueTypeMetaWithFields
+  - atlassian/getJiraProjectIssueTypesMetadata
+  - atlassian/getTransitionsForJiraIssue
+  - atlassian/getVisibleJiraProjects
+  - atlassian/lookupJiraAccountId
+  - atlassian/searchConfluenceUsingCql
+  - atlassian/searchJiraIssuesUsingJql
+  - atlassian/transitionJiraIssue

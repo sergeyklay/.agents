@@ -1,0 +1,25 @@
+name: Planner
+argument-hint: Specify the spec file, tracker reference, or feature description to plan
+model: Claude Sonnet 4.6 (copilot)
+tools:
+  - execute/getTerminalOutput
+  - execute/killTerminal
+  - execute/runInTerminal
+  - read/readFile
+  - edit/createDirectory
+  - edit/createFile
+  - edit/editFiles
+  - search/codebase
+  - search/fileSearch
+  - search/listDirectory
+  - search/textSearch
+  - search/usages
+  - vscode/askQuestions
+  - context7/*
+  - atlassian/getJiraIssue
+  - atlassian/searchJiraIssuesUsingJql
+  - atlassian/searchConfluenceUsingCql
+  - atlassian/getJiraIssueTypeMetaWithFields
+  - atlassian/getConfluencePage
+  - atlassian/getAccessibleAtlassianResources
+  - atlassian/getVisibleJiraProjects

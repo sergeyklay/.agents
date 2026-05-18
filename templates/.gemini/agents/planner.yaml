@@ -1,0 +1,19 @@
+tools:
+  - read_file
+  - write_file
+  - replace
+  - glob
+  - grep_search
+  - list_directory
+  - run_shell_command
+  - ask_user
+  - mcp_context7_*
+  - mcp_atlassian_getJiraIssue
+  - mcp_atlassian_searchJiraIssuesUsingJql
+  - mcp_atlassian_searchConfluenceUsingCql
+  - mcp_atlassian_getJiraIssueTypeMetaWithFields
+  - mcp_atlassian_getConfluencePage
+  - mcp_atlassian_getAccessibleAtlassianResources
+  - mcp_atlassian_getVisibleJiraProjects
+kind: local
+model: gemini-3.1-pro-preview
