@@ -1,10 +1,10 @@
 # Philosophy Checklist
 
-Pre-delivery self-check organized by concern. Run during Phase 5 of the workflow, before writing the plan file to disk. A failing item is a rewrite, not a note-to-self.
+Planner-internal pre-delivery self-check organized by concern. Run during Phase 5 of the workflow, in the planner's reasoning trace, before writing the plan file to disk. A failing item is a rewrite, not a note-to-self.
+
+This checklist is NOT written into the plan artifact. The artifact is read by the coder and tester agents, which do not extract value from the checklist content; the structural conditions it verifies are independently enforced by `scripts/validate_plan.py`. Keeping the checklist in the artifact wastes tokens for the downstream agent reader.
 
 Items are grouped by concern. If a group has no failures, move on. If any item fails, fix the plan and re-run the full checklist; a fix in one place often surfaces a defect elsewhere.
-
-Convert `- [ ]` to `- [x]` as each item is verified. The checklist is retained in the delivered plan as evidence of the verification pass; see [assets/plan-template.md](../assets/plan-template.md) § Philosophy checklist.
 
 ## Contents
 
@@ -84,8 +84,8 @@ The senior-engineer test: a senior engineer reading the plan says "this is the m
 
 - [ ] Filename follows the convention: `.plans/Plan-{slug}.md` with `{slug}` matching the spec or tracker reference.
 - [ ] Header lists `Created at`, tracker reference (or N/A), source spec path (or N/A), one-sentence feature summary.
-- [ ] TL;DR section is present with 2 to 3 sentences after the title and before the dependency graph.
-- [ ] Dependency graph section is present with phases listed in order and omitted phases declared with reasons.
+- [ ] Summary section is present with a single sentence after the title and before the Phase coverage section.
+- [ ] Phase coverage section is present, listing phases in execution order and naming omitted canonical phases with reasons.
 - [ ] At least one productive phase plus a terminal verification phase exists.
 - [ ] Files Affected table lists every new or modified file with change type (NEW/MOD/DEL) and one-line purpose.
 - [ ] Decisions / Plan extensions / Further considerations sections are present (each may be "none" if there genuinely are none; a non-trivial plan with all three "none" is suspicious).

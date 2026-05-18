@@ -15,10 +15,9 @@ by hand):
     - File exists, has the .md extension, lives under .plans/
       with a Plan-{slug}.md filename.
     - Required sections present and non-empty:
-        Title heading, TL;DR, Dependency graph,
+        Title heading, Summary, Phase coverage,
         at least one Phase, Files Affected,
-        Decisions, Plan extensions, Further considerations,
-        Philosophy checklist.
+        Decisions, Plan extensions, Further considerations.
     - Phase headings number in strictly ascending order.
     - The terminal phase contains a verification keyword
       (Verification, Verify, Cleanup).
@@ -58,13 +57,12 @@ LANGUAGE_TAGS = {
 }
 
 REQUIRED_SECTIONS = [
-    (r"^##\s+TL;DR\s*$", "TL;DR"),
-    (r"^##\s+Dependency graph\s*$", "Dependency graph"),
+    (r"^##\s+Summary\s*$", "Summary"),
+    (r"^##\s+Phase coverage\s*$", "Phase coverage"),
     (r"^##\s+Files Affected\s*$", "Files Affected"),
     (r"^##\s+Decisions\s*$", "Decisions"),
     (r"^##\s+Plan extensions\s*$", "Plan extensions"),
     (r"^##\s+Further considerations\s*$", "Further considerations"),
-    (r"^##\s+Philosophy checklist\s*$", "Philosophy checklist"),
 ]
 
 VERIFY_KEYWORDS = ("verification", "verify", "cleanup")
@@ -74,7 +72,7 @@ EM_OR_EN_DASH = re.compile(r"[–—]")
 PHASE_HEADING = re.compile(r"^##\s+Phase\s+(\d+):\s*(.+?)\s*$", re.MULTILINE)
 CHECKBOX = re.compile(r"^-\s*\[\s?[xX]?\s?\]", re.MULTILINE)
 CONSTRAINT_CHECK = re.compile(
-    r"^-\s*\[\s?[xX]?\s?\]\s*\*\*Constraint Check[^*]*\*\*:?\s*(.+?)$",
+    r"^-\s*\[\s?[xX]?\s?\]\s*(?:\*\*)?Constraint [Cc]heck(?:\s*\([^)]*\))?(?:\*\*)?\s*:\s*(.+?)$",
     re.MULTILINE,
 )
 FENCED_BLOCK = re.compile(r"^```([^\n]*)\n(.*?)^```", re.MULTILINE | re.DOTALL)
@@ -199,9 +197,9 @@ def validate(path: Path, code_block_limit: int) -> tuple[list[str], list[str]]:
         cc_matches = CONSTRAINT_CHECK.findall(body)
         if not cc_matches:
             errors.append(
-                f"Phase {num} ('{name}') ends without a Constraint Check "
+                f"Phase {num} ('{name}') ends without a Constraint check "
                 "bullet. Every productive phase MUST close with "
-                "'- [ ] **Constraint Check (Phase N):** <assertion>'."
+                "'- [ ] Constraint check: <assertion>'."
             )
         else:
             for cc_text in cc_matches:

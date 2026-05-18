@@ -14,18 +14,7 @@ Universal dependency-graph principle, the phase template, common partial-scope s
 
 Phases form a topological dependency graph. A step in phase N may reference artifacts produced in phases 1..N-1; it MUST NOT reference artifacts produced in N+1 or later. This is the non-negotiable invariant that lets the coder agent implement phases atomically and in order.
 
-The universal downward direction:
-
-```
-Phase 1: Data shapes / domain types
-    -> Phase 2: Services / business logic
-        -> Phase 3: Composition / orchestration / workflows
-            -> Phase 4: Request handling / actions / endpoints
-                -> Phase 5: Boundary / UI / interactive surface
-                    -> Phase N: Verification and cleanup
-```
-
-This is the default when the project's architecture document does not document a different layering. When it does, the project's catalog wins.
+The universal downward direction, in execution order: data shapes / domain types, then services / business logic, then composition / orchestration / workflows, then request handling / actions / endpoints, then boundary / UI / interactive surface, then verification and cleanup. Each tier depends only on tiers earlier in the list. This is the default when the project's architecture document does not document a different layering; when it does, the project's catalog wins.
 
 Phase N (the final phase) is always a verification phase. It does not introduce new code; it proves the cumulative output of the prior phases compiles, lints, tests, and meets the spec end-to-end.
 
@@ -36,9 +25,9 @@ Every phase header follows this shape:
 ```
 ## Phase N: <Name>
 
-*<One-sentence contract: what this phase produces.>*
+Contract: <one sentence stating what this phase produces.>
 
-- [ ] **N.1** <step title>
+- [ ] N.1 <step title>
   - File: <path>
   - Change: NEW | MOD | DEL
   - Symbols: <function, type, method names>
@@ -46,15 +35,15 @@ Every phase header follows this shape:
   - Logic: <numbered prose list when branching matters; omit otherwise>
   - Verify: <specific runnable command with named target>
 
-- [ ] **N.2** <step title>
+- [ ] N.2 <step title>
   ...
 
-- [ ] **Constraint Check (Phase N):** <layer-boundary assertion specific to this phase>
+- [ ] Constraint check: <layer-boundary assertion specific to this phase>
 ```
 
-The italic contract under the phase heading is not decorative. It is the phase's promise. If a step inside the phase does not contribute to producing what the contract promises, it belongs in a different phase.
+The `Contract:` line under the phase heading is not decoration; it is the phase's promise. If a step inside the phase does not contribute to producing what the contract promises, the step belongs in a different phase.
 
-The closing **Constraint Check** is the layer-boundary assertion: which imports are forbidden, which state must not be mutated, which invariant must hold by the end of the phase. Constraint checks are not optional padding; they are the seam that keeps the architecture from drifting plan-by-plan.
+The closing `Constraint Check` is the layer-boundary assertion: which imports are forbidden, which state must not be mutated, which invariant must hold by the end of the phase. Constraint checks are not optional padding; they are the seam that keeps the architecture from drifting plan-by-plan.
 
 ## Common partial-scope shapes
 
@@ -97,7 +86,7 @@ If the project's agent-instruction files or architecture document lists a canoni
 
 If the project documents a catalog and this skill's defaults disagree with it, the project wins. Cite the project document in the plan opening so the reviewer can audit the choice.
 
-If the project documents no catalog, this skill's universal shape is the default. State that in the plan's TL;DR so future readers know which catalog the plan is using.
+If the project documents no catalog, this skill's universal shape is the default. State that in the plan's Summary section so the next agent knows which catalog the plan is using.
 
 ## Anti-patterns specific to phase ordering
 

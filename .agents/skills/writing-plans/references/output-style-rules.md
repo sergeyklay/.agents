@@ -6,7 +6,7 @@ Detailed expansion of the 13 output rules from SKILL.md, with Good and Bad examp
 
 - The 13 rules at a glance
 - Rule 1: Location and slug derivation
-- Rule 2: TL;DR first
+- Rule 2: Summary first
 - Rule 3: WHAT, not HOW
 - Rule 4: Reference symbols, not just files
 - Rule 5: One step, one file, one outcome
@@ -25,7 +25,7 @@ Detailed expansion of the 13 output rules from SKILL.md, with Good and Bad examp
 | # | Rule | Why |
 |---|------|-----|
 | 1 | Location and slug derivation | Predictable file paths let other agents and reviewers find the plan |
-| 2 | TL;DR first | Implementer confirms scope in 15 seconds before reading the step list |
+| 2 | Summary first | Primes the coder agent before it reads the steps |
 | 3 | WHAT, not HOW | The plan is a contract; bodies belong to the implementer |
 | 4 | Reference symbols, not just files | Implementer can grep; reduces variance across runs |
 | 5 | One step, one file, one outcome | Atomic steps are independently verifiable |
@@ -48,19 +48,24 @@ Write to `.plans/Plan-{slug}.md`. Derive `{slug}` in this order:
 
 Reuse the same slug across spec, plan, and review for traceability.
 
-## Rule 2: TL;DR first
+## Rule 2: Summary first
 
-Open the plan with a 2 to 3 sentence TL;DR immediately after the title and before the dependency graph. State what is being built, why, and the high-level approach.
+Open the plan with a one-sentence Summary section immediately after the title and before the Phase coverage section. Format: "Builds X by Y; touches Z layer(s)." The Summary primes the coder agent before it reads the steps.
 
 **Good:**
 
-> ## TL;DR
-> Add a contact-listing operation to the contact service so the directory page can paginate. The current page fetches the entire table; this introduces cursor-based pagination matching the architecture's pagination contract. Two phases: service method, then UI consumption.
+> ## Summary
+> Builds cursor-based pagination on the contact service so the directory page stops fetching the full table; touches the service layer only.
 
-**Bad (no TL;DR; reader has to read the step list to learn what's being built):**
+**Bad (no Summary; coder reads the step list to learn what's being built):**
 
 > ## Phase 1: Service
 > - [ ] 1.1 Add `listContacts` method ...
+
+**Bad (multi-sentence TL;DR-style preamble; redundant with the per-step descriptions that follow):**
+
+> ## Summary
+> Add a contact-listing operation to the contact service so the directory page can paginate. The current page fetches the entire table; this is a problem at scale. We will introduce cursor-based pagination matching the architecture's pagination contract. Two phases: service method, then UI consumption.
 
 ## Rule 3: WHAT, not HOW
 
@@ -112,8 +117,8 @@ Every step modifies or creates one file (or one tightly-coupled set), describes 
 
 **Good:**
 
-> - [ ] **2.1** Add `listContacts` to the contact service. File: `src/services/contact-service.{ext}`. Verify: typecheck passes targeting `src/services/`.
-> - [ ] **2.2** Add cursor-pagination helper used by `listContacts`. File: `src/services/query-utils/cursor.{ext}`. Verify: unit test for the helper named `paginateByCursor` is listed in the test plan.
+> - [ ] 2.1 Add `listContacts` to the contact service. File: `src/services/contact-service.{ext}`. Verify: typecheck passes targeting `src/services/`.
+> - [ ] 2.2 Add cursor-pagination helper used by `listContacts`. File: `src/services/query-utils/cursor.{ext}`. Verify: unit test for the helper named `paginateByCursor` is listed in the test plan.
 
 **Bad (compound, multi-file, no verify):**
 
@@ -143,12 +148,12 @@ Phase ordering matches dependency direction. A step in phase N must not depend o
 
 Within a phase, when a step depends on a specific earlier step beyond the previous one, annotate inline:
 
-> - [ ] **2.4** Wire `listContacts` into the directory page composition. *depends on step 2.1*
+> - [ ] 2.4 Wire `listContacts` into the directory page composition. (depends on step 2.1)
 
 When two steps in the same phase share no file and no data dependency, annotate both:
 
-> - [ ] **2.2** Add cursor helper. *parallel with step 2.3*
-> - [ ] **2.3** Add the response normalizer. *parallel with step 2.2*
+> - [ ] 2.2 Add cursor helper. (parallel with step 2.3)
+> - [ ] 2.3 Add the response normalizer. (parallel with step 2.2)
 
 Steps without annotations execute in plan order with sequential dependency.
 

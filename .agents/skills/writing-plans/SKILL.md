@@ -30,7 +30,7 @@ These documents are the authority every plan must conform to. Read in this order
 5. **Language and style rules**: `.agents/rules/`, `.github/instructions/`, `.copilot/instructions/`, `.claude/rules/`. Plan-prose requirements (RFC 2119 keywords, banned vocabulary, comment style, naming).
 6. **Codebase structure**: list the relevant package or module directories. Identify entry points, existing abstractions to reuse, and where new code belongs.
 
-When the project documents none of the above, say so explicitly in the plan's TL;DR and propose what context the project should add. Do not invent constraints the project did not document.
+When the project documents none of the above, say so explicitly in the plan's Summary section and propose what context the project should add. Do not invent constraints the project did not document.
 
 ## Input types
 
@@ -50,7 +50,7 @@ Copy this checklist into the reasoning trace and mark items as you complete them
 
 - [ ] Phase 1: Read project context
 - [ ] Phase 2: Read the input
-- [ ] Phase 3: Build the dependency graph
+- [ ] Phase 3: Order the phases by dependency direction
 - [ ] Phase 4: Draft atomic steps using the template
 - [ ] Phase 5: Validate against the philosophy checklist and validator script
 
@@ -66,7 +66,7 @@ Read the spec or tracker in full. Identify every behavior the input requires, ev
 
 **Exit gate.** You can list: exact files that will change, layers/modules touched, acceptance criteria the plan must satisfy.
 
-### Phase 3: Build the dependency graph
+### Phase 3: Order the phases by dependency direction
 
 Decompose work into ordered phases. Imports and dependencies flow downward only: data shapes -> services/business logic -> composition -> boundary/UI. The project's documented layering, if any, overrides this default. Each phase has an entry condition, a step pattern, and an exit gate.
 
@@ -74,7 +74,7 @@ See [references/phase-structure.md](references/phase-structure.md) for the depen
 
 Only include phases that are actually touched. A two-layer change produces a two-phase plan; a feature that threads through every layer produces a full plan. Do not pad with empty phases.
 
-**Exit gate.** You can produce a dependency graph (ASCII or arrow list) and explicitly state which canonical phases are omitted and why.
+**Exit gate.** You can list the phases in execution order and explicitly state which canonical phases are omitted and why.
 
 ### Phase 4: Draft atomic steps using the template
 
@@ -97,12 +97,12 @@ If the script is unavailable, walk through [references/philosophy-checklist.md](
 These rules are the core of the plan protocol. A plan that violates any of them is not a valid plan. They exist because the coder agent executes the plan verbatim: ambiguity or leaked implementation costs real engineering time.
 
 1. **Location.** Write to `.plans/Plan-{slug}.md`. Derive `{slug}` from: (a) the spec filename, stripping the `Spec-` prefix; (b) the tracker ID if present; (c) otherwise a kebab-case slug of the feature title. Reuse the same slug across spec, plan, and review for traceability.
-2. **TL;DR first.** Open the plan with a 2 to 3 sentence TL;DR immediately after the title and before the first phase. State what is being built, why, and the high-level approach.
+2. **Summary first.** Open the plan with a one-sentence Summary section immediately after the title and before Phase coverage. Format: "Builds X by Y; touches Z layer(s)." The Summary primes the coder agent's reading of the steps; it is not a TL;DR for human skimming, so it stays short.
 3. **WHAT, not HOW.** Define file paths, function and method signatures, type or schema shapes, package or module boundaries, ordered steps, verify gates. Do NOT write function bodies, full implementations, exact SQL strings, exact algorithms, test bodies, or full component code. Do NOT use fenced code blocks tagged with a language identifier (`go`, `ts`, `tsx`, `python`, `sql`, `rust`, `java`, etc.); the tag signals runnable code and lets implementation creep into the plan. Inline signatures in prose are correct. Untagged pseudo-code is acceptable for non-trivial logic when prose alone is unclear.
 4. **Reference symbols, not just files.** When a step reuses, extends, or interacts with existing code, name the concrete symbol (function, method, type, constant, package, module path) so the implementer can grep for it.
 5. **One step, one file, one outcome.** Every step modifies or creates one file (or one tightly-coupled set), describes the intended change in signature or prose form, and ends with a verify gate. A step that touches more than approximately 3 files or ~300 lines of code MUST be decomposed.
 6. **Verify gates are specific.** Every productive step terminates with a `Verify:` line carrying a specific, runnable command with the actual target (package path, test name, file path, named check). Bad: `Verify: tests pass`. Good: `Verify: run the project's test command targeting the modified package; confirm the new test for X passes`. Discover the actual commands from the project (Makefile, Taskfile.yml, package.json scripts, `scripts/`, CI configuration); do not hardcode `make test` or `go test ./...` unless the project documents them.
-7. **Dependencies flow downward; annotate the non-trivial ones.** Phase ordering matches dependency direction; a step in phase N must not depend on artifacts produced in phase N+M (M > 0). Within a phase, when a step depends on a specific earlier step beyond the previous one, annotate inline with `*depends on step N*`. When two steps in the same phase share no file and no data dependency, annotate both with `*parallel with step N*`.
+7. **Dependencies flow downward; annotate the non-trivial ones.** Phase ordering matches dependency direction; a step in phase N must not depend on artifacts produced in phase N+M (M > 0). Within a phase, when a step depends on a specific earlier step beyond the previous one, append a parenthesized annotation to the step title: `(depends on step N)`. When two steps in the same phase share no file and no data dependency, annotate both: `(parallel with step N)`.
 8. **Atomicity.** Each step has a single outcome the reviewer can confirm. "Implement and test" is two steps (coder + tester). "Add validation and refactor the parser" is two steps.
 9. **Cite project sources.** Every design decision that traces to the spec, an ADR, an architecture-document section, or an agent-instruction rule MUST cite the source: anchor link, filename, ADR number, or rule name. Decisions that do not trace MUST be flagged in the plan as plan extensions requiring review.
 10. **Tests are separate steps assigned to the tester agent.** Do not bundle "and add tests" into an implementation step. The plan names test additions (test names, intent, coverage area) without writing the test bodies.
@@ -126,7 +126,7 @@ Each step MUST be atomic and independently verifiable, sized for a single coder-
 Example of a well-formed step (universal):
 
 ```
-- [ ] **2.1** Add the listing operation to the contact service.
+- [ ] 2.1 Add the listing operation to the contact service.
   - File: src/services/contact-service.{ext}
   - Change: MOD (extend existing module)
   - Symbols: existing `ContactService`; new `listContacts` exported function
@@ -154,14 +154,15 @@ See [references/output-style-rules.md](references/output-style-rules.md) § Anti
 Every plan follows this top-level structure (see [assets/plan-template.md](assets/plan-template.md) for the verbatim template):
 
 1. **Header** - title, created-at, tracker ref, source spec, one-sentence feature summary
-2. **TL;DR** - 2 to 3 sentences (per Output Rule 2)
-3. **Dependency graph** - phases that apply + omitted phases with reasons
+2. **Summary** - one sentence (per Output Rule 2)
+3. **Phase coverage** - one-paragraph statement of phases that apply (in execution order) and canonical phases that are omitted with a one-clause reason each. Phase ordering is already visible in the H2 headings of the phase sections themselves; this section adds the omissions context
 4. **Phase sections** - one `## Phase N: <Name>` per applicable phase with checkbox steps inside and a constraint-check bullet at the end
 5. **Files Affected** - table listing every new or modified file with change type and purpose
 6. **Decisions** - design choices the planner committed to (with assumptions and scope boundary)
 7. **Plan extensions** - decisions that do not trace to a project source (with reasoning and review needed)
 8. **Further considerations** - open questions with named alternatives and the planner's recommendation
-9. **Philosophy checklist** - the self-check retained as evidence of pre-delivery verification
+
+The philosophy checklist is the planner's internal pre-delivery self-check (Phase 5 of the workflow). It runs in the planner's reasoning trace; it does NOT belong in the artifact. The artifact is read by the coder and tester agents, neither of which extracts value from the checklist content; the structural conditions the checklist verifies are independently enforced by `scripts/validate_plan.py`.
 
 After writing, report the absolute plan-file path to the caller.
 
