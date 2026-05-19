@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=./architect.yaml
+name: Architect
+argument-hint: Specify the feature, tracker reference, or design question to architect
+model: GPT-5.5 (copilot)
+tools:
+  - execute/getTerminalOutput
+  - execute/killTerminal
+  - execute/runInTerminal
+  - read/readFile
+  - edit/createDirectory
+  - edit/createFile
+  - edit/editFiles
+  - search/codebase
+  - search/fileSearch
+  - search/listDirectory
+  - search/textSearch
+  - search/usages
+  - vscode/askQuestions
+  - web
+  - context7/*
+  - atlassian/createIssueLink
+  - atlassian/createJiraIssue
+  - atlassian/editJiraIssue
+  - atlassian/getAccessibleAtlassianResources
+  - atlassian/getConfluencePage
+  - atlassian/getIssueLinkTypes
+  - atlassian/getJiraIssue
+  - atlassian/getJiraIssueTypeMetaWithFields
+  - atlassian/getJiraProjectIssueTypesMetadata
+  - atlassian/getTransitionsForJiraIssue
+  - atlassian/getVisibleJiraProjects
+  - atlassian/lookupJiraAccountId
+  - atlassian/searchConfluenceUsingCql
+  - atlassian/searchJiraIssuesUsingJql
+  - atlassian/transitionJiraIssue

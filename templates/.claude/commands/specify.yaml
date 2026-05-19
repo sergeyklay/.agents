@@ -1,0 +1,6 @@
+name: specify
+argument-hint: Tracker reference, feature description, or path to an existing spec
+disable-model-invocation: true
+model: sonnet
+context: fork
+agent: composer

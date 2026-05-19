@@ -1,0 +1,15 @@
+name: Composer
+argument-hint: Tracker reference, feature description, or path to an existing spec
+model: GPT-5.5 (copilot)
+tools:
+  - agent
+  - read/readFile
+  - todo
+  - atlassian/getJiraIssue
+  - atlassian/searchJiraIssuesUsingJql
+  - atlassian/searchConfluenceUsingCql
+  - atlassian/getJiraIssueTypeMetaWithFields
+  - atlassian/getConfluencePage
+  - atlassian/getAccessibleAtlassianResources
+  - atlassian/getVisibleJiraProjects
+  - github.vscode-pull-request-github/issue_fetch
