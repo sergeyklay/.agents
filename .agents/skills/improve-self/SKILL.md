@@ -16,7 +16,7 @@ The discipline is conservative by design. A skill created for a one-off question
 
 ## Running scripts bundled with this skill
 
-Script paths are resolved relative to **this** SKILL.md, not the agent's CWD. If a relative command (for example `python3 scripts/discover_skills.py`) fails to resolve, prefix it with the directory the platform loaded SKILL.md from — e.g. `python3 .agents/skills/improve-self/scripts/discover_skills.py`.
+Script paths are resolved relative to **this** SKILL.md, not the agent's CWD. If a relative command (for example `python3 scripts/discover_skills.py`) fails to resolve, prefix it with the directory the platform loaded SKILL.md from.
 
 **Fallback.** If `python3` is missing or the script cannot be located, every procedure here ships a manual alternative — follow that instead.
 
