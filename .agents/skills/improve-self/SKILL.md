@@ -1,6 +1,6 @@
 ---
 name: improve-self
-description: "Detect when a missing Agent Skill would have made the current task faster or more reliable, then scaffold a candidate SKILL.md for user review. Use after a non-trivial task when one of these signals fires: the same procedure repeated 3+ times, error recovery required inventing a workflow, the user corrected the approach (not the answer), the agent realized mid-task that a playbook did not exist, or 5+ tool calls produced what should have taken 1-2. Reads every existing SKILL.md across the project's vendor skill directories (.agents/, .claude/, .opencode/, .gemini/, .copilot/ and home equivalents) before proposing; never duplicates. Writes candidates into the project's preferred .{vendor}/skills/{name} directory — .agents/skills/ by default — never the home folder. Do NOT use for first-attempt failures, one-off questions, fact gaps that belong in research, or style gaps that belong in rules files."
+description: "Detect when a missing Agent Skill would have made the current task faster or more reliable, then scaffold a candidate SKILL.md for user review. Use after a non-trivial task when one of these signals fires: the same procedure repeated 3+ times, error recovery required inventing a workflow, the user corrected the approach (not the answer), the agent realized mid-task that a playbook did not exist, or 5+ tool calls produced what should have taken 1-2. Detects which `.{vendor}/skills/` directories actually exist on the host (project and home), reads every existing SKILL.md across them before proposing, and never duplicates. Writes candidates into the project's preferred .{vendor}/skills/{name} directory — .agents/skills/ by default — never the home folder. Do NOT use for first-attempt failures, one-off questions, fact gaps that belong in research, or style gaps that belong in rules files."
 context: fork
 metadata:
   author: Serghei Iakovlev
@@ -12,7 +12,7 @@ metadata:
 
 This skill turns the trace of just-completed work into a question: *was there a procedure I should have had written down?* When the answer is yes, it scaffolds a new Agent Skill into the current project. The mechanism is the lineage of Voyager's growing skill library (Wang et al., 2023), Reflexion's verbal self-feedback (Shinn et al., 2023), Hermes Agent's autonomous skill creation, and OpenClaw's self-improving-agent — adapted so the human stays in the loop on every write.
 
-The discipline is conservative by design. A skill created for a one-off question becomes long-term noise in the activation context of every future task. A skill created without checking existing skills becomes a duplicate and a confusion vector. A skill encoding a version-specific or transient behaviour (the failure mode documented in NousResearch/hermes-agent#25833) becomes a permanent footgun. The bar for creation: a concrete, recurring, procedural gap that survived a check against every existing skill, with the user signing off on the draft.
+The discipline is conservative by design. A skill created for a one-off question becomes long-term noise in the activation context of every future task. A skill created without checking existing skills becomes a duplicate and a confusion vector. A skill encoding a version-specific or transient behavior (the failure mode documented in NousResearch/hermes-agent#25833) becomes a permanent footgun. The bar for creation: a concrete, recurring, procedural gap that survived a check against every existing skill, with the user signing off on the draft.
 
 ## Running scripts bundled with this skill
 
@@ -43,10 +43,10 @@ Decision rule: **would the agent copy this procedure from memory next time, verb
 
 Self-assessment runs at the end of a task when **at least one** of these signals is observable in the trace. The signals are concrete; the agent does not need to guess.
 
-1. **Repetition signal.** The agent invoked the same procedural pattern (sequence of tool calls or reasoning steps) three or more times in the task. The third occurrence is the trigger. Example: the agent re-derived "how to find the canonical Postgres source for a behaviour" three times across the conversation.
+1. **Repetition signal.** The agent invoked the same procedural pattern (sequence of tool calls or reasoning steps) three or more times in the task. The third occurrence is the trigger. Example: the agent re-derived "how to find the canonical Postgres source for a behavior" three times across the conversation.
 2. **Recovery signal.** The agent hit an error (tool failure, wrong assumption, dead end) and only made progress after inventing a procedure not in any existing skill. The procedure that worked is the candidate. Example: the agent realized mid-task that a particular gRPC server returned proto3 fields with non-default zero-values in a non-obvious way, and worked out a verification pattern.
 3. **Correction signal.** The user explicitly corrected the agent on *how* to approach something, not just on the answer. Quoted phrases like "no, here we do X" or "next time, start with Y" are strong. Pure answer corrections ("the value is 16, not 8") are *not* triggers — those are research gaps.
-4. **Missing-affordance signal.** The agent noticed mid-task that a needed playbook did not exist anywhere across the project's vendor skill directories (`.agents/`, `.claude/`, `.opencode/`, `.gemini/`, `.copilot/`) or their home equivalents. Phrasing in the agent's own reasoning like "I had to discover that …" or "it would help to have a documented procedure for …" is the marker.
+4. **Missing-affordance signal.** The agent noticed mid-task that a needed playbook did not exist anywhere across the `.{vendor}/skills/` directories that actually exist on this host (Phase 2 step A enumerates them). Phrasing in the agent's own reasoning like "I had to discover that …" or "it would help to have a documented procedure for …" is the marker.
 5. **Effort-vs-payoff signal.** The task took five or more tool calls for a result that, with the right procedure, would have taken one or two. The yardstick from Hermes Agent's GEPA loop: "a task that took 47 tool calls might have completed in 12 with a better skill." If the agent can describe the better skill concretely, that skill is the candidate.
 
 If none of these fire, do not run self-assessment. False-positive gaps create churn in the skill library.
@@ -63,28 +63,112 @@ Write down, internally:
 
 If the procedure runs to more than ten numbered steps before any branching, the gap is too broad. Split it into the narrowest reusable subprocedure. Monolithic skills do not activate precisely (see `make-skill` anti-patterns).
 
-Restate the gap as a single sentence that names the procedural domain. Good: "investigation procedure for verifying Postgres MVCC behaviour across major versions." Bad: "Postgres stuff." The narrower phrasing is also the working draft of the new skill's description.
+Restate the gap as a single sentence that names the procedural domain. Good: "investigation procedure for verifying Postgres MVCC behavior across major versions." Bad: "Postgres stuff." The narrower phrasing is also the working draft of the new skill's description.
 
 ### Phase 2 — Check existing skills (mandatory)
 
-Skipping this phase is the single most common way a self-improvement workflow degrades the skill library. Enumerate every installed skill across the project's vendor directories with the bundled discovery script:
+Skipping this phase is the single most common way a self-improvement workflow degrades the skill library. Discovery is a two-step procedure so the agent only consults the vendor prefixes it actually reads at runtime — not every `.{name}/skills/` directory that happens to exist on the filesystem.
+
+**Step A — Identify the vendor directories THIS agent reads from.** Each platform loads skills from a known set of `.{vendor}/skills/` paths. The running agent already has that information — from its own system prompt, its `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` context files, or its platform documentation. Use that self-knowledge directly; do not equate "exists on disk" with "I will load this".
+
+The current platform → vendor mapping (per the agentskills.io storage matrix; treat as a reference, not a permanent contract):
+
+| Running agent | Vendor names to pass |
+|---|---|
+| Anthropic Claude Code | `claude` (also `agents` if the install reads the cross-platform convention) |
+| OpenAI Codex | `agents` |
+| Cursor | `cursor` (also `agents` if configured to read the cross-platform convention) |
+| Gemini CLI | `gemini`, `agents` |
+| GitHub Copilot (VS Code) | `github` (project scope), `copilot` (user scope) |
+| OpenCode / Antigravity | `agents` |
+| Windsurf | `windsurf` |
+
+If the agent cannot determine its own identity from context (rare, but possible inside sandboxed sub-agents), probe the filesystem as a degraded fallback and explicitly mark the resulting list as uncertain in the response:
 
 ```bash
-python3 scripts/discover_skills.py
+detected=$({
+  find . -maxdepth 2 -type d -path './.*/skills' 2>/dev/null
+  find "${HOME}" -maxdepth 2 -type d -path "${HOME}/.*/skills" 2>/dev/null
+} | awk -F/ '{name=$(NF-1); sub(/^\./, "", name); print name}' \
+  | sort -u | paste -sd, -)
+echo "detected vendors (uncertain): ${detected:-<none>}"
 ```
 
-The script scans `.{vendor}/skills/` under the project root and `~/.{vendor}/skills/` in the user's home for the well-known vendor prefixes (`agents`, `claude`, `opencode`, `gemini`, `copilot`) and prints each skill's `name`, `description`, and path. Override the vendor list with `--vendors a,b,c`, scope to the project with `--no-home`, switch to `--format json` for downstream parsing, or run `--help` for the full surface. Exit codes: `0` clean, `1` some SKILL.md unreadable (results still printed), `2` invalid arguments.
+The filesystem probe **over-reads**: it returns every vendor prefix present on disk, including ones the running agent does not actually load. Prefer the self-knowledge table above whenever it applies.
 
-**Fallback.** If `python3` is missing or `discover_skills.py` cannot be located, scan with bash. Extend the vendor list if a new platform appears:
+If the resolved list is empty either way (no readable vendor directories), skip the Phase 2 script call and treat the result as "no existing skills to deduplicate against" — the candidate gap proceeds to Phase 3 unimpeded.
+
+**Step B — Hand the resolved list to the discovery script.** Save it into a variable for the script call:
 
 ```bash
-for vendor in agents claude opencode gemini copilot; do
-  for f in ".${vendor}"/skills/*/SKILL.md \
-           "${HOME}/.${vendor}"/skills/*/SKILL.md; do
-    [ -f "$f" ] || continue
-    echo "=== $f ==="
-    awk '/^---$/{c++; if(c==2) exit} c==1' "$f"
-  done
+vendors=<comma-separated names from Step A>
+python3 scripts/discover_skills.py --vendors "$vendors"
+```
+
+`--vendors` is **mandatory**; the script validates each name against its supported set and refuses unknown names with an exit-2 error that lists the accepted vendors so the agent can self-correct.
+
+Output is structured XML by default — one `<skill>` element per installed skill, with three fields in a fixed order (`<type>`, `<agent>`, and `<path>` are opt-in; see below). XML is the default because Anthropic's published guidance recommends XML-tagged inputs to Claude, and because freeform `description` text round-trips cleanly through entity escaping:
+
+```xml
+<skills>
+  <skill>
+    <name>some-skill</name>
+    <category>review</category>
+    <description>…</description>
+  </skill>
+  <skill>
+    <name>another-skill</name>
+    <category></category>
+    <description>…</description>
+  </skill>
+  …
+</skills>
+```
+
+`<category>` is read from `metadata.category` (project convention) and falls back to a top-level `category:` if `metadata` is omitted. When a skill defines neither, the section is emitted empty (`<category></category>`) rather than dropped, so the record schema stays stable.
+
+**Three fields are opt-in.** The default output answers "which skills exist, how are they classified, what do they do?" — nothing more. Pass any combination of the flags below when the caller needs the additional context:
+
+| Flag | Field added (canonical position) | When to pass |
+|---|---|---|
+| `--with-type` | `<type>project\|user</type>` before `<name>` | Distinguishing project-local from user-global skills matters to the decision the caller is making. |
+| `--with-agent` | `<agent>vendor-name</agent>` between `<type>` and `<name>` | Cross-vendor disambiguation matters (rare — name collisions across vendors are already resolved by the precedence rule). |
+| `--with-path` | `<path>…</path>` at the end of the record | The caller actually needs to open or edit a SKILL.md. |
+
+Example with all three flags:
+
+```bash
+python3 scripts/discover_skills.py --vendors "$vendors" \
+  --with-type --with-agent --with-path
+```
+
+`--format` accepts `xml` (default), `json`, `markdown`, and `csv` (RFC 4180 with a header row — fields containing commas, quotes, or newlines are quoted by the standard library `csv` module, embedded quotes doubled, and the header row is emitted even on empty results so the schema is communicated).
+
+Flags compose: pass any subset. Field order is always canonical (`type, agent, name, category, description, path` — with absent opt-ins collapsed out) regardless of the flag combination.
+
+**Ordering.** The result is sorted alphabetically by `--order-by` (default: `category`, with `name` as the stable secondary key). The agent treats every returned skill with equal priority, so a deterministic alphabetical scan is more useful than discovery order. Any field name from the canonical schema is a valid sort key — including opt-in ones (`--order-by path` works without `--with-path` in the rendered output, the sort still applies). Override when a different grouping helps the task at hand:
+
+```bash
+python3 scripts/discover_skills.py --vendors "$vendors" --order-by name
+python3 scripts/discover_skills.py --vendors "$vendors" --order-by type --with-type
+```
+
+When `<path>` is emitted, project-scope entries are rendered relative to the project root (e.g. `.claude/skills/foo/SKILL.md`); user-scope entries are abbreviated with a leading `~` (e.g. `~/.claude/skills/foo/SKILL.md`). The path shape itself signals scope, so `--with-path` is informative even without `--with-type`. Anything discovered through a symlink that escapes both roots stays absolute.
+
+An empty result is `<skills/>` (self-closing).
+
+**Precedence.** When the same skill `name` exists in both user (home) and project scopes, the script emits only the user entry and drops the project copy. This matches what every supported agent actually loads at runtime when both are present, so the agent never sees a phantom project version that would never actually win at activation time. If a name appears multiple times within the *same* scope (e.g. installed under two different vendor prefixes), all entries are preserved — that is a genuine multi-install, not a shadow.
+
+To enumerate the accepted vendor set without triggering a discovery scan, run `python3 scripts/discover_skills.py --list-supported`. Other flags: `--no-home` scopes to the project, `--format json` swaps to a JSON array with the same field names, `--format markdown` produces a human-readable table, `--help` shows the full surface. Exit codes: `0` clean, `1` some SKILL.md unreadable (results still printed), `2` missing/empty/unsupported `--vendors` or contradictory scope flags.
+
+**Fallback.** If `python3` or `discover_skills.py` is unavailable, do the whole job in bash — same detection logic, then awk out each frontmatter block directly:
+
+```bash
+{ find . -maxdepth 3 -path './.*/skills/*/SKILL.md' 2>/dev/null
+  find "${HOME}" -maxdepth 3 -path "${HOME}/.*/skills/*/SKILL.md" 2>/dev/null
+} | while read -r f; do
+  echo "=== $f ==="
+  awk '/^---$/{c++; if(c==2) exit} c==1' "$f"
 done
 ```
 
@@ -186,7 +270,7 @@ These degrade the skill library and erode trust in the self-improvement loop:
 - **Over-broad skills.** "Handles all Postgres questions" is monolithic and will not trigger precisely. Defence: name the *procedure*, not the *domain*.
 - **Duplicate skills.** Failing to read existing descriptions before proposing. Defence: Phase 2 is non-negotiable.
 - **Self-validation.** Treating the agent's confidence in the draft as sufficient quality control — Hermes Agent's identified failure mode. Defence: the user is the external validator before any write, the script-based validator after.
-- **Encoding transient or version-specific behaviour.** "Library X v2.3 returns a list" rots the moment v2.4 ships. Defence: skills capture *procedure* (how to find out, how to triangulate, how to verify), not facts that change.
+- **Encoding transient or version-specific behavior.** "Library X v2.3 returns a list" rots the moment v2.4 ships. Defence: skills capture *procedure* (how to find out, how to triangulate, how to verify), not facts that change.
 - **Skill-shaped facts.** Information that belongs in `CLAUDE.md` or `AGENTS.md` compressed into an unwieldy skill. Defence: the *Alternatives* table below.
 - **Silent installation.** Writing the file before the user has seen the draft. Defence: Phase 5 explicitly forbids it.
 
