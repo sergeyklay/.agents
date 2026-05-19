@@ -13,3 +13,7 @@ tools:
   - atlassian/getAccessibleAtlassianResources
   - atlassian/getVisibleJiraProjects
   - github.vscode-pull-request-github/issue_fetch
+agents:
+  - Architect
+  - Planner
+  - Reviewer

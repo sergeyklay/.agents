@@ -20,7 +20,7 @@ The user provides two arguments:
 1. **Task name** — a brief description of the feature ("Implement worker attempt function") OR a GitHub issue reference (`https://github.com/owner/repo/issues/123`, `owner/repo#123`, `#123`).
 2. **Spec path** — a markdown file defining the architecture or design.
 
-If the task name is a GitHub issue reference, fetch context with `gh issue view <ref> --json title,body`. Use the fetched title as the task name and the body as additional context. If the argument is plain text, skip this step.
+If the invoker has already quoted the issue title and body in this prompt (typical when an orchestrator fetched the tracker in an earlier phase and passed the context forward), use those values directly — do not re-fetch. Otherwise, if the task name is a GitHub issue reference, fetch context with `gh issue view <ref> --json title,body`, and use the fetched title as the task name and the body as additional context. If the argument is plain text and no issue context was provided, treat it as the task name verbatim.
 
 ## Workflow
 
@@ -36,7 +36,7 @@ Copy this checklist into your response and mark items as you complete them:
 
 ### Phase 1 — Resolve task reference
 
-If the task argument is a GitHub issue URL or shorthand, run `gh issue view <ref> --json title,body`. Use the title as the task name and the body as additional context. Otherwise treat the argument as the task name verbatim.
+If the invoker already provided the issue title and body in the prompt (e.g. quoted under an `Issue context (already fetched)` section by an orchestrator), use those values directly and do not run `gh issue view`. Otherwise, if the task argument is a GitHub issue URL or shorthand, run `gh issue view <ref> --json title,body` and use the title as the task name and the body as additional context. If neither applies, treat the argument as the task name verbatim.
 
 ### Phase 2 — Build project context
 

@@ -53,11 +53,12 @@ Delegate to the `arch-review` subagent. The arch-review agent selects the correc
 Your prompt to the arch-review subagent must include:
 
 1. The exact spec file path from Phase 2 (or from Phase 1 on the Review-driven route)
-2. The instruction: _"Load the `review-spec` skill. A specification is in scope and the question is whether the spec is ready to be implemented; this maps to `review-spec` per the agent's task-signal table. Do not load `review-arch` or `verify-impl`."_
-3. The instruction to ground the review in project context: agent-instruction files first, then the documentation index, architecture and product documents only for sections the feature touches, accepted decision records, language and style rules. Use the same reading order as the architect in Phase 2.
-4. The instruction to classify each finding using the skill's severity taxonomy (`review-spec` uses **Critical Issues**, **Significant Concerns**, **Observations**)
-5. The output path: `.reviews/Review-spec-{slug}.md` (the skill's default; do not override unless the project documents a different review directory)
-6. The instruction to end the subagent result with the **Subagent Return Line** in the format: `path=<review-file-path>; critical=N; significant=M; observations=K; verdict=approve|revise`. This is the machine-readable handoff.
+2. **Issue context (Tracker-driven route only).** If Phase 1 fetched a tracker reference, include the issue title, body, and labels verbatim under a clearly labeled section (e.g. `### Issue context (already fetched)`). State explicitly: _"This issue context was fetched in Phase 1; do not re-fetch via `gh issue view` or any tracker MCP tool."_ On Review-driven or Revise-driven routes there is no tracker reference - omit this section.
+3. The instruction: _"Load the `review-spec` skill. A specification is in scope and the question is whether the spec is ready to be implemented; this maps to `review-spec` per the agent's task-signal table. Do not load `review-arch` or `verify-impl`."_
+4. The instruction to ground the review in project context: agent-instruction files first, then the documentation index, architecture and product documents only for sections the feature touches, accepted decision records, language and style rules. Use the same reading order as the architect in Phase 2.
+5. The instruction to classify each finding using the skill's severity taxonomy (`review-spec` uses **Critical Issues**, **Significant Concerns**, **Observations**)
+6. The output path: `.reviews/Review-spec-{slug}.md` (the skill's default; do not override unless the project documents a different review directory)
+7. The instruction to end the subagent result with the **Subagent Return Line** in the format: `path=<review-file-path>; critical=N; significant=M; observations=K; verdict=approve|revise`. This is the machine-readable handoff.
 
 After the arch-review subagent returns, parse the Subagent Return Line. Extract `critical`, `significant`, `observations`, and `verdict`. Record them for Phase 4 and Phase 6.
 
@@ -90,6 +91,7 @@ Critical findings represent safety violations, data loss risks, or fundamental c
 2. After revision, delegate a **focused re-review** to `arch-review`. The re-review prompt must include:
    - The revised spec file path
    - The original review file path (for comparison)
+   - **Issue context (Tracker-driven route only).** Re-include the title, body, and labels verbatim from Phase 1, with the same _"do not re-fetch"_ note as Phase 3 above.
    - The instruction: _"Re-review the specification. Load the `review-spec` skill. Focus on whether the previously identified Critical Issues have been resolved. Classify any remaining issues. Write the re-review to `.reviews/Review-spec-{slug}-r2.md`."_
    - The instruction to end the subagent result with the **Subagent Return Line** (same format as Phase 3)
 3. Parse the Subagent Return Line. Extract `critical`.
@@ -101,6 +103,7 @@ Critical findings represent safety violations, data loss risks, or fundamental c
 2. After revision, delegate a **second focused re-review** to `arch-review`. The re-review prompt must include:
    - The twice-revised spec file path
    - The `-r2` review file path (showing which Critical Issues remained after Cycle 1)
+   - **Issue context (Tracker-driven route only).** Re-include the title, body, and labels verbatim from Phase 1, with the same _"do not re-fetch"_ note as Phase 3 above.
    - The instruction: _"Re-review the specification. Load the `review-spec` skill. Focus on whether the remaining Critical Issues from the `-r2` review have been resolved. Classify any remaining issues. Write the re-review to `.reviews/Review-spec-{slug}-r3.md`."_
    - The instruction to end the subagent result with the **Subagent Return Line**
 3. Parse the Subagent Return Line. Extract `critical`.

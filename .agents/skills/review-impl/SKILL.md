@@ -17,9 +17,10 @@ metadata:
 
 ### Step 1: Resolve Task Reference
 
-- If the task description above contains a GitHub issue URL (e.g. `https://github.com/owner/repo/issues/123`) or a shorthand reference (e.g. `owner/repo#123` or `#123`), run `gh issue view <url-or-reference> --json title,body` to fetch the issue title and body. Use the fetched title and body as the canonical task description for all subsequent steps.
-- If the task description above contains a Jira issue URL (e.g. `https://yourcompany.atlassian.net/browse/PROJ-123`), use appropriate Agent Skills and/or MCP tools to fetch the issue summary and description, and use those as the canonical task description for all subsequent steps.
-- If the task description is plain text, skip this step.
+- If the invoker has already quoted the issue title and body in this prompt (typical when an orchestrator fetched the tracker in an earlier phase and passed the context forward), use those values as the canonical task description for all subsequent steps and **do not re-fetch**.
+- Otherwise, if the task description above contains a GitHub issue URL (e.g. `https://github.com/owner/repo/issues/123`) or a shorthand reference (e.g. `owner/repo#123` or `#123`), run `gh issue view <url-or-reference> --json title,body` to fetch the issue title and body. Use the fetched title and body as the canonical task description for all subsequent steps.
+- Otherwise, if the task description above contains a Jira issue URL (e.g. `https://yourcompany.atlassian.net/browse/PROJ-123`), use appropriate Agent Skills and/or MCP tools to fetch the issue summary and description, and use those as the canonical task description for all subsequent steps.
+- If the task description is plain text and no issue context was provided, skip this step.
 
 ### Step 2: Understand the Project
 
