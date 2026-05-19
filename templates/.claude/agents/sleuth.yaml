@@ -1,4 +1,5 @@
 tools:
+  - Agent
   - Bash
   - Read
   - Write
@@ -32,6 +33,7 @@ tools:
 skills:
   - research-it
   - explain-it
+  - improve-self
 model: opus[1m]
 effort: high
 color: cyan
