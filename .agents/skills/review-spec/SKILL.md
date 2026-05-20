@@ -1,9 +1,10 @@
 ---
 name: review-spec
 description: "Architectural review of a specification or design document, performed before implementation begins. Use whenever a spec or design proposal is in scope and the user asks any quality question — even when not phrased explicitly: 'review this spec', 'evaluate this design', 'is this spec implementable', 'is this ready to build', 'check this architecture proposal', 'review the design for feature X', 'is this design sound', 'what's missing from this spec'. Also triggers when a file under `.specs/` is being evaluated without an existing implementation. Do NOT use for verifying an existing implementation against a spec, reviewing a PR or implementation changes, reviewing an existing system's architecture, or security review."
+context: fork
 metadata:
   author: Serghei Iakovlev
-  version: "2.0"
+  version: "2.1"
   category: review
 ---
 
