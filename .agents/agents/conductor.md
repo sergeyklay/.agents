@@ -64,14 +64,27 @@ Use the list of `.findings/Finding-*.md` file paths reported by the implementati
 
 **If no finding files exist:** proceed to Phase 4.
 
-**If finding files exist:** read each one. Produce a findings summary with one row per finding:
+**If finding files exist:** read each one. Produce a findings summary with one section per finding:
 
 <summary_template>
 ### Spec Deviations Found
 
-| Finding | Severity | Spec Reference | Impact |
-|---|---|---|---|
-| [filename, e.g. `Finding-MissingInterface.md`] | [minor / major / blocking] | [quoted spec text that was violated, or `N/A`] | [bug introduced / architecture contradicted / safety invariant violated / etc.] |
+- **Finding:** [filename, e.g. `Finding-MissingInterface.md`]
+- **Severity:** [minor / major / blocking]
+- **Spec Reference:** [quoted spec text that was violated, or `N/A` if not applicable or not provided]
+- **Impact:** [brief description of the bug introduced / architecture contradicted / safety invariant violated / etc.]
+
+---
+
+- **Finding:** [filename, e.g. `Finding-MissingInterface.md`]
+- **Severity:** [minor / major / blocking]
+- **Spec Reference:** [quoted spec text that was violated, or `N/A` if not applicable or not provided]
+- **Impact:** [brief description of the bug introduced / architecture contradicted / safety invariant violated / etc.]
+
+---
+
+...
+
 </summary_template>
 
 Add one row per `.findings/Finding-*.md` file. Do NOT improvise the spec deviation summary; use the content of the finding files directly. If a finding file does not include all the columns, fill what is present and write `N/A` for missing fields. Do NOT invent details that are not in the file.
