@@ -15,4 +15,4 @@ tools:
   - mcp__atlassian__getAccessibleAtlassianResources
   - mcp__atlassian__getVisibleJiraProjects
 model: opus
-color: yellow
+color: blue
