@@ -12,4 +12,4 @@ skills:
   - verify-impl
 model: opus[1m]
 effort: max
-color: red
+color: purple
