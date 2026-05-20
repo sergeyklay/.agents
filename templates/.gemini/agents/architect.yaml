@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=./architect.yaml
 tools:
   - read_file
   - write_file
