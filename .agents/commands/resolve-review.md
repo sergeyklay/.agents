@@ -10,7 +10,7 @@ Your task is to resolve reviewer feedback on the current pull request or on comm
 - Detect the input mode automatically:
   - A GitHub PR number, URL, or the current branch's open PR → use the skill's GitHub-fetch flow.
   - Pasted text or inline reviewer comments → use them as-is.
-- Read the project's context files (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`, and any architecture documentation they reference) so you know the coding standards, verification commands, issue tracker, and Context7 rules the skill will defer to.
+- Read the project's context files (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`), and project architecture documentation so you know the coding standards, verification commands, issue tracker.
 
 ## Skill Enforcement
 
