@@ -290,6 +290,7 @@ The order matters. Step 1 reframes Step 2; without it, you will give bad advice 
 **High impact** (degrade performance):
 
 - **README-style content.** Skills teach how, not what. Procedures with steps, not narrated context.
+- **Inlining what belongs in `assets/`.** Templates with placeholders, schemas, and other output-generation patterns go in `assets/<name>.md`, referenced from SKILL.md. Inlining a per-type catalog loads every variant on every invocation and obscures the skill's structural shape. Inline only when the block is small and used unconditionally.
 - **External fetch dependencies.** Network downloads at activation time are fragile. Bundle.
 - **Command lists without verification.** Add explicit checks and failure handling.
 - **First/second person in description.** "I can help" / "You can use" reads wrong from a system prompt.
