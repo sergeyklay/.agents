@@ -7,9 +7,11 @@
 # the mirror, replacing matching source fields and adding the rest.
 # <vendor> matches the destination's hidden-directory name (.claude,
 # .copilot, .gemini); <kind> matches the destination subdirectory
-# (agents, commands, prompts, instructions, rules). Sources without
-# frontmatter take the template wholesale; a missing template yields
-# a verbatim copy.
+# (agents, commands, prompts, instructions, rules, skills). For
+# skills, the overlay rewrites only SKILL.md; supporting files under
+# the skill directory mirror verbatim. Sources without frontmatter
+# take the template wholesale; a missing template yields a verbatim
+# copy.
 
 set -eu
 
@@ -408,6 +410,49 @@ sync_commands() {
     done
 }
 
+# Apply per-vendor SKILL.md frontmatter overlays. For each template
+# under templates/<vendor>/skills/<name>.yaml, deep-merge its top-
+# level keys into .agents/skills/<name>/SKILL.md and write the result
+# to <dest_root>/<name>/SKILL.md. The preceding rsync in sync_skills
+# has already mirrored bodies and supporting files; this function
+# rewrites SKILL.md only. Skills without a matching template are
+# left untouched.
+apply_skill_overlays() {
+    vendor=$1
+    dest_root=$2
+    src_root="$REPO_ROOT/.agents/skills"
+    tmpl_root="$REPO_ROOT/templates/$vendor/skills"
+
+    [ -d "$tmpl_root" ] || return 0
+    [ -d "$dest_root" ] || return 0
+
+    for tmpl in "$tmpl_root"/*.yaml; do
+        [ -f "$tmpl" ] || continue
+        name=$(basename -- "$tmpl" .yaml)
+        src_skill="$src_root/$name/SKILL.md"
+        dst_skill="$dest_root/$name/SKILL.md"
+        label="$vendor/skills/$name"
+
+        if [ ! -f "$src_skill" ]; then
+            printf '  skip: %s (no source skill at %s)\n' "$label" "$src_skill"
+            continue
+        fi
+        if [ ! -d "$(dirname -- "$dst_skill")" ]; then
+            printf '  skip: %s (destination %s missing)\n' "$label" "$dst_skill"
+            continue
+        fi
+        if [ -e "$dst_skill" ] && [ "$(canonical_path "$src_skill")" = "$(canonical_path "$dst_skill")" ]; then
+            printf '  skip: %s (symlink to source)\n' "$label"
+            continue
+        fi
+
+        tmp=$(mktemp) || die "mktemp failed"
+        frontmatter_overlay "$src_skill" "$tmpl" "$tmp"
+        mv -f -- "$tmp" "$dst_skill"
+        printf '  %s -> %s\n' "$label" "$dst_skill"
+    done
+}
+
 sync_skills() {
     printf 'syncing skills...\n'
 
@@ -417,6 +462,12 @@ sync_skills() {
     sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills"
     sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills"
     sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills"
+
+    # Per-vendor SKILL.md frontmatter overlays. Codex and OpenCode are
+    # excluded until their hook-frontmatter dialect is known to match.
+    apply_skill_overlays ".claude"  "$HOME/.claude/skills"
+    apply_skill_overlays ".copilot" "$HOME/.copilot/skills"
+    apply_skill_overlays ".gemini"  "$HOME/.gemini/skills"
 }
 
 sync_settings() {

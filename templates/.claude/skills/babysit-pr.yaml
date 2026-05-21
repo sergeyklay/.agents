@@ -1,0 +1,6 @@
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: bash "$HOME/.claude/skills/babysit-pr/scripts/forbid_github_writes.sh"
