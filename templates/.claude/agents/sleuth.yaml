@@ -13,6 +13,7 @@ tools:
   - TaskList
   - TaskUpdate
   - TaskStop
+  # project-level .mcp.json
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
   - mcp__atlassian__createIssueLink

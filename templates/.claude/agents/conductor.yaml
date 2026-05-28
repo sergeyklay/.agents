@@ -5,6 +5,7 @@ tools:
   - TaskGet
   - TaskList
   - TaskUpdate
+  # project-level .mcp.json
   - mcp__atlassian__getJiraIssue
   - mcp__atlassian__searchJiraIssuesUsingJql
   - mcp__atlassian__searchConfluenceUsingCql
@@ -12,5 +13,13 @@ tools:
   - mcp__atlassian__getConfluencePage
   - mcp__atlassian__getAccessibleAtlassianResources
   - mcp__atlassian__getVisibleJiraProjects
+  # claude-plugins-official atlassian
+  - mcp__plugin_atlassian_atlassian__getJiraIssue
+  - mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql
+  - mcp__plugin_atlassian_atlassian__searchConfluenceUsingCql
+  - mcp__plugin_atlassian_atlassian__getJiraIssueTypeMetaWithFields
+  - mcp__plugin_atlassian_atlassian__getConfluencePage
+  - mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources
+  - mcp__plugin_atlassian_atlassian__getVisibleJiraProjects
 model: opus
 color: purple

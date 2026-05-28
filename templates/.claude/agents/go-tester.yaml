@@ -1,11 +1,12 @@
 tools:
-  - Bash
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
-  - mcp__context7__resolve-library-id
-  - mcp__context7__query-docs
-model: sonet
+    - Bash
+    - Read
+    - Write
+    - Edit
+    - Glob
+    - Grep
+    # project-level .mcp.json
+    - mcp__context7__resolve-library-id
+    - mcp__context7__query-docs
+model: sonnet
 color: green
