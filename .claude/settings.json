@@ -88,5 +88,9 @@
     "atlassian@claude-plugins-official": true
   },
   "skipDangerousModePermissionPrompt": true,
-  "model": "opus[1m]"
+  "model": "opus[1m]",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
 }
