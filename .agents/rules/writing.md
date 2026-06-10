@@ -1,4 +1,3 @@
-
 # Technical Writing Standards
 
 These rules govern all prose in this project: architecture documents, ADRs, issue descriptions, and user guides. They do not govern Typescript/React source files.
@@ -62,7 +61,7 @@ Do not skip heading levels. H1 appears once per document. Sections use H2, subse
 
 ### Cross-references
 
-Reference architecture doc sections by number: "per Section 7.3." Reference ADRs by filename: "per ADR-0002." Reference code by module path: "`src/features/auth`." Do not use vague pointers like "as discussed above" or "see below."
+Reference ADRs by filename: "per ADR-0002." Reference code by module path: "`src/features/auth`." Do not use vague pointers like "as discussed above" or "see below."
 
 ## Specification Writing
 
@@ -95,7 +94,7 @@ Bad:  "The workspace key should be properly sanitized."
 
 ### Algorithm descriptions
 
-Use pseudocode blocks matching the style in architecture doc Section 16. Line-oriented, indented for nesting, no English narrative filler between steps.
+Use pseudocode blocks: line-oriented, indented for nesting, no English narrative filler between steps.
 
 ```
 Good:
