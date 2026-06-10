@@ -3,7 +3,7 @@ name: manage-adr
 description: "Create, update, and validate Architecture Decision Records (ADRs) following MADR 4.0 format. Use when the user mentions ADR, architecture decision, decision record, or asks to document a technical decision. Also use when creating new files in docs/decisions/. Handles numbering, frontmatter, section structure, and README index updates. Do NOT use for general documentation or non-architectural decisions."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: documentation
 ---
 
@@ -40,6 +40,16 @@ Key rules:
 - "Decision Outcome" must begin with `Chosen option: **X**, because Y`
 - "Considered Options" is a bullet list. Detailed analysis goes under "### Considered Options in Detail" inside "Decision Outcome"
 - Decision Drivers use numbered bold-label items: `1. **Label.** Description`
+
+## Writing for durability
+
+An accepted ADR is immutable: a permanent record of a decision at a point in time, not edited afterward. Everything in it must stay true and legible for years without depending on anything that changes. Apply these rules to Context, Drivers, Consequences, and rationale:
+
+- **No references to mutable documents.** Do not cite architecture-doc section numbers (`Section 5.3.5`, `§8.4`), file line numbers, or any pointer into a doc that will be renumbered, rewritten, or deleted. The ADR cannot be edited to follow the move, so the reference rots into a lie. The reader also cannot resolve a bare `Section 5.3.5` with no document named. State the fact directly in the ADR's own voice instead.
+- **No tracker IDs, and no ticket-driven framing.** Do not cite issue or ticket IDs (`#240`, Jira keys), and never frame the ADR's reason for existing as "Issue #N requests X." An ADR records an architect's decision in response to a force in the system, not a response to a ticket. Open Context with the problem and its stakes.
+- **Ground claims in stable identifiers.** Config field names (`agent.max_sessions`), table names (`run_history`), environment variables, tool names, and event field names change rarely and are meaningful without a lookup. Prefer them over document coordinates.
+- **Prefer self-containment over cross-references.** Relating one ADR to another by filename is acceptable when it carries real lineage, but default to stating an inherited constraint as a fact (for example, "Sortie ships as a single statically-linked binary") rather than linking out.
+- **Use tense discipline for before-and-after state.** Write enduring facts in the present tense. Write the specific deficiencies the decision removes in the past tense ("no table held a per-issue total"; "`session_metadata` kept only the latest session"). A present-tense claim about the pre-decision state ("`run_history` has no token columns") becomes false the day the decision ships, in a document you cannot edit.
 
 ## Get Sequence Number
 
@@ -78,7 +88,7 @@ python3 scripts/next_adr_number.py --decision-dir docs/decisions --count 3
 1. Get the next ADR number (see "Get Sequence Number" above).
 2. Copy `assets/adr-template.md` to `docs/decisions/NNNN-kebab-case-title.md`.
 3. Fill in frontmatter: `status: proposed`, `date: <today>`, `decision-makers: <name>`.
-4. Write Context, Decision Drivers, Considered Options, and Decision Outcome.
+4. Write Context, Decision Drivers, Considered Options, and Decision Outcome. Follow "Writing for durability": self-contained, no references to mutable sources, framed from the architectural force rather than from a ticket.
 5. Remove unused optional sections (Consequences, Confirmation).
 6. Update `docs/decisions/README.md` - add a row to the table.
 
@@ -102,6 +112,7 @@ Check every file in `docs/decisions/` (excluding README.md):
 - [ ] Sections present: "Context and Problem Statement", "Considered Options", "Decision Outcome"
 - [ ] "Decision Outcome" contains `Chosen option: **` pattern
 - [ ] "Considered Options" is a bullet list
+- [ ] No references to mutable sources: no architecture-doc section numbers (`Section N.N`, `§N`), no file line numbers, no tracker issue/ticket IDs, and the rationale is not framed around a ticket
 - [ ] `docs/decisions/README.md` table has a row for this ADR with correct title and status
 
 Report all violations. Do not auto-fix without confirmation.
