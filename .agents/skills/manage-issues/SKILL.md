@@ -3,7 +3,7 @@ name: manage-issues
 description: "Create, edit, search, close, and triage GitHub Issues via the gh CLI. Use when asked to file a bug, request a feature, create a task, report a problem, search the backlog, triage issues, or manage the issue tracker. Also use when the user says 'create an issue', 'file a bug', 'open a ticket', 'add to backlog', 'search issues', 'close issue', or mentions GitHub Issues in any task-management context. Handles label/milestone assignment, duplicate detection, and project board integration. Do NOT use for pull requests, changelog entries, or non-GitHub trackers (Jira, Linear, GitLab) or managing TODO.md file."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: roadmap
 ---
 
@@ -168,6 +168,32 @@ When creating multiple related issues:
 - **Close.** Always include `--comment` with a reason. Reference the resolving PR when the issue was completed by code change.
 - **Milestone arguments.** Use the full title from the taxonomy, never the shorthand.
 
+## Linking dependencies
+
+Apply this section only when the user wants to record that one issue blocks or depends on another. Many workflows have no blocker relationships; skip it entirely when none apply.
+
+GitHub exposes native issue dependencies (a "blocked by" / "blocking" relationship that renders on both issues in the UI). Prefer these over a free-text "Blocked by #N" line: native links are queryable and visible from both ends. The feature is relatively new and may be unavailable or disabled on some repositories or plans, so degrade gracefully when it is.
+
+**Key gotcha.** The API identifies the blocking issue by its **database id**, not its issue number. Resolve the id first, then record that `{issue_number}` is blocked by `{blocker_number}`:
+
+```bash
+BLOCKER_ID=$(gh api repos/{owner}/{repo}/issues/{blocker_number} --jq '.id')
+gh api --method POST \
+  repos/{owner}/{repo}/issues/{issue_number}/dependencies/blocked_by \
+  -F issue_id="$BLOCKER_ID"
+```
+
+The inverse "blocking" relationship appears automatically on the blocker. List or remove:
+
+```bash
+gh api repos/{owner}/{repo}/issues/{issue_number}/dependencies/blocked_by --jq '[.[].number]'
+gh api --method DELETE repos/{owner}/{repo}/issues/{issue_number}/dependencies/blocked_by/$BLOCKER_ID
+```
+
+These endpoints need a recent REST API version. Current `gh` sends a recent default; if a call fails with a version error, add `-H "X-GitHub-Api-Version: 2026-03-10"` (or newer).
+
+**Graceful degradation.** If the endpoint returns 404, 410, or 422 (feature unavailable, not enabled, or invalid target), do not block the task. Fall back to a textual "Blocked by #N" line in the issue body and tell the user the native link could not be set. Always confirm a successful link with the list call above.
+
 ## Triage
 
 When triaging a finding from code, logs, review, or conversation into the backlog:
@@ -196,6 +222,7 @@ Before executing `gh issue create`, verify:
 - [ ] No solution prescribed in bug reports
 - [ ] Related issues referenced with `#NNN` where applicable
 - [ ] `--project` uses project name from taxonomy, or omitted when `PROJECT_BOARDS` is empty
+- [ ] Blocker relationships, when the workflow uses them, linked natively (or a textual "Blocked by #N" fallback added when the API is unavailable)
 
 ## Error recovery
 
@@ -209,3 +236,4 @@ Before executing `gh issue create`, verify:
 | HTTP 403 on project | `gh auth refresh -s project,read:project` to add project scope. |
 | HTTP 422 on create | Check for duplicate title or missing required fields. |
 | GraphQL `updateIssue` returns null | Verify the type `node_id` matches the current org's `ISSUE_TYPES` output. |
+| HTTP 404/410/422 on `dependencies/blocked_by` | Native dependencies may be unavailable or not enabled for this repo; fall back to a textual "Blocked by #N" note. Confirm `issue_id` is the blocker's database id, not its issue number. |
