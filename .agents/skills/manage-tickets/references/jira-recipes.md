@@ -39,6 +39,22 @@ Common JQL patterns:
 
 Quote the JQL value with double quotes; escape any inner double-quote with `\"`.
 
+### Querying large projects without overflowing tool output
+
+Broad sweeps over a populated project can return a response that exceeds the MCP tool's output limit. When that happens the result is written to a file instead of returned inline, which forces an extra inspect-and-extract round-trip. Prevent it on the request; recover deterministically if it still happens.
+
+Prevent, on every `searchJiraIssuesUsingJql` over a non-trivial project:
+
+- Always pass an explicit narrow `fields` list; never let it default to the full field set. A board or triage scan needs only `[summary, status, issuetype, parent]`. Add `labels` or `assignee` when the task needs them.
+- Cap `maxResults` at the smallest count that answers the question. Do not raise it to scan the whole project "just in case".
+- Avoid whole-project `ORDER BY updated DESC` or `ORDER BY created DESC` dumps. Scope the result set with a predicate such as `statusCategory != Done`, `issuetype = Epic`, `parent = EPIC-KEY`, or `updated >= -7d`.
+
+Recover, when a response is still written to a file because of its size. The persisted payload is shaped `{ "issues": [ ... ] }`; the array is `.issues[]`, not `.issues.nodes[]`. Project a compact view, then re-run the original query with a narrower `fields` list and a lower `maxResults` so the next call returns inline:
+
+```bash
+jq '.issues[] | {key, status: .fields.status.name, type: .fields.issuetype.name, summary: .fields.summary, parent: .fields.parent.key}' <persisted-file>
+```
+
 ### Single ticket
 
 Tool: `getJiraIssue`

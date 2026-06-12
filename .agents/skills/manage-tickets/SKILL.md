@@ -3,7 +3,7 @@ name: manage-tickets
 description: "Create, edit, search, transition, close, and triage Jira tickets via the Atlassian MCP. Use when asked to file a bug, request a feature, create a task, log a defect, search the backlog, triage findings into the tracker, edit ticket fields, transition status, or manage Jira work items. Also use when the user says 'create a Jira issue', 'file a bug', 'open a ticket', 'add to backlog', 'search Jira', 'close ticket', 'move to Done', or names any Jira issue key (e.g. 'PROJ-123'). Handles type discovery, parent linking, label assignment, duplicate detection via JQL, status transitions, and issue-link creation. Defers all field-content formatting to the `jira-syntax` skill. Do NOT use for pull requests, changelog entries, non-Jira trackers (GitHub Issues, Linear, GitLab), or managing local TODO.md."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: roadmap
 ---
 
@@ -187,7 +187,7 @@ Links:
 
 ## Search, Edit, Transition
 
-MCP invocations for these three operations are catalogued in [references/jira-recipes.md](references/jira-recipes.md). Load that file when the user asks to find, modify, or transition a ticket. The rules below are policy and bind regardless of which recipe is used:
+MCP invocations for these three operations are catalogued in [references/jira-recipes.md](references/jira-recipes.md). Load that file when the user asks to find, modify, or transition a ticket. For broad searches over a populated project, follow the "Querying large projects without overflowing tool output" recipe in that file: pass narrow `fields`, cap `maxResults`, and avoid whole-project `ORDER BY` dumps. The rules below are policy and bind regardless of which recipe is used:
 
 - **Edit.** Read current state via `getJiraIssue` before destructive edits (body replacement, label replacement, type change). Confirm destructive edits with the user before executing. Pass only the changing fields - do not resend unchanged fields.
 - **Transition.** Match the user's intent ("close", "done", "in progress", "in review") to a transition name returned by `getTransitionsForJiraIssue`; transition IDs vary per project workflow. After transitioning, verify the new status via `getJiraIssue`.
