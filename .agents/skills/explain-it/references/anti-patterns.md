@@ -10,9 +10,11 @@
 6. The Kindergarten Trap
 7. The Scope Creep
 8. The Unverified Survey
-9. Cross-cutting principle
+9. The Hollow Opener
+10. The Cold Start
+11. Maxims and the cross-cutting principle
 
-Eight failure modes that show up repeatedly in technical writing. Each one includes a symptom, an example of the broken form, and the structural fix.
+Ten failure modes that show up repeatedly in technical writing. Each one includes a symptom, an example of the broken form, and the structural fix.
 
 If you catch yourself doing any of these, stop writing and restructure. They are not stylistic preferences - they are predictable ways an explanation fails to land.
 
@@ -125,6 +127,8 @@ This person writes software for a living. They know what a database is. The anal
 
 **Fix.** Treat the reader as what they are: a competent professional in a new area. If they are reading an explanation of database isolation levels, they already know what a database is. Start from where they are, not from where a 10-year-old would be.
 
+The cost is cognitive, not only social: re-explaining what the reader already knows is redundant load - the **expertise-reversal effect**, where scaffolding that helps a novice slows an expert. Explaining what a Git commit is before explaining `git rebase` to a senior engineer does not help; it makes them wade through what they walked in knowing.
+
 ## 7. The Scope Creep
 
 **Symptom.** A question about a narrow topic gets answered with a tour of the entire surrounding ecosystem. The TCP question gets a lecture on the history of networking. The WebSocket framing question gets HTTP, TLS, and RFC 793.
@@ -158,8 +162,47 @@ Some of those libraries may have been deprecated, renamed, merged, or displaced.
 
 For active ecosystems, prefer pointing the reader at the authoritative index (the framework's docs, the language's official package list, the project's GitHub) over reciting a list.
 
-## Cross-cutting principle
+## 9. The Hollow Opener
 
-Six of the eight anti-patterns above (1, 2, 4, 5, 7, 8) share a single root cause: **the writer skipped a verification step or a synthesis step and shipped the result anyway**. Anti-patterns 3 and 6 are calibration failures in the opposite direction - over-explaining or talking down.
+**Symptom.** A filler claim included for conversational rhythm rather than because it carries information. The classic case is a rapport-opener - "these two are easy to confuse", "this is the tricky part", "here is where it gets interesting" - asserted before, or instead of, showing that it is true.
 
-The defence against the first group is the **investigation discipline** of the `conducting-deep-research` skill. The defence against the second group is the **calibration discipline** of `communication-calibration.md`.
+**Broken form**
+
+> The single-writer rule and WAL mode are easy to confuse.
+
+Followed by two paragraphs describing two clearly distinct, non-overlapping mechanisms. The reader who was not confused now distrusts themselves: *why is this "easy" to confuse - what am I missing?* The opener asserted a difficulty the body never substantiates, so the reader hunts for a point that does not exist.
+
+**Fix.** Cut the filler, or earn it. If you claim two things are confusable, the next sentence must show the specific way they get mixed up. If they do not actually get confused, delete the opener and state the distinction directly. This is a Quantity failure - the reader assumes the claim has a point - compounded by a Quality one, since the claim was not true. Casual register changes sentence rhythm, never the standard that every sentence be true and load-bearing.
+
+## 10. The Cold Start
+
+**Symptom.** A sentence or paragraph opens on new or unanchored information instead of linking to what the reader already has. Unlike the Jargon Wall, every word is defined and clear; unlike the Expert Blind Spot, no step is missing. The order is the fault - the new arrives before the given, so the reader's search for an antecedent fails and they stumble.
+
+**Broken form**
+
+> A retry budget that decrements on every attempt and refuses new work at zero is what the client checks before each call.
+
+The sentence opens on a long, brand-new noun phrase. The reader has nothing established to attach it to yet.
+
+**Fix.** Known to the front, new to the end, and let the new become the starting point of the next sentence (the given-new contract; theme before rheme). Reworked: *"Before each call, the client checks its retry budget. That budget decrements on every attempt and refuses new work at zero."* Each sentence now starts on something already established. This is the sentence-level form of Manner's *be orderly*.
+
+## Maxims and the cross-cutting principle
+
+Each anti-pattern is a broken conversational maxim, and naming the maxim points straight at the fix:
+
+| Anti-pattern | Maxim broken | Why |
+|---|---|---|
+| 1. Textbook Dump | Relation + Manner | relevant material in the wrong order, at the wrong stage |
+| 2. Expert Blind Spot | Quantity (too little) | a step the reader needs is missing |
+| 3. Allegory Cascade | Manner | obscurity: metaphors bury the subject |
+| 4. Confidence Bluff | Quality | stated without evidence |
+| 5. Jargon Wall | Manner | obscurity: undefined terms stacked |
+| 6. Kindergarten Trap | Quantity (too much) + tone | redundant load on an expert (expertise-reversal), plus condescension |
+| 7. Scope Creep | Quantity (too much) + Relation | answering a larger question than asked |
+| 8. Unverified Survey | Quality | lists recited without checking currency |
+| 9. Hollow Opener | Quantity + Quality | filler with a phantom point, often untrue |
+| 10. Cold Start | Manner | given/new order inverted: new before its antecedent |
+
+Quality is primary: patterns 4, 8, and the Quality half of 9 corrupt the reader's model directly, which is the worst failure mode - an honest gap beats a fluent error.
+
+Two root causes underlie the table. Patterns 1, 2, 4, 5, 7, 8 ship a skipped verification or synthesis step; defend with the **investigation discipline** of the `conducting-deep-research` skill. Patterns 3, 6, 9, 10 are calibration failures - over-explaining, talking down, filling space, or mis-ordering information; defend with the **calibration discipline** of `communication-calibration.md`.
