@@ -11,6 +11,7 @@ tools:
   - edit/editFiles
   - search
   - web
+  - bpdb/*
   - context7/*
   - atlassian/createIssueLink
   - atlassian/createJiraIssue

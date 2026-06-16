@@ -8,6 +8,7 @@ tools:
   - run_shell_command
   - web_fetch
   - google_web_search
+  - mcp_bpdb_*
   - mcp_context7_*
   - mcp_atlassian_createIssueLink
   - mcp_atlassian_createJiraIssue
