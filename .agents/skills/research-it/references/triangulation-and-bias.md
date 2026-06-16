@@ -138,6 +138,17 @@ Detection heuristics for content farms:
 
 **Defence.** Fetch and read full pages before citing. If full content is not available (paywalled, deleted, hostile bot detection), explicitly note this - do not silently substitute a snippet.
 
+### Silent-zero search results
+
+**Symptom.** A scoped search returns zero results, and the zero is cited as evidence of absence ("the project has no X anywhere in its codebase"). But the scope identifier was stale, and the tool reported the dead scope as an empty result rather than an error. GitHub code search is the canonical trap: for a repository that has been renamed or transferred, `search/code?q=repo:old-owner/name+term` returns `total_count: 0` with no error and no redirect notice - while `GET /repos/old-owner/name` follows the rename silently, so a spot-check against the repo appears to confirm the search scope was alive. Re-running the search with different terms returns more zeros, which feels like triangulation but is the same broken instrument consulted twice: instrument-level failures are perfectly correlated across queries.
+
+**Defence.** A zero from one instrument is never evidence of absence on its own. Before citing it:
+
+1. **Resolve the scope identifier to its canonical form** via a path that follows renames, and compare it against the identifier searched. For GitHub: `gh api repos/<owner>/<name> --jq .full_name`. If the canonical name differs, the search scope was dead - re-run against the canonical name.
+2. **Run a positive control.** Query the same scope for a term that must exist (the project's own name, `README`, a known top-level symbol). Zero hits on the control means the instrument cannot see the scope, and every zero it produced is void.
+3. **Classify surviving hits before re-asserting absence.** When the corrected search does return hits, read each one (implementation vs. CI config, changelog, code comment) before deciding whether the absence claim still holds.
+4. **Scope the claim in the output.** Report "no hits for *terms* in *canonical scope* as of *date*", never an unqualified "the project has no X". Absence claims inherit every blind spot of the search tool, such as indexing lag, file-size limits, and default-branch-only indexing.
+
 ## Calibrated uncertainty in the output
 
 The reader needs to know which parts of the output are bedrock and which parts are tentative. Use these markers consistently:

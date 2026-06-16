@@ -35,6 +35,7 @@ For each claim that will appear as fact in the output:
 - [ ] Independence verified (not the same upstream, not the same author)
 - [ ] If conflict: classified (terminology / version / scope / genuine / one-is-wrong) and resolution decided
 - [ ] If single-sourced: marked as such, OR additional source found, OR claim dropped
+- [ ] Evidence-of-absence claims: scope identifier resolved to canonical form, positive control returned hits
 
 ## Phase 5 - Bias defence
 
