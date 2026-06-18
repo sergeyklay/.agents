@@ -168,8 +168,8 @@ Inputs:
 ```
 cloudId:       <site cloudId>
 type:          <link type name from getIssueLinkTypes, e.g. "Blocks">
-inwardIssue:   PROJ-A
-outwardIssue:  PROJ-B
+inwardIssue:   PROJ-A    # for "Blocks": the BLOCKER (see Direction rule below)
+outwardIssue:  PROJ-B    # for "Blocks": the BLOCKED issue
 ```
 
 Direction rule:
@@ -181,7 +181,7 @@ Direction rule:
 | Duplicate | original               | duplicate                |
 | Relates   | (symmetric)            | (symmetric)              |
 
-If `createIssueLink` rejects with "wrong direction", re-fetch `getIssueLinkTypes` and swap inward/outward. Retry once. Stop if it fails twice.
+For "Blocks", `inwardIssue` is the blocker and `outwardIssue` is the blocked, verified against the rendered Jira UI: a link created with `inwardIssue` = X and `outwardIssue` = Y shows as "Y is blocked by X". The `inward`/`outward` field names are not self-evident, so do not reason direction out from them. For any directional type, confirm against the type's own `inward`/`outward` labels and verify by re-reading one endpoint via `getJiraIssue` (or checking the rendered relationship) before relying on it. This MCP has no delete-issue-link tool: a wrong-direction link succeeds silently and cannot be removed programmatically, so get the direction right on the first call and flag any stray link id for the user to delete. If `createIssueLink` instead rejects with "wrong direction", re-fetch `getIssueLinkTypes`, swap inward/outward, and retry once.
 
 ### Detect existing links before creating
 

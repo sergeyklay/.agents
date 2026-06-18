@@ -3,7 +3,7 @@ name: manage-tickets
 description: "Create, edit, search, transition, close, and triage Jira tickets via the Atlassian MCP. Use when asked to file a bug, request a feature, create a task, log a defect, search the backlog, triage findings into the tracker, edit ticket fields, transition status, or manage Jira work items. Also use when the user says 'create a Jira issue', 'file a bug', 'open a ticket', 'add to backlog', 'search Jira', 'close ticket', 'move to Done', or names any Jira issue key (e.g. 'PROJ-123'). Handles type discovery, parent linking, label assignment, duplicate detection via JQL, status transitions, and issue-link creation. Defers all field-content formatting to the `jira-syntax` skill. Do NOT use for pull requests, changelog entries, non-Jira trackers (GitHub Issues, Linear, GitLab), or managing local TODO.md."
 metadata:
   author: Serghei Iakovlev
-  version: "1.1"
+  version: "1.2"
   category: roadmap
 ---
 
@@ -191,7 +191,7 @@ MCP invocations for these three operations are catalogued in [references/jira-re
 
 - **Edit.** Read current state via `getJiraIssue` before destructive edits (body replacement, label replacement, type change). Confirm destructive edits with the user before executing. Pass only the changing fields - do not resend unchanged fields.
 - **Transition.** Match the user's intent ("close", "done", "in progress", "in review") to a transition name returned by `getTransitionsForJiraIssue`; transition IDs vary per project workflow. After transitioning, verify the new status via `getJiraIssue`.
-- **Linking.** Use `getIssueLinkTypes` to confirm the type name. `createIssueLink` with `inwardIssue` and `outwardIssue` per the type's direction. For "Blocks": `inwardIssue` is the blocker, `outwardIssue` is the blocked. If the link fails, report the ticket as created and the link as pending - do not delete the ticket to retry from scratch.
+- **Linking.** Use `getIssueLinkTypes` to confirm the type name and read its `inward`/`outward` labels. For "Blocks", `inwardIssue` is the blocker and `outwardIssue` is the blocked: a link created with `inwardIssue` = X and `outwardIssue` = Y renders in the UI as "Y is blocked by X". The `inward`/`outward` field names are not self-evident, so do not reason direction out from them - confirm against the type's own labels, and after creating any directional link verify orientation by re-reading one endpoint via `getJiraIssue` and inspecting `issuelinks`, or by checking the rendered relationship in the UI. This MCP exposes no delete-issue-link tool: a wrong-direction link succeeds silently and cannot be removed programmatically, so get direction right before the call and flag any stray link id for the user to delete manually. If the link fails, report the ticket as created and the link as pending - do not delete the ticket to retry from scratch.
 
 ## Triage
 
@@ -237,7 +237,7 @@ Before executing `createJiraIssue`, verify:
 | `createJiraIssue` rejects a required field                         | Re-read `getJiraIssueTypeMetaWithFields`; ask user for the value; retry.                       |
 | `createJiraIssue` rejects an unknown field                         | Drop the field; retry; report omission so the user can backfill.                               |
 | Sub-task created without parent (parent silently ignored)          | Set parent via `editJiraIssue` immediately; report in the post-create summary.                 |
-| `createIssueLink` fails with "wrong direction"                     | Re-fetch `getIssueLinkTypes`; swap inward/outward; retry once. Stop if it fails twice.         |
+| `createIssueLink` creates a reversed link (succeeds silently, or rejects with "wrong direction") | For "Blocks", `inwardIssue` = blocker, `outwardIssue` = blocked; verify by re-reading `issuelinks` via `getJiraIssue` or checking the rendered UI. A silently-reversed link cannot be deleted via this MCP - flag its link id for the user to delete and create the correct link. |
 | `lookupJiraAccountId` returns multiple users                       | Ask the user to disambiguate by email or unique substring.                                     |
 | `transitionJiraIssue` rejects the transition ID                    | Re-run `getTransitionsForJiraIssue` (workflow may have changed); pick from the fresh list.     |
 | User-named issue key not found by `getJiraIssue`                   | Verify project key prefix; if still missing, ask whether the key was typed correctly.          |
