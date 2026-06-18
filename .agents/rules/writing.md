@@ -59,9 +59,19 @@ Do not skip heading levels. H1 appears once per document. Sections use H2, subse
 
 **Mermaid diagrams** - for system context, sequence flows, and state machines where visual structure communicates relationships that prose cannot.
 
+### Architecture documents
+
+An architecture document describes components, their responsibilities, and how they relate. It stays conceptual: it explains mechanisms and invariants, not the repository's shape, roadmap or status.
+
+- It MUST NOT contain a directory-layout or file-tree section, a technology-stack or dependency list, or an enumeration of concrete file, folder, or library names. These go stale as the code moves, and the structure is already evident from the code.
+- Refer to components and modules by their architectural role, not by path. Name a concrete file, folder, or library only when that name is itself the subject the reader needs (for example, an output artifact that external consumers depend on), and treat this as the rare exception.
+- Do not document the programming language or the framework in `architecrure.md` document. By the time a reader opens this document the stack is already known from another sources, so stating it adds maintenance cost and no additional information.
+
+When a technology choice needs a written home, it belongs in the README or an ADR, not in the architecture document.
+
 ### Cross-references
 
-Reference ADRs by filename: "per ADR-0002." Reference code by module path: "`src/features/auth`." Do not use vague pointers like "as discussed above" or "see below."
+Reference ADRs by filename: "per ADR-0002." Reference code by module path: "`src/features/auth`." Do not use vague pointers like "as discussed above" or "see below." The module-path convention applies to specs, ADRs, issue descriptions, and other prose that points into the codebase. Architecture documents are the exception, and prefer concept names over paths.
 
 ## Specification Writing
 
