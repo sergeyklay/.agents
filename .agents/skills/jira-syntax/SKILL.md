@@ -3,7 +3,7 @@ name: jira-syntax
 description: "Use when writing Jira issue descriptions, comments, or work logs. Also use when converting Markdown to Jira wiki markup, when the user says 'format for Jira', 'Jira markup', 'wiki notation', or asks to create, update, or validate Jira ticket content. Handles bug report and feature request templates. Do NOT use for Jira API operations, JQL queries, or workflow transitions."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: roadmap
 ---
 
@@ -88,7 +88,7 @@ h3. Sprint progress
 
 **Delivery method - choose one path and follow it exclusively:**
 
-- **Atlassian MCP tool** (`createJiraIssue`, `editJiraIssue`) - write in Markdown. The MCP server uses the v3 API and converts the `description` field from Markdown to ADF internally. Skip Steps 2 and 3, go directly to Step 4.
+- **Atlassian MCP tool** (`createJiraIssue`, `editJiraIssue`) - write in Markdown. The MCP server uses the v3 API and converts the `description` field from Markdown to ADF internally. Skip Steps 2 and 3, go directly to Step 4. Caveat: when bold text sits immediately next to an inline-code span, the markdown-to-ADF conversion may not preserve the bold (it can render as italic or plain); separate them with a space, or verify by reading the issue's ADF back with `getJiraIssue`.
 - **Jira wiki editor or REST API v2** (`text/wiki` content type) - write in Jira wiki markup. Continue with Steps 2–4.
 
 **Content type - choose the appropriate template:**
