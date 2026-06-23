@@ -61,7 +61,7 @@ Do not skip heading levels. H1 appears once per document. Sections use H2, subse
 
 ### Architecture documents
 
-An architecture document describes components, their responsibilities, and how they relate. It stays conceptual: it explains mechanisms and invariants, not the repository's shape, roadmap or status.
+An architecture document describes components, their responsibilities, and how they relate. It stays conceptual: it explains mechanisms and invariants, not the repository's shape, roadmap or status. It describes the intended design in the present tense; the implementation legitimately lags it. Document a decided mechanism even before it is built, but not a speculative or undecided one. Do not narrow a description to what currently ships, and do not annotate build status ("planned", "not yet built"). The same holds for a product or vision specification: it describes the intended product, not what is implemented today.
 
 - It MUST NOT contain a directory-layout or file-tree section, a technology-stack or dependency list, or an enumeration of concrete file, folder, or library names. These go stale as the code moves, and the structure is already evident from the code.
 - Refer to components and modules by their architectural role, not by path. Name a concrete file, folder, or library only when that name is itself the subject the reader needs (for example, an output artifact that external consumers depend on), and treat this as the rare exception.
