@@ -14,6 +14,8 @@ tools:
   - TaskList
   - TaskUpdate
   - TaskStop
+  - AskUserQuestion
+  - ExitPlanMode
   # project-level .mcp.json
   - mcp__bpdb__search_schema
   - mcp__bpdb__explain
