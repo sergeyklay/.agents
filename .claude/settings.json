@@ -86,7 +86,7 @@
     ]
   },
   "enabledPlugins": {
-    "atlassian@claude-plugins-official": true
+    "atlassian@claude-plugins-official": false
   },
   "skipDangerousModePermissionPrompt": true,
   "model": "opus[1m]",
