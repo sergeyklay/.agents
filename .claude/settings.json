@@ -70,7 +70,7 @@
       "Bash(shutdown:*)",
       "Bash(reboot:*)"
     ],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "bypassPermissions"
   },
   "hooks": {
     "SessionStart": [
