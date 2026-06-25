@@ -3,7 +3,7 @@ name: writing-plans
 description: "Convert a technical specification, tracker reference, or feature request into a rigorous, atomic, dependency-ordered implementation plan the coder agent executes step-by-step. Use whenever the output is a Markdown plan file under `.plans/`, or when asked to plan, break down work, sequence implementation phases, turn a spec into actionable tasks, write a roadmap, decompose a feature into phases, or convert a `Spec-*.md` into a `Plan-*.md` artifact. Defines phase structure, output-style rules (WHAT not HOW, signatures only, no language-tagged code fences, symbol references over file paths), step anatomy (atomic, file-explicit, verify-gated), per-phase constraint checks, the philosophy-checklist self-gate, and a validation script. Do NOT use for writing the specification itself, writing implementation code, writing tests, code review, or evaluating an existing plan."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: planning
 ---
 
@@ -25,7 +25,7 @@ These documents are the authority every plan must conform to. Read in this order
 
 1. **Agent-instruction files**: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`. Boundary rules (often "Always / Ask First / Never"). Quote the rules that constrain this feature.
 2. **Documentation index**: if `docs/` exists, read `docs/README.md` (or the closest equivalent: `docs/index.md`, `docs/SUMMARY.md`, `docs/DIGEST.md`). Use it as a map.
-3. **Architecture and product docs** named by the index: `architecture.md`, `ARCHITECTURE.md`, `design.md`, `PRD.md`, `product.md`, or whatever name the project uses. Prefer `*-digest.md` variants for orientation; open full versions only for sections the feature touches. When a digest disagrees with its full document, the full document wins; flag the drift.
+3. **Architecture and product docs** named by the index: `architecture.md`, `ARCHITECTURE.md`, `design.md`, `PRD.md`, `product.md`, or whatever name the project uses.
 4. **Decision records**: `docs/decisions/`, `docs/adr/`, `adr/`, `ADR/`. Read the index first; read individual records only when they constrain this feature. Accepted decisions are architectural law.
 5. **Language and style rules**: `.agents/rules/`, `.github/instructions/`, `.copilot/instructions/`, `.claude/rules/`. Plan-prose requirements (RFC 2119 keywords, banned vocabulary, comment style, naming).
 6. **Codebase structure**: list the relevant package or module directories. Identify entry points, existing abstractions to reuse, and where new code belongs.

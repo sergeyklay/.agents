@@ -51,7 +51,7 @@ Before designing, ground your work in project context. Read in this order; skip 
 
 1. **Agent-instruction files**: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`. These yield boundary rules (often "Always / Ask First / Never"). Quote the exact rules that constrain this feature. When several files exist and disagree, treat the most recently modified one as authoritative and surface the conflict in the spec.
 2. **Documentation index**: if `docs/` exists, read `docs/README.md` (or the closest equivalent: `docs/index.md`, `docs/SUMMARY.md`, `docs/DIGEST.md`). Use it as a map. Open individual documents only when they constrain the feature.
-3. **Architecture and product docs** named by the index: `architecture.md`, `ARCHITECTURE.md`, `design.md`, `PRD.md`, `product.md`, or whatever name the project uses. Prefer `*-digest.md` variants for orientation; open full versions only for sections the feature touches. When a digest and the full document disagree, the full document wins.
+3. **Architecture and product docs** named by the index: `architecture.md`, `ARCHITECTURE.md`, `design.md`, `PRD.md`, `product.md`, or whatever name the project uses.
 4. **Decision records**: `docs/decisions/`, `docs/adr/`, `adr/`, `ADR/`. Read the index first; read individual records only when they constrain this feature. Accepted decisions are architectural law.
 5. **Language and style rules**: `.agents/rules/`, `.github/instructions/`, `.copilot/instructions/`, `.claude/rules/`. These constrain spec prose (RFC 2119 keywords, banned vocabulary, em-dash policy, naming).
 6. **Codebase structure**: list the relevant package or module directories. Identify entry points, existing abstractions to reuse, schema location, and where the new feature belongs.

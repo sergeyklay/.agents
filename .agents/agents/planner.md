@@ -44,7 +44,7 @@ Before planning, ground your work in project context. Read in this order; skip t
 
 1. **Agent-instruction files**: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`. These yield boundary rules (often "Always / Ask First / Never"). Quote the exact rules that constrain this feature.
 2. **Documentation index**: if `docs/` exists, read `docs/README.md` (or the closest equivalent: `docs/index.md`, `docs/SUMMARY.md`, `docs/DIGEST.md`). Use it as a map.
-3. **Architecture and product docs** named by the index: `architecture.md`, `ARCHITECTURE.md`, `design.md`, `PRD.md`, `product.md`, or whatever name the project uses. Prefer `*-digest.md` variants for orientation; open full versions only for sections the feature touches.
+3. **Architecture and product docs** named by the index: `architecture.md`, `ARCHITECTURE.md`, `design.md`, `PRD.md`, `product.md`, or whatever name the project uses.
 4. **Decision records**: `docs/decisions/`, `docs/adr/`, `adr/`, `ADR/`. Read the index first; read individual records only when they constrain this feature. Accepted decisions are architectural law.
 5. **Language and style rules**: `.agents/rules/`, `.github/instructions/`, `.copilot/instructions/`, `.claude/rules/`. These constrain plan prose (RFC 2119 keywords, banned vocabulary, comment style, naming).
 6. **Codebase structure**: list the relevant package or module directories. Identify entry points, existing abstractions to reuse, and where new code belongs.
