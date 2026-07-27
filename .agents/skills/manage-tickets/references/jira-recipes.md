@@ -49,10 +49,16 @@ Prevent, on every `searchJiraIssuesUsingJql` over a non-trivial project:
 - Cap `maxResults` at the smallest count that answers the question. Do not raise it to scan the whole project "just in case".
 - Avoid whole-project `ORDER BY updated DESC` or `ORDER BY created DESC` dumps. Scope the result set with a predicate such as `statusCategory != Done`, `issuetype = Epic`, `parent = EPIC-KEY`, or `updated >= -7d`.
 
-Recover, when a response is still written to a file because of its size. The persisted payload is shaped `{ "issues": [ ... ] }`; the array is `.issues[]`, not `.issues.nodes[]`. Project a compact view, then re-run the original query with a narrower `fields` list and a lower `maxResults` so the next call returns inline:
+Recover, when a response is still written to a file because of its size. The persisted payload comes in one of two envelopes, and which one you get is not predictable from the query - both occur interleaved, so it is not a version rollout you can assume your way past:
+
+- `{ isLast, issues: [ ... ], nextPageToken }` - the issues are a plain array at `.issues`.
+- `{ context, issues: { nodes: [ ... ] } }` - the issues are nested at `.issues.nodes`.
+
+Indexing the wrong one is a hard `jq` error, not a null, so `.issues.nodes // .issues` does **not** work as a fallback. Probe the type instead. Project a compact view, then re-run the original query with a narrower `fields` list and a lower `maxResults` so the next call returns inline:
 
 ```bash
-jq '.issues[] | {key, status: .fields.status.name, type: .fields.issuetype.name, summary: .fields.summary, parent: .fields.parent.key}' <persisted-file>
+jq '(if (.issues|type)=="array" then .issues else .issues.nodes end)[]
+    | {key, status: .fields.status.name, type: .fields.issuetype.name, summary: .fields.summary, parent: .fields.parent.key}' <persisted-file>
 ```
 
 ### Single ticket

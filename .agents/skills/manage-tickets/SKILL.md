@@ -3,7 +3,7 @@ name: manage-tickets
 description: "Create, edit, search, transition, close, and triage Jira tickets via the Atlassian MCP. Use when asked to file a bug, request a feature, create a task, log a defect, search the backlog, triage findings into the tracker, edit ticket fields, transition status, or manage Jira work items. Also use when the user says 'create a Jira issue', 'file a bug', 'open a ticket', 'add to backlog', 'search Jira', 'close ticket', 'move to Done', or names any Jira issue key (e.g. 'PROJ-123'). Handles type discovery, parent linking, label assignment, duplicate detection via JQL, status transitions, and issue-link creation. Defers all field-content formatting to the `jira-syntax` skill. Do NOT use for pull requests, changelog entries, non-Jira trackers (GitHub Issues, Linear, GitLab), or managing local TODO.md."
 metadata:
   author: Serghei Iakovlev
-  version: "1.2"
+  version: "1.3"
   category: roadmap
 ---
 
@@ -203,6 +203,16 @@ When triaging a finding from code review, logs, discussion, or PR feedback into 
 4. **Resolve parent** per "Parent matching".
 5. **Draft the body** using the matched template.
 6. **Present the full `createJiraIssue` payload for review** before executing.
+
+## Actualize
+
+When existing tickets predate work that has since shipped, reconcile them against reality. Treat the ticket as untrusted and the current code and docs as ground truth: a ticket's age is not evidence of its accuracy.
+
+1. **Establish ground truth first.** Read the current code and docs for the feature area before editing any ticket. A ticket marked "to do" may already be shipped, and what a ticket describes may no longer match the code. Do not rewrite from the ticket's own claims.
+2. **Classify each ticket** against what shipped: shipped-as-described, shipped-differently, partially-built, unbuilt-but-still-valid, or obsolete/superseded.
+3. **Re-resolve dependency links.** Blockers recorded on a stale ticket may already be resolved or themselves obsolete. Re-read `issuelinks` via `getJiraIssue` and update or remove links so the graph reflects the current state, using the direction-verification rule in "Search, Edit, Transition".
+4. **Apply per classification.** Rewrite survivors to the "Body shape", scoped to the residual work only and dropping what already shipped. Close an obsolete or superseded ticket by matching intent to a transition name from `getTransitionsForJiraIssue` (never a memorized ID), and record what superseded it, as a closing comment when the MCP supports one, otherwise appended to the body.
+5. **Confirm before destructive changes.** Body replacement and closures are destructive: confirm with the user first, then verify each result by re-reading via `getJiraIssue`, per "Search, Edit, Transition".
 
 ## Quality checklist
 
