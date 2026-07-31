@@ -13,3 +13,4 @@ tools:
     - mcp__bpdb__query
 model: sonnet
 color: green
+effort: high

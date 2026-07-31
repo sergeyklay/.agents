@@ -41,6 +41,6 @@ skills:
   - research-it
   - explain-it
   - improve-self
-model: opus[1m]
-effort: high
+model: opus
+effort: xhigh
 color: purple

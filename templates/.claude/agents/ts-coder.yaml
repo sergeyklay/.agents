@@ -41,5 +41,6 @@ tools:
   - mcp__atlassian__searchConfluenceUsingCql
   - mcp__atlassian__searchJiraIssuesUsingJql
   - mcp__atlassian__transitionJiraIssue
-model: opus
+model: sonnet
 color: blue
+effort: high

@@ -23,3 +23,4 @@ tools:
   - mcp__plugin_atlassian_atlassian__getVisibleJiraProjects
 model: opus
 color: purple
+effort: high

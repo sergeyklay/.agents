@@ -1,7 +1,6 @@
 {
   "env": {
-    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
-    "CLAUDE_CODE_EFFORT_LEVEL": "max"
+    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1"
   },
   "permissions": {
     "allow": [
@@ -88,7 +87,7 @@
     "atlassian@claude-plugins-official": false
   },
   "skipDangerousModePermissionPrompt": true,
-  "model": "opus[1m]",
+  "model": "opus",
   "attribution": {
     "commit": "",
     "pr": ""

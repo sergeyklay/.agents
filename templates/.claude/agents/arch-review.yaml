@@ -10,6 +10,6 @@ skills:
   - review-arch
   - review-spec
   - verify-impl
-model: opus[1m]
+model: opus
 effort: max
 color: blue
