@@ -1,0 +1,1 @@
+11. **Delegate without names.** Every `Agent` call passes `subagent_type`, `description`, and the prompt - never a `name`. These subagents never message each other, so a name buys nothing, and with agent teams enabled a named spawn is registered as a team member, which cannot spawn further agents and fails this pipeline at its next delegation.
