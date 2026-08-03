@@ -3,7 +3,7 @@ name: log-changes
 description: "Use when asked to update the changelog, document version changes, prepare a release, or add entries for recent work. Handles CHANGELOG.md updates following Keep a Changelog format and Semantic Versioning. Do NOT use for committing or creating release notes outside CHANGELOG.md."
 metadata:
   author: Serghei Iakovlev
-  version: "1.2"
+  version: "1.3"
   category: documentation
 ---
 
@@ -26,6 +26,9 @@ Detect the following constants from the project itself - do not ask the user unl
 
    For non-GitHub trackers, also detect the tracker base URL and the project key prefix (e.g. `BP`, `ABC`, `ENG`).
 3. **Subsystem labels.** Read existing CHANGELOG entries to learn which subsystem prefixes the project already uses (e.g. `API:`, `CLI:`, `Auth:`). If none exist, propose labels that match the project's top-level directory or package layout. The human reviewer will correct any that are wrong.
+4. **Entry unit.** Count tracker references per bullet in the newest released section. One reference per bullet means the project logs per issue/task; several mean it groups related work into one bullet (per epic, per milestone, or per roadmap checkpoint). Follow what the file does, not what Step 4's default says.
+5. **Bullet order within a category.** Keep a Changelog fixes the order of versions and categories but says nothing about bullets inside a category, so every project has its own convention. Recover it from git rather than guessing: for three or four bullets in the newest released section, run `git log --format='%h %ai %s' -S'<key unique to that bullet>' -- CHANGELOG.md | tail -1` to find the commit that *added* it. Descending timestamps down the section mean newest-first (prepend); ascending mean oldest-first (append). Default to newest-first when the file is new or the signal is mixed - it matches the reverse-chronological rule the file already applies to versions.
+6. **Audience.** Decide who reads the file: operators and consumers of a distributed artifact (published package, self-hosted service, OSS release), or an internal team plus non-technical stakeholders such as a client, manager, or leadership. This governs whether deploy mechanics belong in an entry at all - see Step 4. Detect it from the project's distribution setup (release workflow, package manifest, install docs); ask once if that is inconclusive.
 
 Use the detected values everywhere a project key, tracker URL, or GitHub URL is needed. If a constant cannot be determined with confidence, ask the user once before proceeding. Do not guess or invent values.
 
@@ -159,6 +162,8 @@ Writing rules:
 - **One bullet per logical change between releases.** A logical change is everything the consumer observes as a single unit of value. It may span multiple PRs and commits if they all deliver, refine, or fix the same capability within the release window.
 - **Fold within-release churn.** If a feature is introduced in one PR and then corrected, polished, or adjusted in subsequent PRs before the release ships, all of that work produces **one** changelog entry describing the final state. From the consumer's perspective there was no intermediate broken state - only the delivered result.
 - **Fold sub-fixes into the feature entry.** If a PR introduces a feature and also fixes a bug found during its implementation, describe the fix as part of the feature bullet. Only create a standalone Fixed entry when the PR's sole purpose is a bug fix that is independent of any in-progress feature.
+- **Folding rewrites an entry that already exists.** Appending a bullet is additive and safe; folding edits prose a human already reviewed and approved, and it can silently delete a caveat that was true when written. Fold freely into an entry you wrote in this same session. For an entry that was already committed, fold only when the convention detected in Step 1 groups work that way; otherwise append a new bullet and tell the user which older entry has gone stale instead of editing it yourself.
+- **Never document the absence of a change.** "No migration is required", "no new environment variables", "No operator action is required", "nothing to do here" describe non-events. The file records changes; a reader who finds no migration note concludes there is no migration. Positive operator facts are changes and stay: a required migration or manual step, a new or removed environment variable, a new permission or scope, a changed default. When the audience detected in Step 1 does not deploy the software, drop deploy mechanics in both directions - the negative assertion and the positive instruction - and keep only what that audience can act on.
 - **Reference the issue/task when one exists; fall back to the PR otherwise.** Each bullet ends with a parenthetical reference using a full URL (plain `#NNN` or bare tracker keys are not clickable in rendered markdown). When a tracker issue/task is linked from the PR, reference **the issue/task only** - not also the PR. When multiple distinct issues/tasks are linked, list all of them. See `references/trackers.md` for the URL format matching the detected tracker.
 - Start each bullet with what changed, not with "Fixed" or "Added" (the heading already says that).
 - Be specific: "`coroutine 'main' was never awaited` bug after async migration" not "Fixed async bug".
@@ -172,11 +177,18 @@ Use `assets/changelog-template.md` as the structural template when creating CHAN
 
 Structural rules:
 
-- Reverse chronological order (newest first).
+- Versions in reverse chronological order (newest release first).
+- Bullets inside a category follow the one convention detected in Step 1 - newest-first by default. One convention per file: a section written in the opposite direction from its neighbours is a defect, and it stays invisible for months because each section reads fine on its own.
 - `[Unreleased]` section always present at the top.
 - Dates in ISO 8601 (`YYYY-MM-DD`).
 - Comparison links at the bottom for every version.
 - Empty categories are omitted (no `### Removed` if nothing was removed).
+
+Dated release sections are shipped history and are not edited when logging new work. New entries go under `## [Unreleased]` only.
+
+This collides with how a changelog is laid out: `### Added`, `### Fixed`, and the rest repeat once per version, so the first `### Fixed` in the file usually belongs to the newest *release*, not to `[Unreleased]`. An edit anchored on a bare category heading lands in shipped history. Anchor instead on text unique to the Unreleased window - the preceding bullet's tracker URL, or the pair of the category heading and the following `## [x.y.z]` header. When `[Unreleased]` lacks the category you need, create it inside that window rather than reusing a released version's heading.
+
+When a deliberate edit does span released sections - a policy change such as purging a class of sentence from every entry - treat prose integrity as part of the operation. Removing a sentence from the middle or end of a bullet leaves dangling connectors and punctuation (`... and never falls back to it. No new OAuth scope,`), and a sweep leaves trailing whitespace behind. Re-read every bullet you touched as a whole sentence, not as a diff.
 
 ### Step 6: Determine the version bump
 
@@ -197,7 +209,12 @@ To cut a release:
 ### Step 7: Verify
 
 - [ ] Every entry passes the filter from Step 3 (no noise).
+- [ ] No sentence asserts the absence of a change.
 - [ ] Newest version is at the top.
+- [ ] Bullet order inside every category matches the file's single convention.
+- [ ] `git diff -- CHANGELOG.md` touches only `[Unreleased]` (or, when cutting a release, only the section being released). Zero changes to any other dated section.
+- [ ] Every bullet you edited reads as complete prose - no clause orphaned by a removed sentence, no trailing `,`, `;`, `and`, or `so`.
+- [ ] No trailing whitespace, and the repository's formatter passes on the file when it runs one (`prettier --check CHANGELOG.md`, `markdownlint`, or the project's equivalent).
 - [ ] Every version has a date (except Unreleased).
 - [ ] Bottom links are correct and complete.
 - [ ] No empty category headings.
@@ -215,6 +232,9 @@ To cut a release:
 | Duplicate entries          | Deduplicate, keep the more descriptive version             |
 | Entry under wrong category | Move it; if ambiguous, prefer Changed over Added           |
 | No tags in repository      | Use commit SHAs in comparison links as a temporary measure |
+| Edited a dated release section by mistake | Restore that section from `git show HEAD:CHANGELOG.md`, then re-anchor the insert inside `[Unreleased]` |
+| Bullet order mixed across sections | Reorder the outlier section to the file's dominant convention. Verify by diffing the sorted, whitespace-stripped, non-empty lines of the file before and after: the only differences allowed are ones you made deliberately, which proves no bullet was lost or silently reworded |
+| Dangling clause left by a removed sentence | Re-read the whole bullet and close the sentence; grep the file for the same artifact in sibling entries |
 | Noise entry slipped in     | Remove it - a leaner changelog is more trustworthy         |
 
 ## Anti-Patterns
@@ -226,4 +246,7 @@ To cut a release:
 | Plain `#NNN` references | Not clickable in rendered markdown - readers must manually construct the URL to navigate to the change. | Use full URLs (see `references/trackers.md`). |
 | Including both the issue/task and the PR in one bullet | Doubles the noise and misleads the reader: the issue/task already describes the user-visible problem, the PR is its implementation. | Reference the issue/task only when one exists; fall back to the PR only when no issue/task is available. |
 | Bare tracker keys (e.g. `BP-123`, `ENG-42`) | Not clickable; readers cannot navigate to the task without knowing the tracker URL. | Use the full tracker URL (see `references/trackers.md`). |
+| Stating that nothing is required (`No migration or new configuration is required.`) | Documents a non-event, and it degrades: once such sentences accumulate, their absence from one entry reads as an oversight rather than as "no migration". | State only what changed. Silence already means nothing changed. |
+| Anchoring an edit on a bare `### Added` / `### Fixed` heading | Those headings repeat once per version, and the first match in the file usually sits inside the newest release - so the insert mutates shipped history. | Anchor on text unique to the `[Unreleased]` window, then confirm with `git diff` that no dated section moved. |
+| Rewriting an entry that was already committed | The prose was reviewed and approved by a human; a silent rewrite can drop a caveat that was accurate when written, and the diff hides it among the new work. | Append a new bullet. Report the stale wording to the user and let them decide. |
 | GitHub Issue links in changelog **when the project's tracker is not GitHub Issues** | The detected tracker is the authoritative source for task references. Adding `/issues/NNN` links is misleading and breaks over time as the GitHub Issues tab is unused. | Use tracker links for all task references; GitHub links remain only for PRs. |
