@@ -43,18 +43,20 @@ Quote the JQL value with double quotes; escape any inner double-quote with `\"`.
 
 Broad sweeps over a populated project can return a response that exceeds the MCP tool's output limit. When that happens the result is written to a file instead of returned inline, which forces an extra inspect-and-extract round-trip. Prevent it on the request; recover deterministically if it still happens.
 
+`fields` is a projection request, not a size bound. Verify what the server honours before relying on it: an implementation may return the full issue representation regardless, in which case the body text of each issue rides along and usually dominates the payload. Response size is then row count times the project's typical issue-body length, and only the row count is yours to set.
+
 Prevent, on every `searchJiraIssuesUsingJql` over a non-trivial project:
 
-- Always pass an explicit narrow `fields` list; never let it default to the full field set. A board or triage scan needs only `[summary, status, issuetype, parent]`. Add `labels` or `assignee` when the task needs them.
-- Cap `maxResults` at the smallest count that answers the question. Do not raise it to scan the whole project "just in case".
+- **Derive `maxResults` from the project instead of assuming one.** Two projects overflow at row counts an order of magnitude apart when one writes an essay per issue and the other a single line. Start at a handful of rows; raise it only after a call came back inline, and paginate with `nextPageToken` rather than raising it past that point.
 - Avoid whole-project `ORDER BY updated DESC` or `ORDER BY created DESC` dumps. Scope the result set with a predicate such as `statusCategory != Done`, `issuetype = Epic`, `parent = EPIC-KEY`, or `updated >= -7d`.
+- Once a response has been persisted, go to the projection below. Retrying the same row count with a narrower `fields` list changes nothing when the server ignores the projection.
 
 Recover, when a response is still written to a file because of its size. The persisted payload comes in one of two envelopes, and which one you get is not predictable from the query - both occur interleaved, so it is not a version rollout you can assume your way past:
 
 - `{ isLast, issues: [ ... ], nextPageToken }` - the issues are a plain array at `.issues`.
 - `{ context, issues: { nodes: [ ... ] } }` - the issues are nested at `.issues.nodes`.
 
-Indexing the wrong one is a hard `jq` error, not a null, so `.issues.nodes // .issues` does **not** work as a fallback. Probe the type instead. Project a compact view, then re-run the original query with a narrower `fields` list and a lower `maxResults` so the next call returns inline:
+Indexing the wrong one is a hard `jq` error, not a null, so `.issues.nodes // .issues` does **not** work as a fallback. Probe the type instead. Project a compact view, then re-run the original query with a lower `maxResults` so the next call returns inline:
 
 ```bash
 jq '(if (.issues|type)=="array" then .issues else .issues.nodes end)[]
