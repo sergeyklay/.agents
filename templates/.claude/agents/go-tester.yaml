@@ -1,4 +1,5 @@
 tools:
+    - Skill
     - Bash
     - Read
     - Write
@@ -8,6 +9,8 @@ tools:
     # project-level .mcp.json
     - mcp__context7__resolve-library-id
     - mcp__context7__query-docs
+skills:
+    - test-go
 model: sonnet
 color: green
 effort: high
