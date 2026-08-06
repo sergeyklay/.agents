@@ -3,7 +3,7 @@ name: research-it
 description: "Investigate a technical question with a detective's discipline - gathering evidence from primary sources, cross-referencing independent confirmations, and never accepting the first plausible answer. Use when asked to investigate, research, fact-check, verify, deep-dive, or 'find out the truth' about a technology, claim, system, or behaviour. Also use before any explanation of a real-world system, library, or protocol that depends on external facts. Establishes source priority, scales effort to question complexity, triangulates every implementation claim across at least two independent sources, reports conflicts between sources, and refuses to cite training data as evidence. Do NOT use for opinion questions, code generation independent of external facts, internal refactoring, or trivial lookups the user could do themselves."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: research
 ---
 
@@ -138,6 +138,19 @@ When a tier-1 source conflicts with a tier-2 source, the tier-1 source generally
 
 When two tier-1 sources conflict (e.g. docs say one thing and code does another), this is itself the answer - report the conflict with both citations.
 
+### A delegated conclusion is not a source
+
+When you hand a sub-question to a subagent, a research tool, or another model, what comes back is **a claim to verify, not evidence**. It has no tier. It is a synthesis of sources you did not read, produced by a reader whose scope, care, and failure modes you cannot inspect.
+
+This is more dangerous than tier 7, not less. Training data at least announces itself as memory. A delegated answer arrives wearing the costume of a research result - structured, confident, often carrying citation-shaped strings - and inherits credibility it never earned.
+
+Treat the delegate's output as a map of where to look, then read the primary sources it points at. Two cases demand this before you write a word of the answer:
+
+- **A categorical claim**, especially a categorical negative ("X is not supported", "there is no way to Y"). Absolutes are where an over-generalisation hides, and a delegate that conflated two adjacent concepts will state the merged conclusion with full confidence.
+- **Any claim the answer's structure depends on.** If the recommendation changes when the claim is false, verify it yourself.
+
+When a delegate's conclusion turns out wrong, report that too. "A first pass suggested X; the primary source says Y" tells the reader something real about how firm the ground is.
+
 ## Effort scaling - quick reference
 
 Full table in [references/effort-scaling.md](references/effort-scaling.md). Quick version, derived from Anthropic's published heuristics for their multi-agent research system:
@@ -162,6 +175,7 @@ These are not anti-patterns of writing (those live in the `explaining-technical-
 - **Confidence miscalibration.** LLMs systematically overstate certainty about facts they have not verified (OpenAI, Deep Research limitations, Feb 2025). Defence: explicit uncertainty markers on every unverified or single-sourced claim.
 - **SEO content-farm preference.** Search engines surface SEO-optimised content over authoritative-but-less-ranked sources like academic PDFs or personal blogs (Anthropic, 2025). Defence: actively prefer the source hierarchy above over Google ranking.
 - **Anchoring on the first plausible source.** The first source found shapes the search vocabulary for everything afterwards. Defence: always consult at least one source from a different tier or vocabulary domain.
+- **Laundering a delegated conclusion into a fact.** A subagent or research tool returns a confident, well-formatted verdict, and it enters the answer as though it were sourced - often because it *looks* more like a research result than a raw page does. The delegate's own conflations and scope errors travel with it, invisibly. Defence: treat every delegated conclusion as an unverified claim, and check categorical statements and load-bearing claims against the primary source yourself before citing them.
 - **Snippet summarisation.** Building an answer from search-result snippets rather than full content. Defence: fetch and read full content before citing.
 - **Silent-zero search results.** A scoped search (a `repo:`/`org:` qualifier, a `site:` filter, a path-filtered grep) returns zero hits and the zero is read as evidence of absence - but the scope identifier was stale (renamed repo, moved domain, wrong path) and the tool failed silently instead of erroring. Defence: before treating zero results as evidence of absence, resolve the scope identifier to its canonical form and run a positive control - a query that must return hits if the tool can see the scope at all.
 - **Format-assumption false negatives.** An extraction over real output (a regex or grep for an HTML tag, a JSON field, a config key) returns zero and the zero is read as absence - but the pattern encoded a wrong assumption about the output's *format*, not its content: production HTML is often minified with unquoted attributes (`name=description`), whereas a local build is pretty-printed with quotes and spacing (`name="description"`, `"description": "..."`). Defence: match format-agnostically (optional quotes and whitespace) or dump the whole element or section and read it, then run a positive control before concluding the tag or field is absent.
