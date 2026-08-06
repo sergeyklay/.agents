@@ -1,4 +1,5 @@
 tools:
+    - Skill
     - Bash
     - Read
     - Write
@@ -11,6 +12,8 @@ tools:
     - mcp__bpdb__search_schema
     - mcp__bpdb__explain
     - mcp__bpdb__query
+skills:
+    - test-ts
 model: sonnet
 color: green
 effort: high
