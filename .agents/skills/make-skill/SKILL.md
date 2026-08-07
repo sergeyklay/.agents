@@ -249,11 +249,11 @@ The agentskills.io spec is intentionally minimal: required `name` and `descripti
 | Claude Code             | `.claude/skills/` | `~/.claude/skills/`   |
 | Cursor                  | `.cursor/skills/` | `~/.cursor/skills/`   |
 | Gemini CLI              | `.gemini/skills/` | `~/.gemini/skills/`   |
-| OpenAI Codex            | `.agents/skills/` | `~/.agents/skills/`   |
-| VS Code / Copilot       | `.github/skills/` | VS Code profile       |
+| OpenAI Codex            | `.agents/skills/` | `~/.codex/skills/`    |
+| VS Code / Copilot       | `.github/skills/` | `~/.copilot/skills/`  |
 | Cross-platform fallback | `.agents/skills/` | n/a                   |
 
-`.agents/` is the emerging cross-platform convention. Codex uses it natively; Gemini reads it preferentially; Antigravity and OpenCode adopt it.
+`.agents/` is the emerging cross-platform convention. Codex uses it natively; Gemini reads it preferentially; Antigravity and OpenCode adopt it. Claude Code does not: it loads only `.claude/skills/` at project scope, so a skill placed in `.agents/skills/` is invisible to it. Serve both from one source by symlinking the `.agents/skills/<name>` directory into `.claude/skills/`, which Claude Code follows.
 
 **Precedence**: project > personal > extension/plugin. (Codex shows colliding skills in the selector instead of merging.)
 
