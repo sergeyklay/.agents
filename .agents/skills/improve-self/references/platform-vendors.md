@@ -4,7 +4,7 @@ Each agent platform loads skills from a known set of `.{vendor}/skills/` paths. 
 
 | Running agent | Vendor names to pass |
 |---|---|
-| Anthropic Claude Code | `claude` (also `agents` if the install reads the cross-platform convention) |
+| Anthropic Claude Code | `claude`, plus `agents` for discovery only: Claude Code never loads `.agents/skills/` |
 | OpenAI Codex | `agents` |
 | Cursor | `cursor` (also `agents` if configured to read the cross-platform convention) |
 | Gemini CLI | `gemini`, `agents` |
