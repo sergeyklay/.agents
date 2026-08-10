@@ -3,7 +3,7 @@ name: make-skill
 description: "Use when creating, improving, comparing, evaluating, reviewing or packaging Agent Skills following the agentskills.io specification. Also use when deciding whether a skill is the right solution vs MCP servers, Claude Rules Files, CLAUDE.md or AGENTS.md. Handles SKILL.md authoring, frontmatter optimization, description writing, progressive disclosure, platform targeting, invocation control, vendor-specific extensions, and distribution."
 metadata:
   author: Serghei Iakovlev
-  version: "2.1"
+  version: "2.2"
   category: meta
 ---
 
@@ -93,6 +93,12 @@ The description's *purpose* changes depending on who invokes the skill. Get this
 - **Claude Code.** `disable-model-invocation: true` removes the description from the model's context entirely. Triggers in it are dead tokens. `user-invocable: false` does the inverse — only the model invokes; users do not see it.
 - **OpenAI Codex.** `policy.allow_implicit_invocation: false` in `agents/openai.yaml` makes the skill explicit-only (`$skill-name`); triggers in the description are equally dead.
 - **Cross-platform.** No standard equivalent. Either rely on description-driven discovery or ask the user to invoke explicitly.
+
+**A skill that runs in its own context must say so in the description.** When a skill is configured to execute in an isolated context — forked into a subagent rather than inline in the caller's turn — it begins with none of the invoking conversation: not the task, not prior findings, not the files already read. Only the isolated copy ever reads the body, so an explanation buried there reaches no one who needs it. The description is the sole surface the caller sees, so it must state both that the skill starts fresh and what the caller has to hand over, or callers will invoke it expecting their task to carry across and pay for a run that does something unrelated. One sentence is enough:
+
+```yaml
+description: "... Runs in its own context and cannot see the calling conversation; name the target and the goal in the arguments."
+```
 
 **Always third person.** Descriptions are injected into the system prompt. "Processes PDFs", not "I can help you process PDFs".
 
