@@ -6,7 +6,7 @@ Reference catalog of `gh` invocations for Search, Edit, and Close. Critical rule
 
 - Search: list and view issues by keyword, label, milestone, or combination
 - Edit: modify title, labels, milestone, body, project membership
-- Close: completed vs not planned, with mandatory `--comment`
+- Close: completed vs not planned, never with `--comment`
 
 ## Search
 
@@ -50,11 +50,13 @@ Single quotes around values prevent shell interpolation. Escape literal single q
 
 ```bash
 # Completed work
-gh issue close <number> --reason completed --comment 'Resolved in #<PR>'
+gh issue close <number> --reason completed
 
 # Decided not to do
-gh issue close <number> --reason "not planned" --comment '<reason>'
+gh issue close <number> --reason "not planned"
 
 # Reopen if closed in error
-gh issue reopen <number> --comment '<reason for reopening>'
+gh issue reopen <number>
 ```
+
+Never pass `--comment` to any of these; agents do not comment on issues.

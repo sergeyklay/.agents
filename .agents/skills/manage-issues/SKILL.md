@@ -3,7 +3,7 @@ name: manage-issues
 description: "Create, edit, search, close, and triage GitHub Issues via the gh CLI. Use when asked to file a bug, request a feature, create a task, report a problem, search the backlog, triage issues, or manage the issue tracker. Also use when the user says 'create an issue', 'file a bug', 'open a ticket', 'add to backlog', 'search issues', 'close issue', or mentions GitHub Issues in any task-management context. Handles label/milestone assignment, duplicate detection, and project board integration. Do NOT use for pull requests, changelog entries, or non-GitHub trackers (Jira, Linear, GitLab) or managing TODO.md file."
 metadata:
   author: Serghei Iakovlev
-  version: "1.1"
+  version: "1.2"
   category: roadmap
 ---
 
@@ -164,8 +164,10 @@ When creating multiple related issues:
 
 `gh` invocations for these three operations are catalogued in [references/gh-recipes.md](references/gh-recipes.md). Load that file when the user asks to find, modify, or close an issue. The rules below are policy and bind regardless of which recipe is used:
 
+- **Never comment.** Do not post a comment on an issue in any operation. Nothing reads them: every consumer of an issue reads its title, body, and metadata, so a comment lands in a channel with no reader and leaves the false impression that the issue was brought up to date.
 - **Edit.** Confirm destructive edits (body replacement, milestone change, project removal) with the user before executing.
-- **Close.** Always include `--comment` with a reason. Reference the resolving PR when the issue was completed by code change.
+- **Close.** Use `gh issue close --reason completed` or `--reason "not planned"`, never `--comment`. When a closing rationale genuinely needs to be recorded, it belongs in the issue body, and only when the issue is ours.
+- **Foreign issues.** An issue authored by anyone other than `sergeyklay`, `serghei-dev`, or an incontrovertible bot is foreign: never edit its title or body. With comments forbidden as well, a foreign issue has nowhere to record a rationale at all, so close it without one. The link from the resolving pull request already appears in the issue timeline without anyone writing it there.
 - **Milestone arguments.** Use the full title from the taxonomy, never the shorthand.
 
 ## Linking dependencies
