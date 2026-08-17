@@ -59,6 +59,7 @@ succeed on zero matches.
 | Working-copy revision | `git fetch` then require `git rev-list --count @..@{u}` to be `0`, before any build. A build from a stale copy renders stale output and diffs clean against stale expectations. |
 | Env var or secret | Assert non-empty inside the job that consumes it and exit non-zero if unset. A missing secret expands to the empty string, not an error. |
 | Generated fixture or artifact | Stat it, read it back, and check a distinguishing field — not just that the path exists. |
+| Multi-file write by an agent tool | List the directory afterwards (`find <dir> -type f`) and match it against every intended path. A per-file success message reports the tool's intent, not the filesystem; a batch can report success for each write while only the last one survives. |
 | Service/container/branch state | Query it through its own API, not through the command that was supposed to change it. |
 
 The rule underneath the table: **verify through a different path than the one that wrote**.
