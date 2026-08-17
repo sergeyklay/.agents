@@ -22,6 +22,7 @@ cloudId: <site cloudId from getAccessibleAtlassianResources>
 jql:     <JQL query>
 fields:  [summary, status, issuetype, parent, labels, assignee, priority, created]
 maxResults: 50
+searchResultMode: issues | count | all   (default: issues)
 ```
 
 Common JQL patterns:
@@ -47,7 +48,8 @@ Broad sweeps over a populated project can return a response that exceeds the MCP
 
 Prevent, on every `searchJiraIssuesUsingJql` over a non-trivial project:
 
-- **Derive `maxResults` from the project instead of assuming one.** Two projects overflow at row counts an order of magnitude apart when one writes an essay per issue and the other a single line. Start at a handful of rows; raise it only after a call came back inline, and paginate with `nextPageToken` rather than raising it past that point.
+- **Ask for a count when the question is a count.** `searchResultMode: "count"` returns `{ issues: { totalCount: N, nodes: [] } }` - one number, inline, whatever the project's size and however verbose its issues. Every existence, absence, and how-many question is answered this way, and fetching issue bodies only to discover there are none is the cheapest overflow to avoid. Use `"all"` when the same call must return both the number and the rows; it is subject to the row cap below, but `totalCount` is not.
+- **Derive `maxResults` from the project instead of assuming one, and read what comes back as a sample rather than the result set.** Two projects overflow at row counts an order of magnitude apart when one writes an essay per issue and the other a single line. Start at a handful of rows; raise it only after a call came back inline. Do not assume the parameter is honoured: the `{ context, issues: { nodes: [ ... ] } }` envelope has been observed to cap `nodes` at five rows against a requested 60 and again against 100, while reporting `remainingCount: 15` beside `pageInfo: { hasNextPage: false, endCursor: null }` - a count of the rows withheld, with no cursor that reaches them. Where that envelope answers, `nextPageToken` pagination is not available to raise the ceiling; narrow the JQL until the whole answer fits, or take the number from a count-mode call and the rows from several scoped queries.
 - Avoid whole-project `ORDER BY updated DESC` or `ORDER BY created DESC` dumps. Scope the result set with a predicate such as `statusCategory != Done`, `issuetype = Epic`, `parent = EPIC-KEY`, or `updated >= -7d`.
 - Once a response has been persisted, go to the projection below. Retrying the same row count with a narrower `fields` list changes nothing when the server ignores the projection.
 
@@ -56,7 +58,7 @@ Recover, when a response is still written to a file because of its size. The per
 - `{ isLast, issues: [ ... ], nextPageToken }` - the issues are a plain array at `.issues`.
 - `{ context, issues: { nodes: [ ... ] } }` - the issues are nested at `.issues.nodes`.
 
-Indexing the wrong one is a hard `jq` error, not a null, so `.issues.nodes // .issues` does **not** work as a fallback. Probe the type instead. Project a compact view, then re-run the original query with a lower `maxResults` so the next call returns inline:
+Indexing the wrong one is a hard `jq` error, not a null, so `.issues.nodes // .issues` does **not** work as a fallback. Probe the type instead. Project a compact view, then re-run the original query narrowed - a tighter predicate, or a count-mode call when the number was all that was wanted - so the next call returns inline. A lower `maxResults` alone does not guarantee it, for the reason above:
 
 ```bash
 jq '(if (.issues|type)=="array" then .issues else .issues.nodes end)[]
