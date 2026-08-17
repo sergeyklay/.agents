@@ -54,6 +54,8 @@ Before writing, answer all of:
 
 If the user is converting an existing workflow ("turn this into a skill"), extract: steps, tools, corrections, I/O formats. Confirm the four answers above before scaffolding.
 
+If the user is porting a skill from another repository, treat the source as a structural template, not a text to translate. Before adapting a line of it, inventory the target's equivalents: its test runner and the exact flags that invoke it, the annotation or comment schema its existing artifacts already use, its CI gates and their thresholds, its dependency-automation config, and where durable rationale actually lives — a decisions directory, or whatever file stands in for one when none exists. Encode what the target already does. A faithful port of the source's conventions is a foreign body in the new repo: it will read as authoritative while contradicting every artifact around it, and the first agent to follow it produces work that matches nothing.
+
 ### Phase 2: Initialize
 
 ```bash
