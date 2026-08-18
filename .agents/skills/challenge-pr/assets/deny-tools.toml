@@ -1,46 +1,27 @@
 # Deny every tool to the second-opinion model.
 #
-# The provider's headless prompt flag drives an agentic loop, not a
-# one-shot completion. Left unrestricted the reviewer model calls
-# directory, shell and grep tools, walks the working directory, and
-# reaches its own earlier transcripts under the provider's session
-# store - at which point the "independent" opinion is quoting this
-# project's previous runs back at us. It needs nothing but the diff
-# on stdin.
+# The provider's headless prompt flag drives an agentic loop, not a one-shot completion. Left unrestricted the reviewer model calls directory, grep and shell tools, walks the working directory, and reaches its own earlier transcripts under the provider's session store - at which point the "independent" opinion is quoting this project's previous runs back at us. It needs nothing but the diff on stdin.
 #
-# The wildcard covers MCP-provided tools too: the host's global
-# provider settings are still in effect for a headless run, and their
-# server instructions arrive in the model's context whether or not
-# they are ever callable.
+# The wildcard covers MCP-provided tools too: the host's global provider settings are still in effect for a headless run, and their server instructions arrive in the model's context whether or not they are ever callable. A rule whose toolName is "*" and whose mcpName is unset matches unconditionally, built-in and MCP alike, so no second rule is needed for them.
+#
+# What the wildcard stands in for, measured on both installed versions of the provider by asking the model to name its own callable functions with no policy in force: update_topic, list_directory, read_file, grep_search, glob, google_web_search, enter_plan_mode, invoke_agent - and, on this host only, run_shell_command. The shell tool is offered because the operator's own user-tier policy allows a list of command prefixes; a prefix rule carries an argsPattern, and only an argsPattern-free deny removes a tool from the model's declarations, so the allow leaves run_shell_command declared. Every write and execute tool the provider registers - write_file, replace, web_fetch, ask_user, activate_skill, write_todos, read_mcp_resource, list_mcp_resources, list_background_processes, read_background_output, exit_plan_mode, tracker_* - is already withheld in a headless run, because the shipped default for them is ask_user and ask_user means deny when there is nobody to ask.
+#
+# Three names are traps for any narrower policy written against this list. read_many_files passes the provider's rule validator, because the validator checks a name table that still carries it, but no version installed here registers it as a callable tool: the class survives only as the expander behind an @path in a prompt. Allowing it would grant nothing and denying it protects nothing. grep_search is the current name of the text search tool and search_file_content is its retired spelling; the provider expands one into the other before matching, so a single rule covers both and writing the pair is redundant. list_background_processes and read_background_output are registered and callable but absent from that same validator table, so a typo in either is accepted in silence rather than reported.
+#
+# Both installed versions - 0.54.4 under node 24.13.0 and 0.55.1 under node 24.14.1 - register the identical set of tools under the identical names, and their bundled name tables are byte-identical, so one policy is correct for both and no version guard is needed here.
 
 [[rule]]
 toolName = "*"
 decision = "deny"
 priority = 999
 
-# The provider's own state directory, spelled every way it can be
-# spelled. The wildcard rule above already covers it while every tool
-# is denied; these two are what remains standing the moment a read tool
-# is allowed back in, and that moment is when the hole opens. The
-# provider's built-in path check permits exactly two things under
-# ~/.gemini - this run's own tmp/<slug> subtree and the global context
-# file - so those, and not a .gemini directory inside the checkout
-# under review, are what these rules take away.
+# The provider's own state directory, spelled every way it can be spelled. The wildcard rule above already covers it while every tool is denied; these two are what remains standing the moment a read tool is allowed back in, and that moment is when the hole opens. The provider's built-in path check permits exactly two things under ~/.gemini - this run's own tmp/<slug> subtree and the global context file - so those, and not a .gemini directory inside the checkout under review, are what these rules take away.
 #
-# argsPattern is a regex over the serialised tool arguments, applied
-# before the provider decodes %XX escapes, resolves .. or expands a
-# glob. A bare '\.gemini' therefore misses /home/u/%2Egemini/... and
-# misses /home/u/.gem*/... as well; both spellings were observed
-# reading a seeded sentinel back out of the session store.
+# argsPattern is a regex over the serialised tool arguments, applied before the provider decodes %XX escapes, resolves .. or expands a glob. A bare '\.gemini' therefore misses /home/u/%2Egemini/... and misses /home/u/.gem*/... as well; both spellings were observed reading a seeded sentinel back out of the session store.
 #
-# Priorities are folded into a tier band as tier + priority/1000, and a
-# --policy file loads at the user tier, so 999 is the largest value
-# that stays inside the band. Nothing here can outrank these without
-# crossing into the admin band.
+# Priorities are folded into a tier band as tier + priority/1000, and a --policy file loads at the user tier, so 999 is the largest value that stays inside the band. Nothing here can outrank these without crossing into the admin band.
 #
-# Still open: a symlink planted in the working directory, which the
-# provider resolves only after the policy check; a home directory that
-# is neither /home/<user> nor /Users/<user>; Windows path spellings.
+# Still open: a symlink planted in the working directory, which the provider resolves only after the policy check; a home directory that is neither /home/<user> nor /Users/<user>; Windows path spellings.
 
 [[rule]]
 toolName = "*"
