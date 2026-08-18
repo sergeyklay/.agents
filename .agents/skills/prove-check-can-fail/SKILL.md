@@ -18,6 +18,7 @@ Three ways a check goes green without testing anything:
 | Setup no-op | The mutation the check depends on never applied | The check compared the old state to itself |
 | Subject not exercised | Only the downstream half ran, or it ran its no-op branch | The upstream half is still unverified |
 | Failure suppressed | The failure path was routed to a warning or a forced exit 0 | Exit status carries no information |
+| Subject substituted | The named target was unreachable and the tool silently chose another one | The work was done correctly, on the wrong thing |
 
 ## Trigger
 
