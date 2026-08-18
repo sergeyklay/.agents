@@ -58,7 +58,33 @@ fi
 
 # gh api with a writing HTTP method. AND-joined so a stray --method
 # on an unrelated tool does not false-positive.
-if [ -z "$verdict" ] \
+#
+# The method names the verb, never the addressee, so this rule alone
+# cannot tell a write to the ticket Step 4b just filed from a write to
+# the PR under review. Filing a ticket is allowed (`gh issue create`,
+# above), so finishing one has to be: where the CLI exposes no flag for
+# a field - `gh issue create --type` landed only in gh 2.94 - the REST
+# API is all that is left.
+#
+# The exemption cannot key on the path. In the REST API a pull request
+# *is* an issue: repos/{o}/{r}/issues/{N} with a PR number edits that
+# PR, and every reviewer-facing surface - comments, reactions, labels,
+# lock, and the comment resources themselves - hangs off the same
+# prefix. So it keys on provenance: the command must have minted the
+# number it writes to (a create, and an expansion rather than a
+# literal, since a number this command did not already know can reach
+# the path no other way) and must stay on the ticket resource itself.
+minted_ticket='repos/[^[:space:]/]+/[^[:space:]/]+/issues/[^[:space:]/]*\$[^[:space:]/]*([[:space:]]|$)'
+reviewer_target='repos/[^[:space:]/]+/[^[:space:]/]+/(pulls|issues/[^[:space:]/]+/)'
+
+own_ticket=""
+if printf '%s' "$norm" | grep -iEq '\bgh[[:space:]]+issue[[:space:]]+create\b' \
+   && printf '%s' "$norm" | grep -Eq "$minted_ticket" \
+   && ! printf '%s' "$norm" | grep -Eq "$reviewer_target"; then
+    own_ticket=1
+fi
+
+if [ -z "$verdict" ] && [ -z "$own_ticket" ] \
    && printf '%s' "$norm" | grep -iEq '\bgh[[:space:]]+api\b' \
    && printf '%s' "$norm" | grep -iEq "$write_method"; then
     verdict="gh api writes to GitHub"
