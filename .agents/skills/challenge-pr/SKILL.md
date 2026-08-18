@@ -30,6 +30,12 @@ gh pr diff <N> --repo <owner/repo> > /tmp/challenge-<N>.diff
 
 A diff of a few hundred kilobytes goes through in one call; do not shard it. An empty diff means the target is wrong - stop and say so rather than reviewing nothing.
 
+```bash
+gh pr view <N> --repo <owner/repo> --json author --jq .author.login
+```
+
+When the author is the operator, the primary review is a self-review. Say so in the report header. The procedure does not change, but the buckets read differently: Agreed is weaker, because one of the two reviews was written by the person who wrote the code, and Second-opinion only is stronger, because the outside model is then the only independent reader. For a solo maintainer this is the normal case, not the exception.
+
 Delete the diff file when the report is written. It is somebody's unmerged work.
 
 ## Step 2 - Start the second opinion before reviewing anything
@@ -37,11 +43,13 @@ Delete the diff file when the report is written. It is somebody's unmerged work.
 Launch it as a background job the moment the diff exists, before reading a single hunk:
 
 ```bash
-scripts/second-opinion.sh \
+sh scripts/second-opinion.sh \
     --diff-file /tmp/challenge-<N>.diff \
     --prompt-file assets/reviewer-prompt.md \
     > /tmp/challenge-<N>.json 2>/tmp/challenge-<N>.err &
 ```
+
+Run it with `sh`. The script is POSIX by design, and `bash` hides a bashism until the day it runs somewhere without bash.
 
 This ordering is mandatory for two reasons, and the weaker one is the schedule. The subprocess takes roughly fifteen seconds and the primary review takes minutes, so starting it first costs nothing. The reason that matters is anchoring: a review that begins after reading another model's findings will confirm them, chase them, and stop looking where they did not point. Findings must be reached independently or the word "Agreed" in the report means nothing.
 
@@ -77,7 +85,11 @@ Check every incoming finding against the code before classifying it. The outside
 
 Findings only the primary review raised are reported too, in a fourth section. Silence from the outside model is not agreement: it was given less context.
 
+Agreement on the fact and disagreement on its weight belongs in one entry, not two. When both reviews reach the same observation but split on severity, or on whether it is a defect of this PR at all, file it under Agreed and state the divergence inside that entry. Splitting it reports one finding twice; dropping it lets the primary review's classification overwrite the outside model's without saying so.
+
 Severity comes from this agent's own judgement of impact. The outside model's `severity` and `confidence` are inputs to that judgement, not the answer.
+
+Both reviews report on one scale: `critical`, `major`, `minor`, the same three words `assets/reviewer-prompt.md` requires of the outside model. A severity means the same thing whichever review raised it. A finding that is not about the code's behaviour, a commit trailer that closes a half-finished issue for instance, carries no severity tag rather than an invented one.
 
 ## Step 6 - Report
 
@@ -86,7 +98,7 @@ Emit the report in the chat response. Write no file - not to `.reviews/`, not an
 ```markdown
 ## Challenge: <owner/repo>#<N> - <title>
 
-Second opinion: <model_served> | one-provider only: <reason>
+Second opinion: <model_served> | one-provider only: <reason> | self-review: <login>
 
 ### Agreed (n)
 - **[severity] `file:lines`** - claim. Evidence: <the line that proves it>.
@@ -107,6 +119,14 @@ Drop empty sections rather than printing "None". Close with the open question th
 
 - Never edit code, never commit, never push. This skill produces an opinion, not a patch.
 - Never post to GitHub: no review, no comment, no approval, no request-for-changes. The report goes to the operator, who decides what reaches the PR.
+- Verification runs happen in a throwaway directory, never in the checkout under review. Nothing this agent runs may create, modify or delete a file inside the repository whose PR is being reviewed - including untracked files.
+- Before a verification run, state the claim it tests and the observation that would falsify it. A run whose result cannot come out the other way is not evidence and does not belong in the report.
+- When the passing case leaves state on disk - a transcript, a cache, a session store - run the failing case first. State from a prior run is indistinguishable from a result.
+- Record the tool version from the directory the run will happen in, not from the shell's default. Version resolution here is directory-dependent, and a policy validated under one version says nothing about another.
+- Cap provider invocations per review and stop at the cap. When the cap is reached with the question still open, report it open rather than spending more.
+- Every spawned process gets a wall-clock timeout and is killed at it. A run that produced no output is a failed run, not a silent one.
+- Delete what the run created: the throwaway directory and the provider's session store bound to it. Match the store by reading its recorded project root, never by deriving the name from the path.
 - Never let the outside model's output stand unchecked in the report. Every finding that survives to the reader has been checked against the code by this agent.
-- Never send anything to the provider except the diff and the bundled prompt. No repository files, no context files, no credentials.
+- Nothing a sub-run produced enters the report as a finding until it has been restated as a claim and checked against the code. A delegated conclusion arrives looking like a result and carries the delegate's scope errors invisibly.
+- Never send anything to the provider except the diff and the bundled prompt. No repository files, no context files, no credentials, tokens or environment beyond what it needs to authenticate.
 - One outside opinion, not several. A third model adds cost and turns arbitration into vote-counting.
