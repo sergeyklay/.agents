@@ -80,6 +80,7 @@ A configuration the tool cannot compile is frequently dropped, noted on stderr, 
 - Build two tables: inputs the rule must catch, and legitimate inputs it must not. Write the attack table in the spelling the rule actually sees. A pattern matched against serialized arguments is applied *before* the tool percent-decodes, expands a glob, resolves a relative traversal, or expands `~` and environment variables, so those spellings, plus case variants and alternate home roots, all reach the rule unchanged.
 - Iterate offline until a candidate passes both tables. Only then spend a live run, and confirm there that the rule is in force by attempting the denied action with a sentinel that is fresh for this run.
 - Keep the stderr check in the wrapper regardless: treat the tool's own "rule dropped", "config error" or "falling back to defaults" line as a hard failure of the run, never as a warning.
+- Anchor that check to the tool's own diagnostics, not to the whole stream. For an agentic CLI the second stream carries the transcript, so text the tool merely read and echoed will trip a substring match: a guard scanning everything once fired on a sentence of prose out of the repository under review. Match on the tool's diagnostic prefix, or read its structured log, and prove the guard still fires by feeding it a genuinely broken configuration.
 
 ### 5. Give every run its own state root, and know what that buys and costs
 
