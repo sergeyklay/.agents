@@ -1,6 +1,6 @@
 ---
 name: challenge-pr
-description: "Obtain an independent review of a pull request from a second, non-Claude model and arbitrate where the two reviews diverge. Use when asked to challenge a PR, get a second opinion on a diff, cross-check a review with another model, stress-test changes before merge, ask a different AI what it sees, or find what a single reviewer would miss. Runs the outside model on the PR diff in a tool-denied subprocess while the primary review proceeds in parallel, then sorts findings into Agreed, Disputed and Second-opinion-only and names the model that actually served the request. The outside model supplies hypotheses only: it never edits code, never blocks a merge and never casts a verdict. Do NOT use for reviewing against this project's architectural standards (that is review-impl), for resolving review comments already posted on a PR (that is babysit-pr), for security scanning, or for opening or merging a PR."
+description: "Obtain an independent review of a pull request from a second, non-Claude model and arbitrate where the two reviews diverge. Use when asked to challenge a PR, get a second opinion on a diff, cross-check a review with another model, stress-test changes before merge, ask a different AI what it sees, or find what a single reviewer would miss. Runs the outside model on the PR diff and a read-only checkout of the base commit in a confined subprocess while the primary review proceeds in parallel, then sorts findings into Agreed, Disputed and Second-opinion-only and names the model that actually served the request. The outside model supplies hypotheses only: it never edits code, never blocks a merge and never casts a verdict. Do NOT use for reviewing against this project's architectural standards (that is review-impl), for resolving review comments already posted on a PR (that is babysit-pr), for security scanning, or for opening or merging a PR."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -11,7 +11,7 @@ metadata:
 
 One reviewer's blind spots are systematic, not random: the same model re-reading the same diff misses the same things twice. A model from another family fails differently, so the union of two reviews covers more than either alone and the intersection is the strongest signal available without running the code.
 
-The outside model produces hypotheses. It does not decide. It sees the diff and nothing else - no repository, no history, no build - so a large share of what it reports dies the moment its claim is checked against the surrounding code. Arbitration is this agent's job; the merge decision is the human's. The one direct measurement of the alternative is discouraging: a weaker reviewer allowed to edit correct code made the result worse by 8.6 points (arXiv:2607.21656). Hence no auto-fix, and no verdict from the second model.
+The outside model produces hypotheses. It does not decide. It reads the diff and a checkout of the commit that diff lands on, but it cannot run the build or the tests and it never sees how the code got there, so a share of what it reports still dies the moment its claim is checked against the code. Arbitration is this agent's job; the merge decision is the human's. The one direct measurement of the alternative is discouraging: a weaker reviewer allowed to edit correct code made the result worse by 8.6 points (arXiv:2607.21656). Hence no auto-fix, and no verdict from the second model.
 
 ## Running scripts bundled with this skill
 
@@ -24,7 +24,7 @@ Script paths resolve relative to **this** SKILL.md, not the agent's CWD. If a re
 Accept a PR number, URL, `owner/repo#123` shorthand, or the current branch's open PR. Resolve it to an explicit `owner/repo` and number before fetching - an ambiguous target silently reviews the wrong thing.
 
 ```bash
-gh pr view <N> --repo <owner/repo> --json title,body,author,baseRefName,files
+gh pr view <N> --repo <owner/repo> --json title,body,author,baseRefName,headRefOid,files
 gh pr diff <N> --repo <owner/repo> > /tmp/challenge-<N>.diff
 ```
 
@@ -36,18 +36,27 @@ Delete the diff file when the report is written. It is somebody's unmerged work.
 
 ## Step 2 - Start the second opinion before reviewing anything
 
+The script wants the commit the diff was computed against, which is the merge base and not the tip of the base branch:
+
+```bash
+gh api repos/<owner/repo>/compare/<baseRefName>...<headRefOid> --jq '.merge_base_commit.sha'
+```
+
 Launch it as a background job the moment the diff exists, before reading a single hunk:
 
 ```bash
 sh scripts/second-opinion.sh \
     --diff-file /tmp/challenge-<N>.diff \
     --prompt-file assets/reviewer-prompt.md \
+    --base-sha <merge-base> \
     > /tmp/challenge-<N>.json 2>/tmp/challenge-<N>.err &
 ```
 
 Run it with `sh`. The script is POSIX by design, and `bash` hides a bashism until the day it runs somewhere without bash.
 
-This ordering is mandatory for two reasons, and the weaker one is the schedule. The subprocess takes roughly fifteen seconds and the primary review takes minutes, so starting it first costs nothing. The reason that matters is anchoring: a review that begins after reading another model's findings will confirm them, chase them, and stop looking where they did not point. Findings must be reached independently or the word "Agreed" in the report means nothing.
+The script exports that commit out of the repository this agent is standing in and gives the export to the model as its working directory, so the outside review reads the code the change lands on instead of inferring it from the hunks. A pull request whose repository is not the local one cannot be exported: the script reports that in the envelope and the run degrades to one provider.
+
+Start it first anyway, and the reason is not the schedule - the checkout costs 44 to 65 seconds and 169k to 295k tokens per run, so it is no longer free. The reason is anchoring: a review that begins after reading another model's findings will confirm them, chase them, and stop looking where they did not point. Findings must be reached independently or the word "Agreed" in the report means nothing.
 
 Do not read the output file yet. Do not run the script in the foreground.
 
@@ -73,7 +82,7 @@ If the job is still running by the time Step 3 is done, wait briefly, then proce
 
 ## Step 5 - Arbitrate
 
-Check every incoming finding against the code before classifying it. The outside model reasons from the diff alone, so its most common failure is reporting a defect that the unchanged context already handles. The primary review's failure runs the other way: having read the surrounding code, it is quick to explain away a genuine defect as intentional. Both need the same treatment - name the line that settles it.
+Check every incoming finding against the code before classifying it. The outside model reads the base revision, so it can be wrong about the change itself: the line it quotes may be one the diff replaces, and the guard it says is missing may be added by a hunk it read past. The primary review's failure runs the other way: having read the surrounding code, it is quick to explain away a genuine defect as intentional. Both need the same treatment - name the line that settles it.
 
 - **Agreed** - both reviews reached it independently. The strongest signal in the report; lead with it.
 - **Disputed** - one review raised it and the other, having examined the code, rejects it. Record the evidence that settles it, and record it even when this agent is the one rejecting. A dispute the human can adjudicate is worth more than a finding quietly dropped.
@@ -124,5 +133,5 @@ Drop empty sections rather than printing "None". Close with the open question th
 - Delete what the run created: the throwaway directory and the provider's session store bound to it. Match the store by reading its recorded project root, never by deriving the name from the path.
 - Never let the outside model's output stand unchecked in the report. Every finding that survives to the reader has been checked against the code by this agent.
 - Nothing a sub-run produced enters the report as a finding until it has been restated as a claim and checked against the code. A delegated conclusion arrives looking like a result and carries the delegate's scope errors invisibly.
-- Never send anything to the provider except the diff and the bundled prompt. No repository files, no context files, no credentials, tokens or environment beyond what it needs to authenticate.
+- Never send anything to the provider except the diff, the bundled prompt and the exported base commit. No credentials, no operator configuration, and nothing the pull request itself adds.
 - One outside opinion, not several. A third model adds cost and turns arbitration into vote-counting.
