@@ -30,11 +30,7 @@ gh pr diff <N> --repo <owner/repo> > /tmp/challenge-<N>.diff
 
 A diff of a few hundred kilobytes goes through in one call; do not shard it. An empty diff means the target is wrong - stop and say so rather than reviewing nothing.
 
-```bash
-gh pr view <N> --repo <owner/repo> --json author --jq .author.login
-```
-
-When the author is the operator, the primary review is a self-review. Say so in the report header. The procedure does not change, but the buckets read differently: Agreed is weaker, because one of the two reviews was written by the person who wrote the code, and Second-opinion only is stronger, because the outside model is then the only independent reader. For a solo maintainer this is the normal case, not the exception.
+The `author` from the call above is the second thing that matters after the target. When it is the operator, the primary review is a self-review. Say so in the report header. The procedure does not change, but the buckets read differently: Agreed is weaker, because one of the two reviews was written by the person who wrote the code, and Second-opinion only is stronger, because the outside model is then the only independent reader. For a solo maintainer this is the normal case, not the exception.
 
 Delete the diff file when the report is written. It is somebody's unmerged work.
 
