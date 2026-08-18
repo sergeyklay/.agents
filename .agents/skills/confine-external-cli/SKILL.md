@@ -81,7 +81,13 @@ A configuration the tool cannot compile is frequently dropped, noted on stderr, 
 - Iterate offline until a candidate passes both tables. Only then spend a live run, and confirm there that the rule is in force by attempting the denied action with a sentinel that is fresh for this run.
 - Keep the stderr check in the wrapper regardless: treat the tool's own "rule dropped", "config error" or "falling back to defaults" line as a hard failure of the run, never as a warning.
 
-### 5. Reconcile against the baseline and publish the counts
+### 5. Give every run its own state root, and know what that buys and costs
+
+The throwaway root that keeps a run from leaving state behind is also what makes a series comparable, and the mechanism is worth stating because it is easy to optimise away. A per-run directory changes the absolute paths the tool stamps into the front of its own request - the working directory, its temporary directory - and a prefix that never repeats defeats any implicit prompt cache the provider runs. Runs in the series are therefore independent of each other by construction rather than by discipline: verify it by reading the provider's own per-request accounting and confirming the cached-token count on the first request of every run is zero.
+
+The price of that independence is the entire first request, every run, at full rate. Measure it once against a deliberately fixed root to learn what the cache would have saved, then keep the per-run root anyway: a series whose runs warm each other is not a series, it is one run reported several times. Publish the spread rather than an average when the cost is driven by how many turns the tool decides to take, because that distribution has no useful mean.
+
+### 6. Reconcile against the baseline and publish the counts
 
 At the end, re-diff every root against the opening snapshot and state the numbers. "root A: 41 entries before, 41 after; root B: 12 before, 12 after; index hash unchanged" is a report; "cleanup ran" is not. Anything deliberately left behind is named and justified in the same breath.
 

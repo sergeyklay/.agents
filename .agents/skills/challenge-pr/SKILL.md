@@ -56,7 +56,7 @@ Run it with `sh`. The script is POSIX by design, and `bash` hides a bashism unti
 
 The script exports that commit out of the repository this agent is standing in and gives the export to the model as its working directory, so the outside review reads the code the change lands on instead of inferring it from the hunks. A pull request whose repository is not the local one cannot be exported: the script reports that in the envelope and the run degrades to one provider.
 
-Start it first anyway, and the reason is not the schedule - the checkout costs 44 to 65 seconds and 169k to 295k tokens per run, so it is no longer free. The reason is anchoring: a review that begins after reading another model's findings will confirm them, chase them, and stop looking where they did not point. Findings must be reached independently or the word "Agreed" in the report means nothing.
+Start it first anyway, and the reason is not the schedule - the checkout costs 8 to 153 seconds and 55k to 1.8M prompt tokens per run, measured over thirteen runs, so it is no longer free. Diff size does not predict that cost and neither does anything else you control: the driver is how many agentic turns the model chooses to take, which ranged from 2 to 34 across the set and from 2 to 12 on one identical input. Budget for the upper end and read the spread rather than an average, because the distribution has no useful mean. The reason is anchoring: a review that begins after reading another model's findings will confirm them, chase them, and stop looking where they did not point. Findings must be reached independently or the word "Agreed" in the report means nothing.
 
 Do not read the output file yet. Do not run the script in the foreground.
 
