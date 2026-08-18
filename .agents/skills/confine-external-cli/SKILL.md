@@ -29,6 +29,10 @@ Not this skill: reading the tool's behavior to answer a general question, which 
 
 The copy on disk is the one that runs. Release notes, the project README and the upstream default branch each describe a different one, and two versions of the same CLI commonly sit side by side under different runtime or package managers. Resolve and record the version and the real path before reading anything: `command -v tool`, then `readlink -f` on the result, then the package manifest or lockfile that installed it. This is `research-it`'s source-priority rule narrowed to a single copy on disk (OPTIONAL when the question widens past this run into how the tool behaves in general).
 
+Resolve the artifact from the directory the run will happen in, not from the shell you are typing in. A version manager picks the interpreter by walking up from the current directory, so the same command name resolves to different installations depending on where it is invoked, and a wrapper that runs from a throwaway directory is answering a different question than your prompt is. Three separate investigations on one host each read the wrong copy this way before noticing; two of them noticed only from an unrelated stack trace. Print the resolved path from inside the run's own directory, record it beside the results, and when the reading turns out to have come from the wrong copy, re-verify every claim already made from it rather than assuming the versions agree.
+
+Determining which credential channel a tool actually uses costs nothing if you point it at a proxy you control and read the hostnames it tries to reach. Different auth paths talk to different endpoints, so one intercepted connection attempt distinguishes them without spending a single call against the real service.
+
 Where the authoritative behavior is readable depends on how the tool ships:
 
 | Delivery shape | What is readable | How to enter it |
