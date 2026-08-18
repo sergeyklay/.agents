@@ -51,11 +51,15 @@ fail_soft() {
     exit 0
 }
 
-# Remove the throwaway working directory and the provider session
-# store bound to it. Candidates are matched by reading each
-# .project_root instead of deriving the name from the path: the
-# provider rewrites and lowercases the basename, and every other entry
-# in that store is somebody else's session.
+# Remove the throwaway working directory and every provider store
+# keyed to it. There are two, not one: the provider stamps a
+# .project_root marker into both tmp/<slug> and history/<slug> the
+# moment it resolves a slug for the directory, so a run that only
+# sweeps tmp leaves a history entry behind on every invocation.
+# Candidates are matched by reading each .project_root instead of
+# deriving the name from the path: the provider rewrites and lowercases
+# the basename, appends -1, -2 on collision, and every other entry in
+# both stores is somebody else's session.
 #
 # The provider also records the directory in its project registry.
 # That entry is left behind deliberately: it holds a path and no
@@ -64,11 +68,14 @@ fail_soft() {
 gemini_cleanup() {
     workdir=$1
     [ -n "$workdir" ] || return 0
-    if [ -n "${HOME:-}" ] && [ -d "$HOME/.gemini/tmp" ]; then
-        for session in "$HOME"/.gemini/tmp/*/; do
-            [ -f "$session.project_root" ] || continue
-            [ "$(cat "$session.project_root")" = "$workdir" ] || continue
-            rm -rf -- "$session"
+    if [ -n "${HOME:-}" ]; then
+        for store in "$HOME/.gemini/tmp" "$HOME/.gemini/history"; do
+            [ -d "$store" ] || continue
+            for session in "$store"/*/; do
+                [ -f "$session.project_root" ] || continue
+                [ "$(cat "$session.project_root")" = "$workdir" ] || continue
+                rm -rf -- "$session"
+            done
         done
     fi
     rm -rf -- "$workdir"
@@ -107,6 +114,15 @@ run_gemini() {
 
     if [ "$status" -ne 0 ]; then
         fail_soft "gemini exited $status: $(tr '\n' ' ' < "$errlog" | cut -c1-300)"
+    fi
+
+    # A rule the provider refuses to compile - an unsafe regex, an
+    # unknown tool name - is dropped from the policy, reported on stderr
+    # and otherwise ignored: the run continues under whatever rules
+    # survived and still exits 0. Losing a deny rule silently is the one
+    # failure this script must not swallow.
+    if grep -q 'Policy file error' "$errlog"; then
+        fail_soft "policy rejected: $(tr '\n' ' ' < "$errlog" | cut -c1-300)"
     fi
 
     # A denied tool call ends the run with an empty response, an error
