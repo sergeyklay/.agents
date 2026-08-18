@@ -1,6 +1,6 @@
 ---
 name: challenge-pr
-description: "Obtain an independent review of a pull request from a second, non-Claude model and arbitrate where the two reviews diverge. Use when asked to challenge a PR, get a second opinion on a diff, cross-check a review with another model, stress-test changes before merge, ask a different AI what it sees, or find what a single reviewer would miss. Runs the outside model on the PR diff and a read-only checkout of the base commit in a confined subprocess while the primary review proceeds in parallel, then sorts findings into Agreed, Disputed and Second-opinion-only and names the model that actually served the request. The outside model supplies hypotheses only: it never edits code, never blocks a merge and never casts a verdict. Do NOT use for reviewing against this project's architectural standards (that is review-impl), for resolving review comments already posted on a PR (that is babysit-pr), for security scanning, or for opening or merging a PR."
+description: "Obtain an independent review of a pull request from a second, non-Claude model and arbitrate where the two reviews diverge. Use when asked to challenge a PR, get a second opinion on a diff, cross-check a review with another model, stress-test changes before merge, ask a different AI what it sees, or find what a single reviewer would miss. Runs the outside model on the PR diff and a read-only checkout of the base commit in a confined subprocess while the primary review proceeds in parallel, then checks every incoming finding against the code and reports the survivors as one ranked list. The outside model supplies hypotheses only: it never edits code, never blocks a merge and never casts a verdict. Do NOT use for reviewing against this project's architectural standards (that is review-impl), for resolving review comments already posted on a PR (that is babysit-pr), for security scanning, or for opening or merging a PR."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -17,20 +17,20 @@ The outside model produces hypotheses. It does not decide. It reads the diff and
 
 Script paths resolve relative to **this** SKILL.md, not the agent's CWD. If a relative command fails to resolve, prefix it with the directory the platform loaded SKILL.md from.
 
-**Fallback.** If the script cannot be located or run, do not improvise a provider call: proceed with a single-provider review and mark the report `one-provider only`, naming the reason.
+**Fallback.** If the script cannot be located or run, do not improvise a provider call: proceed with a single-provider review and disclose that the second opinion never ran, naming the reason.
 
 ## Step 1 - Resolve the target and capture the diff
 
 Accept a PR number, URL, `owner/repo#123` shorthand, or the current branch's open PR. Resolve it to an explicit `owner/repo` and number before fetching - an ambiguous target silently reviews the wrong thing.
 
 ```bash
-gh pr view <N> --repo <owner/repo> --json title,body,author,baseRefName,headRefOid,files
+gh pr view <N> --repo <owner/repo> --json title,body,author,baseRefName,headRefOid,files,additions,deletions
 gh pr diff <N> --repo <owner/repo> > /tmp/challenge-<N>.diff
 ```
 
 A diff of a few hundred kilobytes goes through in one call; do not shard it. An empty diff means the target is wrong - stop and say so rather than reviewing nothing.
 
-The `author` from the call above is the second thing that matters after the target. When it is the operator, the primary review is a self-review. Say so in the report header. The procedure does not change, but the buckets read differently: Agreed is weaker, because one of the two reviews was written by the person who wrote the code, and Second-opinion only is stronger, because the outside model is then the only independent reader. For a solo maintainer this is the normal case, not the exception.
+The `author` from the call above is the second thing that matters after the target, and `files`, `additions` and `deletions` are what the report header counts. When the author is the operator, the primary review is a self-review. The procedure does not change, but the weighting in Step 5 does: two reviews reaching the same finding proves less, because one of them was written by the person who wrote the code, and a finding only the outside model raised proves more, because it is then the only independent reading. For a solo maintainer this is the normal case, not the exception.
 
 Delete the diff file when the report is written. It is somebody's unmerged work.
 
@@ -56,7 +56,7 @@ Run it with `sh`. The script is POSIX by design, and `bash` hides a bashism unti
 
 The script exports that commit out of the repository this agent is standing in and gives the export to the model as its working directory, so the outside review reads the code the change lands on instead of inferring it from the hunks. A pull request whose repository is not the local one cannot be exported: the script reports that in the envelope and the run degrades to one provider.
 
-Start it first anyway, and the reason is not the schedule - the checkout costs 8 to 153 seconds and 55k to 1.8M prompt tokens per run, measured over thirteen runs, so it is no longer free. Diff size does not predict that cost and neither does anything else you control: the driver is how many agentic turns the model chooses to take, which ranged from 2 to 34 across the set and from 2 to 12 on one identical input. Budget for the upper end and read the spread rather than an average, because the distribution has no useful mean. The reason is anchoring: a review that begins after reading another model's findings will confirm them, chase them, and stop looking where they did not point. Findings must be reached independently or the word "Agreed" in the report means nothing.
+Start it first anyway, and the reason is not the schedule - the checkout costs 8 to 153 seconds and 55k to 1.8M prompt tokens per run, measured over thirteen runs, so it is no longer free. Diff size does not predict that cost and neither does anything else you control: the driver is how many agentic turns the model chooses to take, which ranged from 2 to 34 across the set and from 2 to 12 on one identical input. Budget for the upper end and read the spread rather than an average, because the distribution has no useful mean. The reason is anchoring: a review that begins after reading another model's findings will confirm them, chase them, and stop looking where they did not point. Findings must be reached independently or the second review is an echo of the first.
 
 Do not read the output file yet. Do not run the script in the foreground.
 
@@ -66,6 +66,8 @@ Conduct a full review as if no second opinion were coming. Read the changed file
 
 Write the findings down before Step 4. A finding not recorded before the envelope is opened cannot be claimed as independent.
 
+Keep a second record beside them: which of the PR's files were opened, and what was actually run. Step 6 prints it, and nothing else can supply it afterwards - the envelope reports findings and says nothing about coverage, and by then the memory of which files got opened is a guess.
+
 ## Step 4 - Open the envelope
 
 The script emits a single JSON object:
@@ -74,51 +76,80 @@ The script emits a single JSON object:
 {"provider": "…", "model_served": "…", "findings": [], "error": null}
 ```
 
-`model_served` is read back from the provider's own accounting, not from what was requested and not from what the model says about itself - a model asked to name itself answers with whatever name is most common in its training data, and a requested alias may be served by something else entirely. Report the served value verbatim; it is what makes the run reproducible.
+`provider` and `model_served` name which model actually served the run, read back from the provider's own accounting rather than from what was requested. Neither reaches the report.
 
-`error` non-null, or the script exiting non-zero, or the file not being JSON: the second opinion is unavailable. Mark the report `one-provider only` with the reason and continue. An empty `findings` array with `error: null` is a different thing - the outside model reviewed the diff and raised nothing. Never conflate the two.
+`error` non-null, or the script exiting non-zero, or the file not being JSON: the second opinion is unavailable. Continue with the primary review alone and disclose the gap where Step 6 puts it. An empty `findings` array with `error: null` is a different thing - the outside model reviewed the diff and raised nothing. Never conflate the two.
 
 If the job is still running by the time Step 3 is done, wait briefly, then proceed without it. The second opinion adds coverage; it never blocks.
 
 ## Step 5 - Arbitrate
 
-Check every incoming finding against the code before classifying it. The outside model reads the base revision, so it can be wrong about the change itself: the line it quotes may be one the diff replaces, and the guard it says is missing may be added by a hunk it read past. The primary review's failure runs the other way: having read the surrounding code, it is quick to explain away a genuine defect as intentional. Both need the same treatment - name the line that settles it.
+Check every finding against the code before it can reach the report, whichever review raised it. The outside model reads the base revision, so it can be wrong about the change itself: the line it quotes may be one the diff replaces, and the guard it says is missing may be added by a hunk it read past. The primary review's failure runs the other way: having read the surrounding code, it is quick to explain away a genuine defect as intentional. Both need the same treatment - name the line that settles it.
 
-- **Agreed** - both reviews reached it independently. The strongest signal in the report; lead with it.
-- **Disputed** - one review raised it and the other, having examined the code, rejects it. Record the evidence that settles it, and record it even when this agent is the one rejecting. A dispute the human can adjudicate is worth more than a finding quietly dropped.
-- **Second-opinion only** - raised by the outside model, survives the check against the code, and the primary review did not reach it. This bucket is the entire reason the skill exists. Do not soften it because it arrived from elsewhere, and do not promote it because it did.
+A finding that survives the check is reported once, ranked by impact, with no trace of where it came from. A finding that fails is not reported at all.
 
-Findings only the primary review raised are reported too, in a fourth section. Silence from the outside model is not agreement: it was given less context.
+Where a finding came from still governs how this agent weighs it. A finding the outside model raised alone is the entire reason the skill exists: do not soften it because it arrived from elsewhere, and do not promote it because it did. And silence from the outside model is not agreement, since it was given less context, so a finding the primary review raised alone stands on the same footing as any other.
 
-Agreement on the fact and disagreement on its weight belongs in one entry, not two. When both reviews reach the same observation but split on severity, or on whether it is a defect of this PR at all, file it under Agreed and state the divergence inside that entry. Splitting it reports one finding twice; dropping it lets the primary review's classification overwrite the outside model's without saying so.
+The same observation reached by both reviews is one entry, not two. When they split on severity, or on whether it is a defect of this PR at all, this agent settles it rather than reporting the finding twice.
 
 Severity comes from this agent's own judgement of impact. The outside model's `severity` and `confidence` are inputs to that judgement, not the answer.
 
-Both reviews report on one scale: `critical`, `major`, `minor`, the same three words `assets/reviewer-prompt.md` requires of the outside model. A severity means the same thing whichever review raised it. A finding that is not about the code's behaviour, a commit trailer that closes a half-finished issue for instance, carries no severity tag rather than an invented one.
+Both reviews report on one scale: `critical`, `major`, `minor`, the same three words `assets/reviewer-prompt.md` requires of the outside model. A severity means the same thing whichever review raised it. A finding that is not about the code's behaviour, a commit trailer that closes a half-finished issue for instance, carries no severity rather than an invented one.
 
 ## Step 6 - Report
 
-Emit the report in the chat response. Write no file - not to `.reviews/`, not anywhere.
+Emit the report in the chat response. Write no file - not to `.reviews/`, not anywhere. Print the first screen and stop there. The second screen goes out only when the operator asks for it.
+
+Both screens print in the language of the conversation. The closing line of each offers a phrase the operator is meant to type back, so it is translated along with everything else; paths, identifiers and counts are not.
+
+Nothing about how the review was produced reaches either screen: no provider, no model name, no run count, no cost, no token figures, no note of which review raised what, and no rebuttal of a finding that failed the check in Step 5. Findings that failed are dropped there, not argued with in front of the reader. The reader is looking at a pull request, not at this tool.
+
+The reader is also in a terminal of unknown width. Blank lines, headings, lists and bold survive any rewrapping; columns, padding, box drawing and hard-wrapped paragraphs do not. Write no line whose alignment carries meaning. The bolded `file:line` opens an entry so it stays attached to its own text when the line wraps.
+
+Two tiers reach the reader: what blocks the merge, and what should be handled before it. The `critical`, `major`, `minor` scale of Step 5 decides which tier an entry lands in and is never printed. A tier with no entries is not printed either.
+
+### Screen 1
 
 ```markdown
-## Challenge: <owner/repo>#<N> - <title>
+**#<N>** · <title> · <n> files · +<added>/-<deleted>
 
-Second opinion: <model_served> | one-provider only: <reason> | self-review: <login>
+**<b> blockers, <m> notes.**
 
-### Agreed (n)
-- **[severity] `file:lines`** - claim. Evidence: <the line that proves it>.
+- `<file:line>` - what is wrong, in one line
+- `<file:line>` - what is wrong, in one line
 
-### Disputed (n)
-- **[raised by: outside model | primary] `file:lines`** - claim. Rejected because <evidence>.
+Read <k> of <n> files, tests not run.
 
-### Second-opinion only (n)
-- **[severity, confidence] `file:lines`** - claim. Bites when <condition>. Unverified because <what could not be checked>.
-
-### Primary only (n)
-- **[severity] `file:lines`** - claim. Evidence: <…>.
+Full breakdown - say "walk me through it". A single finding - say "show me reconcile.go:501".
 ```
 
-Drop empty sections rather than printing "None". Close with the open question the human has to settle, if there is one - not with a verdict.
+Only blockers get bullets here. With none, the count line says so in words and no bullets follow it.
+
+`Read <k> of <n> files` is the one figure in the report that is not about the diff, and its only source is the record Step 3 required: the files this agent opened, counted against `files` from Step 1, and the runs it actually made. The envelope carries findings and nothing about coverage, so nothing else can supply it. Never estimate the count, never infer it from the diff or from the hunks that got quoted, and never write `tests not run` or its opposite from memory of how the run felt. Without that record, drop the sentence: a figure that reads as a measurement and is a guess is worse than no figure.
+
+### Screen 2
+
+```markdown
+**#<N>** · <title> · base `<sha>` · <n> files · +<added>/-<deleted>
+
+### Blocking
+
+**`<file:line>`** - what the code does, the input or state that makes it wrong, and what it costs. Name what the diff alone does not show when that is the point.
+
+### Before merge
+
+- **`<file:line>`** - one line: mechanism and consequence.
+
+### Not checked
+
+<n-k> files never opened: `<a>`, `<b>`, `<c>`. Tests not run, migrations not applied.
+
+Comment drafts for the PR - say "draft them". I will not post them myself.
+```
+
+Blocking entries are paragraphs, one each. Everything else is a one-line bullet. `Not checked` names what the Step 3 record says was never opened and never run, under the same ban on guessing, and it is where a second opinion that never arrived is disclosed - unavailable coverage the reader would otherwise assume.
+
+Asked for one finding by name, print that entry alone in the form `Blocking` uses. An open question this agent could not settle belongs inside the entry it came from, or in `Not checked` when it belongs to no single finding. Neither screen ends in a verdict.
 
 ## Constraints
 
