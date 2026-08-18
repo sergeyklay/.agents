@@ -132,6 +132,15 @@ run_gemini() {
     prompt=$(cat -- "$PROMPT_FILE")
 
     tmproot=$(mktemp -d) || die "mktemp failed"
+    # The home-anchored deny rules match any path under $HOME carrying a
+    # glob metacharacter, so a checkout below $HOME would silently refuse
+    # every glob and every bracketed filename a framework produces, such
+    # as a Next.js dynamic route. TMPDIR decides where mktemp lands, so
+    # refuse the run rather than inherit a policy that half-works.
+    case "$tmproot" in
+        "$HOME"/*) rm -rf -- "$tmproot"
+                   die "TMPDIR resolves under \$HOME ($tmproot); set TMPDIR outside the home directory" ;;
+    esac
     trap 'gemini_cleanup "$tmproot"' EXIT INT TERM
 
     # The provider appends every prompt - the whole diff with it - to a
