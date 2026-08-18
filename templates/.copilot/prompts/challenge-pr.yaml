@@ -1,0 +1,2 @@
+name: challengePr
+argument-hint: PR number, URL, or owner/repo#123; empty for the current branch's PR

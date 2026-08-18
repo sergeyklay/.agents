@@ -1,0 +1,19 @@
+# Deny every tool to the second-opinion model.
+#
+# The provider's headless prompt flag drives an agentic loop, not a
+# one-shot completion. Left unrestricted the reviewer model calls
+# directory, shell and grep tools, walks the working directory, and
+# reaches its own earlier transcripts under the provider's session
+# store - at which point the "independent" opinion is quoting this
+# project's previous runs back at us. It needs nothing but the diff
+# on stdin.
+#
+# The wildcard covers MCP-provided tools too: the host's global
+# provider settings are still in effect for a headless run, and their
+# server instructions arrive in the model's context whether or not
+# they are ever callable.
+
+[[rule]]
+toolName = "*"
+decision = "deny"
+priority = 999

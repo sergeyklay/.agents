@@ -1,0 +1,3 @@
+name: challenge-pr
+argument-hint: PR number, URL, or owner/repo#123; empty for the current branch's PR
+disable-model-invocation: true
