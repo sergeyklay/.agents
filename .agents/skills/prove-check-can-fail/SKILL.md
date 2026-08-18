@@ -96,6 +96,15 @@ Restore, re-run, confirm green. A check never observed red is an unproven check.
 the inverse of `research-it`'s positive control: that one proves the instrument can see;
 this one proves the instrument can object.
 
+**When the positive run leaves state behind, run the negative control first.** Files,
+caches, session history, database rows: anything the positive run writes whose absence the
+negative control is checking turns that control into a reading of the previous run's litter.
+A deny-all tool policy was checked by feeding an agent CLI empty stdin and asserting it
+could not name a secret sentinel; it named the sentinel anyway, having grepped the CLI's own
+transcripts from the earlier positive run. That measured leftovers, not isolation. Give
+every run a fresh working directory and a fresh random sentinel, so a hit cannot be a
+trace of the last one.
+
 ### 6. Record the scope, not a verdict
 
 Write down what was exercised and what was not: "the receiver's no-op path ran; the sender
