@@ -45,6 +45,14 @@ Headings describe content, not category. "Retry backoff algorithm" - not "Detail
 
 Do not skip heading levels. H1 appears once per document. Sections use H2, subsections H3. Rarely go deeper than H4.
 
+### Line breaks
+
+Do not hard-wrap prose. A paragraph is one line, however long it runs. Line breaks inside a paragraph mean nothing to anything that consumes these files: a Markdown renderer collapses them, a diff turns a one-word edit into a reflowed block, and a model pays tokens for them while gaining no structure.
+
+Hard-wrapping belongs to exactly one artifact, the commit message body, wrapped at 72 columns per the commit-messages rule. That rule does not generalize. Agent Skills and their assets, prompts, specifications, ADRs, issue bodies, and pull request descriptions are read by a renderer or by a model, and none of them are wrapped.
+
+This governs breaking a sentence across lines. Table rows, list items, headings, and code blocks keep their own line structure.
+
 ### When to use each format
 
 **Prose paragraphs** - for rationale, context, and narrative explanation of how components interact. Use when relationships between ideas matter more than individual items.
