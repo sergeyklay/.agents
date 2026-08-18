@@ -55,13 +55,11 @@ priority = 500
 #
 # argsPattern is a regex over the serialised tool arguments, applied before the provider decodes %XX escapes, resolves .. or expands a glob. A bare '\.gemini' therefore misses /home/u/%2Egemini/... and misses /home/u/.gem*/... as well; both spellings were observed reading a seeded sentinel back out of the session store.
 #
-# Still open: a symlink committed to the base revision, which the
-# provider resolves only after the policy check; a home directory that
-# is neither /home/<user> nor /Users/<user>; Windows path spellings.
-#
 # Priorities are folded into a tier band as tier + priority/1000, and a --policy file loads at the user tier, so 999 is the largest value that stays inside the band. Nothing here can outrank these without crossing into the admin band.
 #
-# Still open: a symlink planted in the working directory, which the provider resolves only after the policy check; a home directory that is neither /home/<user> nor /Users/<user>; Windows path spellings.
+# A symlink committed to the base revision does not escape the checkout, contrary to what this comment claimed until it was tested. The policy layer is indeed bypassed - argsPattern sees the path the model wrote, before any resolution - but the workspace layer resolves the real path before it tests containment, so a link to .., to an absolute path outside, or to /etc is refused as "Path not in workspace". Probed with all four allowed tools against a base revision carrying three such links; identical code in both installed builds.
+#
+# Still open: run_shell_command never passes through that path check at all, so the vector revives the moment a shell is allowed back in. The rules below will not cover it, because they anchor on the home directory while the run's own state lives under the system temporary directory. Also open: a home directory matching neither /home/<user> nor /Users/<user>, and Windows path spellings.
 
 [[rule]]
 toolName = "*"
