@@ -1,6 +1,24 @@
-# Deny every tool to the second-opinion model.
+# Confine the second-opinion model to reading the checkout.
 #
-# The provider's headless prompt flag drives an agentic loop, not a one-shot completion. Left unrestricted the reviewer model calls directory, grep and shell tools, walks the working directory, and reaches its own earlier transcripts under the provider's session store - at which point the "independent" opinion is quoting this project's previous runs back at us. It needs nothing but the diff on stdin.
+# The provider's headless prompt flag drives an agentic loop, not a
+# one-shot completion. Left unrestricted the reviewer model runs shell
+# commands, edits files, and reaches its own earlier transcripts under
+# the provider's session store - at which point the "independent"
+# opinion is quoting this project's previous runs back at us. It gets
+# the diff on stdin and the checkout that diff applies to, nothing else.
+#
+# Rule order is priority order: the engine sorts by descending priority
+# and stops at the first match. Deny-everything therefore sits below
+# the allow rules; at the top of the order it matches every call and
+# every rule under it is dead. Priorities fold into a tier band as
+# tier + priority/1000 and a --policy file loads at the user tier, so
+# the values here stay inside 0..999 and nothing outranks them without
+# crossing into the admin band.
+#
+# The wildcard covers MCP-provided tools as well: whatever the settings
+# file in force enables, a headless run loads, and those server
+# instructions reach the model's context whether or not the tools are
+# ever callable.
 #
 # The wildcard covers MCP-provided tools too: the host's global provider settings are still in effect for a headless run, and their server instructions arrive in the model's context whether or not they are ever callable. A rule whose toolName is "*" and whose mcpName is unset matches unconditionally, built-in and MCP alike, so no second rule is needed for them.
 #
@@ -13,11 +31,33 @@
 [[rule]]
 toolName = "*"
 decision = "deny"
-priority = 999
+priority = 1
 
-# The provider's own state directory, spelled every way it can be spelled. The wildcard rule above already covers it while every tool is denied; these two are what remains standing the moment a read tool is allowed back in, and that moment is when the hole opens. The provider's built-in path check permits exactly two things under ~/.gemini - this run's own tmp/<slug> subtree and the global context file - so those, and not a .gemini directory inside the checkout under review, are what these rules take away.
+# The read-only four, spelled the way the provider's own read-only
+# policy spells them. search_file_content needs no entry of its own:
+# the engine expands legacy tool aliases to grep_search before matching
+# a rule. invoke_agent is absent on purpose - a subagent arrives with
+# its own tool set and would walk around this list rather than through
+# it.
+
+[[rule]]
+toolName = ["read_file", "list_directory", "glob", "grep_search"]
+decision = "allow"
+priority = 500
+
+# The provider's own state directory, spelled every way it can be
+# spelled. The run points the provider's home at a throwaway directory,
+# so what these rules take away is the operator's real ~/.gemini: the
+# session transcripts of every other project the tool has been run in.
+# They are also the layer that survives a shell tool being allowed back
+# in, because run_shell_command never passes through the built-in path
+# check at all.
 #
 # argsPattern is a regex over the serialised tool arguments, applied before the provider decodes %XX escapes, resolves .. or expands a glob. A bare '\.gemini' therefore misses /home/u/%2Egemini/... and misses /home/u/.gem*/... as well; both spellings were observed reading a seeded sentinel back out of the session store.
+#
+# Still open: a symlink committed to the base revision, which the
+# provider resolves only after the policy check; a home directory that
+# is neither /home/<user> nor /Users/<user>; Windows path spellings.
 #
 # Priorities are folded into a tier band as tier + priority/1000, and a --policy file loads at the user tier, so 999 is the largest value that stays inside the band. Nothing here can outrank these without crossing into the admin band.
 #
