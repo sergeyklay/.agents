@@ -17,3 +17,41 @@
 toolName = "*"
 decision = "deny"
 priority = 999
+
+# The provider's own state directory, spelled every way it can be
+# spelled. The wildcard rule above already covers it while every tool
+# is denied; these two are what remains standing the moment a read tool
+# is allowed back in, and that moment is when the hole opens. The
+# provider's built-in path check permits exactly two things under
+# ~/.gemini - this run's own tmp/<slug> subtree and the global context
+# file - so those, and not a .gemini directory inside the checkout
+# under review, are what these rules take away.
+#
+# argsPattern is a regex over the serialised tool arguments, applied
+# before the provider decodes %XX escapes, resolves .. or expands a
+# glob. A bare '\.gemini' therefore misses /home/u/%2Egemini/... and
+# misses /home/u/.gem*/... as well; both spellings were observed
+# reading a seeded sentinel back out of the session store.
+#
+# Priorities are folded into a tier band as tier + priority/1000, and a
+# --policy file loads at the user tier, so 999 is the largest value
+# that stays inside the band. Nothing here can outrank these without
+# crossing into the admin band.
+#
+# Still open: a symlink planted in the working directory, which the
+# provider resolves only after the policy check; a home directory that
+# is neither /home/<user> nor /Users/<user>; Windows path spellings.
+
+[[rule]]
+toolName = "*"
+argsPattern = '(~|\$HOME|/home/[^/"]+|/Users/[^/"]+)/+(\.|%2[Ee]|)[Gg][Ee][Mm][Ii][Nn][Ii]'
+decision = "deny"
+priority = 999
+denyMessage = "The provider's own state directory is out of bounds."
+
+[[rule]]
+toolName = "*"
+argsPattern = '(~|\$HOME|/home/[^/"]+|/Users/[^/"]+)/[^"]*[*?[]'
+decision = "deny"
+priority = 999
+denyMessage = "Wildcards are not allowed in paths under the home directory."

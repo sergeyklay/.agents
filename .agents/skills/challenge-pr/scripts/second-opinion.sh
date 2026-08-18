@@ -116,6 +116,15 @@ run_gemini() {
         fail_soft "gemini exited $status: $(tr '\n' ' ' < "$errlog" | cut -c1-300)"
     fi
 
+    # A rule the provider refuses to compile - an unsafe regex, an
+    # unknown tool name - is dropped from the policy, reported on stderr
+    # and otherwise ignored: the run continues under whatever rules
+    # survived and still exits 0. Losing a deny rule silently is the one
+    # failure this script must not swallow.
+    if grep -q 'Policy file error' "$errlog"; then
+        fail_soft "policy rejected: $(tr '\n' ' ' < "$errlog" | cut -c1-300)"
+    fi
+
     # A denied tool call ends the run with an empty response, an error
     # field and exit 0. Findings that will not parse are therefore
     # reported as a failure, never as "the second model found nothing".
