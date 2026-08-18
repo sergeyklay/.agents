@@ -56,6 +56,11 @@ fail_soft() {
 # .project_root instead of deriving the name from the path: the
 # provider rewrites and lowercases the basename, and every other entry
 # in that store is somebody else's session.
+#
+# The provider also records the directory in its project registry.
+# That entry is left behind deliberately: it holds a path and no
+# content, and rewriting a file shared with every concurrent provider
+# process would trade litter for a lost-update race.
 gemini_cleanup() {
     workdir=$1
     [ -n "$workdir" ] || return 0
