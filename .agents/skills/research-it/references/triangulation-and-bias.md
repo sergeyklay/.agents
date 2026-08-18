@@ -149,6 +149,16 @@ Detection heuristics for content farms:
 3. **Classify surviving hits before re-asserting absence.** When the corrected search does return hits, read each one (implementation vs. CI config, changelog, code comment) before deciding whether the absence claim still holds.
 4. **Scope the claim in the output.** Report "no hits for *terms* in *canonical scope* as of *date*", never an unqualified "the project has no X". Absence claims inherit every blind spot of the search tool, such as indexing lag, file-size limits, and default-branch-only indexing.
 
+### Tool-reclassified categories
+
+**Symptom.** A query filters on a category the tool *computes* rather than one stored in the data, and returns zero. The scope is live and the pattern is correct; a default heuristic simply relabelled the matching records out of the filtered category. `git log --diff-filter=D -- <path>` is the canonical trap: rename detection is on by default and rewrites a delete+add pair in one commit as a single `R`, so every file that was moved rather than removed disappears from a `D` filter. This failure is invisible to the silent-zero defences above - the repository resolves, the pathspec matches, and a repo-wide positive control for `D` returns hits - because the instrument can see the scope perfectly well. Only the label is wrong.
+
+**Defence.**
+
+1. **Disable the heuristic and re-run.** Pass `--no-renames` alongside `--diff-filter`. If the count moves, the original zero was an artefact of the default rather than a fact about the history.
+2. **Reconcile against the sibling category.** The relabelled records must reappear where the heuristic moved them: `D` (detection on) plus `R` should equal `D` (detection off). In one repository the three counts were 3, 133 and 136 - the zero for a path-scoped `D` filter was hiding every move.
+3. **Do not accept a positive control alone here.** A control that returns hits proves the instrument can see the scope; it does not prove the filter's category means what you assume. Query the sibling filter before concluding absence - a wall of renames beside a zero for deletions is the tell.
+
 ## Calibrated uncertainty in the output
 
 The reader needs to know which parts of the output are bedrock and which parts are tentative. Use these markers consistently:

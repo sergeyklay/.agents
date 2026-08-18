@@ -3,7 +3,7 @@ name: research-it
 description: "Investigate a technical question with a detective's discipline - gathering evidence from primary sources, cross-referencing independent confirmations, and never accepting the first plausible answer. Use when asked to investigate, research, fact-check, verify, deep-dive, or 'find out the truth' about a technology, claim, system, or behaviour. Also use before any explanation of a real-world system, library, or protocol that depends on external facts. Establishes source priority, scales effort to question complexity, triangulates every implementation claim across at least two independent sources, reports conflicts between sources, and refuses to cite training data as evidence. Do NOT use for opinion questions, code generation independent of external facts, internal refactoring, or trivial lookups the user could do themselves."
 metadata:
   author: Serghei Iakovlev
-  version: "1.1"
+  version: "1.2"
   category: research
 ---
 
@@ -179,6 +179,7 @@ These are not anti-patterns of writing (those live in the `explaining-technical-
 - **Snippet summarisation.** Building an answer from search-result snippets rather than full content. Defence: fetch and read full content before citing.
 - **Silent-zero search results.** A scoped search (a `repo:`/`org:` qualifier, a `site:` filter, a path-filtered grep) returns zero hits and the zero is read as evidence of absence - but the scope identifier was stale (renamed repo, moved domain, wrong path) and the tool failed silently instead of erroring. Defence: before treating zero results as evidence of absence, resolve the scope identifier to its canonical form and run a positive control - a query that must return hits if the tool can see the scope at all.
 - **Format-assumption false negatives.** An extraction over real output (a regex or grep for an HTML tag, a JSON field, a config key) returns zero and the zero is read as absence - but the pattern encoded a wrong assumption about the output's *format*, not its content: production HTML is often minified with unquoted attributes (`name=description`), whereas a local build is pretty-printed with quotes and spacing (`name="description"`, `"description": "..."`). Defence: match format-agnostically (optional quotes and whitespace) or dump the whole element or section and read it, then run a positive control before concluding the tag or field is absent.
+- **Tool-reclassified categories.** A query filters on a category the tool *computes* rather than one stored in the data (`git log --diff-filter=D`) and returns zero - but a default heuristic silently relabelled the matching records out of the filtered category: git's rename detection rewrites a delete+add pair as a single `R`, so every file that was moved rather than removed vanishes from a `D` filter. Scope resolution and a positive control both pass here, because the instrument can see the scope perfectly well - only the label is wrong. Defence: re-run with the heuristic disabled (`--no-renames`) and reconcile the counts against the sibling category before reading any zero as absence.
 
 Detailed mitigation patterns in [references/triangulation-and-bias.md](references/triangulation-and-bias.md).
 
