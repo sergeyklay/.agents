@@ -100,21 +100,19 @@ export_checkout() {
 # run's state where the trap can reach it.
 #
 # Two files are the measured minimum: the selected authentication type,
-# and the credential store that type reads. The minimum was established
-# for an API key; the other types authenticate differently and were not
-# tested, so an unexpected type stops the run with its name rather than
-# failing somewhere inside the provider.
+# and the credential store that type reads. The type is not copied from
+# the operator's settings, because that file is rewritten by whatever
+# installs configuration and a run that inherits it degrades the moment
+# somebody else's deploy lands. It is derived from the store present on
+# disk instead, so the run states its own precondition and fails with
+# the missing store rather than with a stale choice.
 gemini_home() {
     clihome=$1
     [ -n "${HOME:-}" ] || fail_soft "HOME is not set, cannot read provider settings"
     src="$HOME/.gemini"
-    [ -f "$src/settings.json" ] || fail_soft "provider settings not found: $src/settings.json"
-
-    auth=$(jq -r '.security.auth.selectedType // empty' "$src/settings.json")
-    [ "$auth" = "gemini-api-key" ] \
-        || fail_soft "auth type '${auth:-unset}' is not one this script knows how to carry into a throwaway provider home"
+    auth=gemini-api-key
     [ -f "$src/gemini-credentials.json" ] \
-        || fail_soft "credential store not found: $src/gemini-credentials.json"
+        || fail_soft "credential store not found: $src/gemini-credentials.json; this script carries only $auth into a throwaway provider home"
 
     mkdir -p "$clihome/.gemini"
     jq -n --arg auth "$auth" '{security: {auth: {selectedType: $auth}}}' \
