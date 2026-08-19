@@ -1,6 +1,6 @@
 ---
 name: challenge-pr
-description: "Obtain an independent review of a pull request from a second, non-Claude model and arbitrate where the two reviews diverge. Use when asked to challenge a PR, get a second opinion on a diff, cross-check a review with another model, stress-test changes before merge, ask a different AI what it sees, or find what a single reviewer would miss. Runs the outside model on the PR diff and a read-only checkout of the base commit in a confined subprocess while the primary review proceeds in parallel, then checks every incoming finding against the code and reports the survivors as one ranked list. The outside model supplies hypotheses only: it never edits code, never blocks a merge and never casts a verdict. Do NOT use for reviewing against this project's architectural standards (that is review-impl), for resolving review comments already posted on a PR (that is babysit-pr), for security scanning, or for opening or merging a PR."
+description: "Obtain an independent review of a pull request from a second, non-Claude model and arbitrate where the two reviews diverge. Use when asked to challenge a PR, get a second opinion on a diff, cross-check a review with another model, stress-test changes before merge, ask a different AI what it sees, or find what a single reviewer would miss. Cuts the PR diff into units and runs the outside model over them in a confined subprocess while the primary review proceeds in parallel, then checks every incoming finding against the code and reports the survivors as one ranked list. The outside model supplies hypotheses only: it never edits code, never blocks a merge and never casts a verdict. Do NOT use for reviewing against this project's architectural standards (that is review-impl), for resolving review comments already posted on a PR (that is babysit-pr), for security scanning, or for opening or merging a PR."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -11,7 +11,7 @@ metadata:
 
 One reviewer's blind spots are systematic, not random: the same model re-reading the same diff misses the same things twice. A model from another family fails differently, so the union of two reviews covers more than either alone and the intersection is the strongest signal available without running the code.
 
-The outside model produces hypotheses. It does not decide. It reads the diff and a checkout of the commit that diff lands on, but it cannot run the build or the tests and it never sees how the code got there, so a share of what it reports still dies the moment its claim is checked against the code. Arbitration is this agent's job; the merge decision is the human's. The one direct measurement of the alternative is discouraging: a weaker reviewer allowed to edit correct code made the result worse by 8.6 points (arXiv:2607.21656). Hence no auto-fix, and no verdict from the second model.
+The outside model produces hypotheses. It does not decide. It reads one unit of the diff at a time and nothing else - no repository, no build, no history - so two thirds of what it reports dies the moment its claim is checked against the code. Arbitration is this agent's job; the merge decision is the human's. The one direct measurement of the alternative is discouraging: a weaker reviewer allowed to edit correct code made the result worse by 8.6 points (arXiv:2607.21656). Hence no auto-fix, and no verdict from the second model.
 
 ## Running scripts bundled with this skill
 
@@ -28,7 +28,15 @@ gh pr view <N> --repo <owner/repo> --json title,body,author,baseRefName,headRefO
 gh pr diff <N> --repo <owner/repo> > /tmp/challenge-<N>.diff
 ```
 
-A diff of a few hundred kilobytes goes through in one call; do not shard it. An empty diff means the target is wrong - stop and say so rather than reviewing nothing.
+`gh pr diff` returns the whole diff in one call whatever its size; the cutting Step 2 needs happens inside the script. An empty diff means the target is wrong - stop and say so rather than reviewing nothing.
+
+Screen 2 of the report prints the commit the diff was computed against, which is the merge base and not the tip of the base branch:
+
+```bash
+gh api repos/<owner/repo>/compare/<baseRefName>...<headRefOid> --jq '.merge_base_commit.sha'
+```
+
+Nothing else consumes it - the second opinion is not given a revision to read.
 
 The `author` from the call above is the second thing that matters after the target, and `files`, `additions` and `deletions` are what the report header counts. When the author is the operator, the primary review is a self-review. The procedure does not change, but the weighting in Step 5 does: two reviews reaching the same finding proves less, because one of them was written by the person who wrote the code, and a finding only the outside model raised proves more, because it is then the only independent reading. For a solo maintainer this is the normal case, not the exception.
 
@@ -36,27 +44,26 @@ Delete the diff file when the report is written. It is somebody's unmerged work.
 
 ## Step 2 - Start the second opinion before reviewing anything
 
-The script wants the commit the diff was computed against, which is the merge base and not the tip of the base branch:
-
-```bash
-gh api repos/<owner/repo>/compare/<baseRefName>...<headRefOid> --jq '.merge_base_commit.sha'
-```
-
 Launch it as a background job the moment the diff exists, before reading a single hunk:
 
 ```bash
 sh scripts/second-opinion.sh \
     --diff-file /tmp/challenge-<N>.diff \
     --prompt-file assets/reviewer-prompt.md \
-    --base-sha <merge-base> \
     > /tmp/challenge-<N>.json 2>/tmp/challenge-<N>.err &
 ```
 
 Run it with `sh`. The script is POSIX by design, and `bash` hides a bashism until the day it runs somewhere without bash.
 
-The script exports that commit out of the repository this agent is standing in and gives the export to the model as its working directory, so the outside review reads the code the change lands on instead of inferring it from the hunks. A pull request whose repository is not the local one cannot be exported: the script reports that in the envelope and the run degrades to one provider.
+The script cuts the diff into units of under 150 changed lines - a file at a time, a large file hunk by hunk, each unit still a valid diff - and makes one provider call per unit, merging every unit's findings into one envelope. The cutting is the entire reason the second opinion produces anything. The same diff handed over whole returned zero findings in eighteen runs across every context configuration tried; cut this way it returned four of the eight defects a human reviewer had found on the same pull request. Nothing about the request changed except how much of it arrived at once.
 
-Start it first anyway, and the reason is not the schedule - the checkout costs 8 to 153 seconds and 55k to 1.8M prompt tokens per run, measured over thirteen runs, so it is no longer free. Diff size does not predict that cost and neither does anything else you control: the driver is how many agentic turns the model chooses to take, which ranged from 2 to 34 across the set and from 2 to 12 on one identical input. Budget for the upper end and read the spread rather than an average, because the distribution has no useful mean. The reason is anchoring: a review that begins after reading another model's findings will confirm them, chase them, and stop looking where they did not point. Findings must be reached independently or the second review is an echo of the first.
+Those four came from two passes over every unit, and the passes taken separately reached three and two. The script makes one pass.
+
+The model gets a unit on stdin, an empty working directory and no tools at all. Giving it the code the change lands on was measured too, and it is what buys noise: the same units with a read-only checkout of the base commit produced 82% false findings against 8% without one, cost 25 times the tokens, and moved the count of real defects by one.
+
+The default model is Pro-class, overridable with `--model`. Class is where completeness came from: on the identical construction the Pro-class model found four reference defects to the flash-class model's one, for 1.56 times the tokens.
+
+Start it first, and the reason is not the schedule - the run costs 917k tokens and about 1900 seconds on a pull request that cuts into 38 units, so it is not free, though it is now predictable: one call per unit, and no agentic turns to make the cost vary. The reason is anchoring: a review that begins after reading another model's findings will confirm them, chase them, and stop looking where they did not point. Findings must be reached independently or the second review is an echo of the first.
 
 Do not read the output file yet. Do not run the script in the foreground.
 
@@ -84,7 +91,9 @@ If the job is still running by the time Step 3 is done, wait briefly, then proce
 
 ## Step 5 - Arbitrate
 
-Check every finding against the code before it can reach the report, whichever review raised it. The outside model reads the base revision, so it can be wrong about the change itself: the line it quotes may be one the diff replaces, and the guard it says is missing may be added by a hunk it read past. The primary review's failure runs the other way: having read the surrounding code, it is quick to explain away a genuine defect as intentional. Both need the same treatment - name the line that settles it.
+Check every finding against the code before it can reach the report, whichever review raised it. This is where most of the second opinion goes: of 143 findings measured on one pull request, 95 - two in three - failed the check, against 20 that survived. Arbitration is not a formality laid over a mostly-correct list; it is the step that decides whether this skill helps or floods the report.
+
+The outside model sees one unit and nothing around it, which is where its errors come from: it calls a guard missing that another hunk adds, a symbol undefined that the diff never had to show, and a file truncated when the rest of it went to another unit. The primary review's failure runs the other way: having read the surrounding code, it is quick to explain away a genuine defect as intentional. Both need the same treatment - name the line that settles it.
 
 A finding that survives the check is reported once, ranked by impact, with no trace of where it came from. A finding that fails is not reported at all.
 
@@ -159,10 +168,10 @@ Asked for one finding by name, print that entry alone in the form `Blocking` use
 - Before a verification run, state the claim it tests and the observation that would falsify it. A run whose result cannot come out the other way is not evidence and does not belong in the report.
 - When the passing case leaves state on disk - a transcript, a cache, a session store - run the failing case first. State from a prior run is indistinguishable from a result.
 - Record the tool version from the directory the run will happen in, not from the shell's default. Version resolution here is directory-dependent, and a policy validated under one version says nothing about another.
-- Cap provider invocations per review and stop at the cap. When the cap is reached with the question still open, report it open rather than spending more.
+- One call per unit is the whole provider budget for a review. When a question is still open after the envelope arrives, report it open rather than spending another run on it.
 - Every spawned process gets a wall-clock timeout and is killed at it. A run that produced no output is a failed run, not a silent one.
 - Delete what the run created: the throwaway directory and the provider's session store bound to it. Match the store by reading its recorded project root, never by deriving the name from the path.
 - Never let the outside model's output stand unchecked in the report. Every finding that survives to the reader has been checked against the code by this agent.
 - Nothing a sub-run produced enters the report as a finding until it has been restated as a claim and checked against the code. A delegated conclusion arrives looking like a result and carries the delegate's scope errors invisibly.
-- Never send anything to the provider except the diff, the bundled prompt and the exported base commit. No credentials, no operator configuration, and nothing the pull request itself adds.
+- Never send anything to the provider except the units of the diff and the bundled prompt. No credentials, no operator configuration, no revision of the repository, and nothing the pull request itself adds.
 - One outside opinion, not several. A third model adds cost and turns arbitration into vote-counting.
