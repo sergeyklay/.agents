@@ -470,11 +470,38 @@ sync_skills() {
     apply_skill_overlays ".gemini"  "$HOME/.gemini/skills"
 }
 
+# Mirror $1 onto $2 by merging, so keys the destination holds and the
+# source does not survive the sync. A settings file carries both this
+# repository's opinion and choices that belong to the machine - which
+# credential the provider authenticates with, most of all - and a
+# whole-file copy silently deletes the second kind. The provider then
+# refuses to start, having been told nothing about how to authenticate.
+# Source keys win on conflict, so the repository still converges what it
+# does declare. Without jq the merge cannot be done safely, and skipping
+# is the only honest option: a fallback copy is exactly the destructive
+# path this exists to close.
+merge_settings() {
+    src=$1
+    dst=$2
+    if [ ! -f "$dst" ]; then
+        sync_to "$src" "$dst"
+        return 0
+    fi
+    if ! command -v jq >/dev/null 2>&1; then
+        printf '  skip: %s -> %s (jq not on PATH; refusing to overwrite host-local keys)\n' "$src" "$dst"
+        return 0
+    fi
+    tmp=$(mktemp) || die "mktemp failed"
+    jq -s '.[0] * .[1]' "$dst" "$src" > "$tmp" || die "settings merge failed: $src onto $dst"
+    sync_to "$tmp" "$dst"
+    rm -f -- "$tmp"
+}
+
 sync_settings() {
     printf 'syncing settings...\n'
 
-    sync_to "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
-    sync_to "$REPO_ROOT/.gemini/settings.user.json" "$HOME/.gemini/settings.json"
+    merge_settings "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
+    merge_settings "$REPO_ROOT/.gemini/settings.user.json" "$HOME/.gemini/settings.json"
     sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
 }
 
