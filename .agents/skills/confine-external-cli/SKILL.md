@@ -92,7 +92,13 @@ The throwaway root that keeps a run from leaving state behind is also what makes
 
 The price of that independence is the entire first request, every run, at full rate. Measure it once against a deliberately fixed root to learn what the cache would have saved, then keep the per-run root anyway: a series whose runs warm each other is not a series, it is one run reported several times. Publish the spread rather than an average when the cost is driven by how many turns the tool decides to take, because that distribution has no useful mean.
 
-### 6. Reconcile against the baseline and publish the counts
+### 6. Pin what the run inherits, and fail loudly when it moves
+
+A throwaway state root closes the outbound direction only. Inbound is still wide open: the credential, the account selection, the default model and the endpoint are read out of a file in the operator's home that any deploy, any parallel session and any configuration sync may rewrite between one run and the next. A series whose runs disagree about which account they used is not a series, and the disagreement is invisible because nothing errors.
+
+Derive each inherited value from an artifact rather than copying the operator's current choice: the format of a credential store states which authentication type it can serve, so the store on disk answers the question that the settings file only records an opinion about. Where a value cannot be derived, assert it at the start of the run with both the expected and the found value in the failure message, and record every inherited value beside the results. A wrapper that copies the operator's selection inherits their next mistake.
+
+### 7. Reconcile against the baseline and publish the counts
 
 At the end, re-diff every root against the opening snapshot and state the numbers. "root A: 41 entries before, 41 after; root B: 12 before, 12 after; index hash unchanged" is a report; "cleanup ran" is not. Anything deliberately left behind is named and justified in the same breath.
 
