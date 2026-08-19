@@ -7,6 +7,14 @@
 # another branch in the case below and its own prompt file - nothing
 # else in the skill changes.
 #
+# The diff is cut into units and each unit is its own provider call;
+# the findings of every unit are merged into one envelope. Measured
+# against an eight-defect reference on one pull request: the whole diff
+# in a single call returned nothing at all, in eighteen runs across
+# every context configuration tried, while units under 150 changed
+# lines returned 143 findings, 20 of which survived a check against the
+# code and 4 of which matched a reference defect.
+#
 # Envelope, always a single JSON object:
 #   {"provider":"...","model_served":"..."|null,"findings":[...],"error":null|"..."}
 #
@@ -19,24 +27,34 @@ set -eu
 
 SCRIPT_DIR=$(CDPATH="" cd -- "$(dirname -- "$0")" && pwd)
 
+# Longest unit handed to the provider, in changed (+/-) lines. 150 is
+# the measured threshold: the same diff whole found nothing, cut this
+# way it found four of the eight reference defects. A file under the
+# threshold is one unit; a larger file is cut hunk by hunk, and a hunk
+# over the threshold into sub-hunks.
+UNIT_MAX_CHANGED_LINES=150
+
+# Model class is what completeness turned on once the diff was cut: the
+# Pro-class model found four reference defects where the flash-class
+# model found one, for 1.56x the tokens. Overridable with --model.
+MODEL=gemini-3.1-pro-preview
+
 PROVIDER=gemini
 DIFF_FILE=
 PROMPT_FILE=
-BASE_SHA=
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") --diff-file FILE --prompt-file FILE --base-sha SHA
-                        [--provider NAME]
+Usage: $(basename "$0") --diff-file FILE --prompt-file FILE
+                        [--model NAME] [--provider NAME]
 
 Obtain an independent review of a diff from a second model.
 
 Options:
-  --diff-file FILE    Unified diff to review.
+  --diff-file FILE    Unified diff to review. Cut into units of under
+                      $UNIT_MAX_CHANGED_LINES changed lines, one provider call each.
   --prompt-file FILE  Reviewer instructions and output schema.
-  --base-sha SHA      Commit the diff applies to. Exported from the
-                      repository in the current directory and handed to
-                      the model as its working directory.
+  --model NAME        Model to request (default: $MODEL).
   --provider NAME     Second-opinion provider (default: gemini).
   -h, --help          Show this help and exit.
 EOF
@@ -56,11 +74,11 @@ fail_soft() {
     exit 0
 }
 
-# Remove the throwaway root and everything the run put in it: the
-# checkout, the provider's home with the copied credential in it, and
-# the raw output. The provider keys its session stores to the directory
-# it ran in and writes them under its own home, so with that home
-# inside this root there is nothing of the run left anywhere else -
+# Remove the throwaway root and everything the run put in it: the units
+# the diff was cut into, the provider's home with the copied credential
+# in it, and the raw output. The provider keys its session stores to the
+# directory it ran in and writes them under its own home, so with that
+# home inside this root there is nothing of the run left anywhere else -
 # no tmp/<slug>, no history/<slug>, no registry entry, and no session
 # of somebody else's to tell them apart from.
 gemini_cleanup() {
@@ -69,27 +87,97 @@ gemini_cleanup() {
     rm -rf -- "$tmproot"
 }
 
-# Export the base commit into the directory the model will work in.
+# Cut the diff into units of under UNIT_MAX_CHANGED_LINES changed lines
+# and print one unit path per line, in diff order.
 #
-# The base commit, not the pull request's head: the checkout then holds
-# the code the change lands on and nothing the pull request itself
-# introduces, so a symlink or a context file added by the branch under
-# review never reaches the run.
-#
-# .git is not part of an archive to begin with. .tool-versions is
-# dropped because the provider's version resolves from the working
-# directory, and a copy of that file would silently move the run to
-# another installation. .gemini is dropped because a project-level
-# provider directory would put settings and context back into the
-# prompt this run exists to keep out of it.
-export_checkout() {
-    checkout=$1
-    archive=$2
-    git archive --format=tar -o "$archive" "$BASE_SHA" \
-        -- . ':(exclude).tool-versions' ':(exclude).gemini' 2>"$archive.err" \
-        || fail_soft "git archive failed for $BASE_SHA in $(pwd): $(tr '\n' ' ' < "$archive.err" | cut -c1-200)"
-    tar -xf "$archive" -C "$checkout" || fail_soft "could not unpack $BASE_SHA"
-    rm -f -- "$archive"
+# A unit keeps the diff --git header block of the file it came from and
+# whole @@ hunks under it, so it is a valid unified diff on its own and
+# every path and line number the model quotes is the one the caller will
+# read. A hunk that is itself over the threshold is cut into sub-hunks
+# with recomputed @@ counts. A file whose header carries no hunk at all
+# - a rename, a mode change - still becomes a unit, so no changed path
+# disappears between the diff and the calls.
+slice_diff() {
+    awk -v limit="$UNIT_MAX_CHANGED_LINES" -v outdir="$1" '
+function changed(l) {
+    if (substr(l, 1, 1) == "+") return substr(l, 1, 3) != "+++"
+    if (substr(l, 1, 1) == "-") return substr(l, 1, 3) != "---"
+    return 0
+}
+function newunit(    path, k) {
+    nunit++
+    path = sprintf("%s/u%04d.diff", outdir, nunit)
+    for (k = 1; k <= nfh; k++) print fh[k] > path
+    print path
+    return path
+}
+function parse(h,    t, p, spec, side, old, new) {
+    t = substr(h, 4)
+    p = index(t, " @@")
+    spec = substr(t, 1, p - 1)
+    tail = substr(t, p + 3)
+    split(spec, side, " ")
+    old = substr(side[1], 2)
+    new = substr(side[2], 2)
+    sub(",.*", "", old)
+    sub(",.*", "", new)
+    ostart = old + 0
+    nstart = new + 0
+}
+function flush(    i, j, k, total, path, ao, an, co, cn, pa, pb, curn, curc, c1) {
+    if (nfh == 0) return
+    total = 0
+    for (i = 1; i <= nh; i++) total += hc[i]
+    if (total < limit) {
+        path = newunit()
+        for (i = 1; i <= nh; i++) {
+            print hh[i] > path
+            for (j = 1; j <= nb[i]; j++) print hb[i, j] > path
+        }
+        close(path)
+        return
+    }
+    for (i = 1; i <= nh; i++) {
+        if (hc[i] < limit) {
+            path = newunit()
+            print hh[i] > path
+            for (j = 1; j <= nb[i]; j++) print hb[i, j] > path
+            close(path)
+            continue
+        }
+        parse(hh[i])
+        co = ostart; cn = nstart; ao = ostart; an = nstart
+        curn = 0; curc = 0; pa = 0; pb = 0
+        for (j = 1; j <= nb[i]; j++) {
+            cur[++curn] = hb[i, j]
+            c1 = substr(hb[i, j], 1, 1)
+            if (c1 == " " || hb[i, j] == "") { co++; cn++; pa++; pb++ }
+            else if (c1 == "-") { co++; pa++ }
+            else if (c1 == "+") { cn++; pb++ }
+            if (changed(hb[i, j])) curc++
+            if (curc >= limit - 10) {
+                path = newunit()
+                printf "@@ -%d,%d +%d,%d @@%s\n", ao, pa, an, pb, tail > path
+                for (k = 1; k <= curn; k++) print cur[k] > path
+                close(path)
+                ao = co; an = cn; curn = 0; curc = 0; pa = 0; pb = 0
+            }
+        }
+        if (curn > 0) {
+            path = newunit()
+            printf "@@ -%d,%d +%d,%d @@%s\n", ao, pa, an, pb, tail > path
+            for (k = 1; k <= curn; k++) print cur[k] > path
+            close(path)
+        }
+    }
+}
+/^diff --git / { flush(); nfh = 1; fh[1] = $0; nh = 0; inhunk = 0; started = 1; next }
+started != 1   { next }
+/^@@/          { nh++; hh[nh] = $0; nb[nh] = 0; hc[nh] = 0; inhunk = 1; next }
+inhunk == 0    { fh[++nfh] = $0; next }
+               { nb[nh]++; hb[nh, nb[nh]] = $0; if (changed($0)) hc[nh]++ }
+END            { flush() }
+' < "$DIFF_FILE"
 }
 
 # Build a provider home that holds nothing but what authentication
@@ -121,6 +209,70 @@ gemini_home() {
     chmod 600 "$clihome/.gemini/gemini-credentials.json"
 }
 
+# One unit, one call, and one retry before the whole envelope fails.
+# The retry is not decoration: a single call failed about four times in
+# a hundred over the measured runs, and a pull request cut into 38 units
+# would then lose four runs in five to one bad call. A unit that fails
+# twice takes the envelope down with it, because findings from the units
+# that did answer would otherwise reach the reader as a complete review
+# with an undisclosed hole in it.
+run_unit() {
+    unitfile=$1
+    label=$2
+    outfile=$3
+
+    attempt=1
+    while :; do
+        status=0
+        ( cd "$workdir" && gemini --skip-trust --policy "$policy" \
+            -m "$MODEL" -o json -p "$prompt" ) \
+            < "$unitfile" > "$raw" 2>"$errlog" || status=$?
+
+        # A rule the provider refuses to compile - an unsafe regex, an
+        # unknown tool name - is dropped from the policy, reported on
+        # stderr and otherwise ignored: the run continues under whatever
+        # rules survived and still exits 0. Losing a rule silently is
+        # the one failure this script must not swallow, and retrying is
+        # pointless because every unit loads the same policy file.
+        if grep -q 'Policy file error' "$errlog"; then
+            fail_soft "policy rejected: $(tr '\n' ' ' < "$errlog" | cut -c1-300)"
+        fi
+
+        if [ "$status" -ne 0 ]; then
+            reason="gemini exited $status: $(tr '\n' ' ' < "$errlog" | cut -c1-300)"
+        else
+            reason=
+            # A denied tool call ends the run with an empty response, an
+            # error field and exit 0. Findings that will not parse are
+            # therefore reported as a failure, never as "the second
+            # model found nothing".
+            jq -n --slurpfile raw "$raw" '
+                ($raw[0] // {}) as $r
+                | ([($r.stats.models // {}) | to_entries[]
+                    | select((.value.api.totalRequests // 0) > 0) | .key]
+                   | join(", ")) as $served
+                | (if $served == "" then null else $served end) as $model
+                | (($r.response // "")
+                    | sub("^\\s*```[a-zA-Z]*\\s*"; "")
+                    | sub("\\s*```\\s*$"; "")
+                    | (fromjson? // null)) as $parsed
+                | if ($parsed | type) == "object" and ($parsed.findings | type) == "array"
+                  then {model: $model, findings: $parsed.findings, error: null}
+                  else {model: $model, findings: [],
+                        error: ("provider returned no parseable findings"
+                                + (if ($r.error.message // "") == "" then ""
+                                   else ": " + $r.error.message end))}
+                  end
+            ' > "$outfile" || reason="provider output was not valid JSON"
+            [ -n "$reason" ] || reason=$(jq -r '.error // ""' "$outfile")
+        fi
+
+        [ -n "$reason" ] || return 0
+        [ "$attempt" -lt 2 ] || fail_soft "$label: $reason"
+        attempt=$((attempt + 1))
+    done
+}
+
 run_gemini() {
     command -v gemini >/dev/null 2>&1 || fail_soft "gemini not found on PATH"
 
@@ -130,31 +282,30 @@ run_gemini() {
     prompt=$(cat -- "$PROMPT_FILE")
 
     tmproot=$(mktemp -d) || die "mktemp failed"
-    # The home-anchored deny rules match any path under $HOME carrying a
-    # glob metacharacter, so a checkout below $HOME would silently refuse
-    # every glob and every bracketed filename a framework produces, such
-    # as a Next.js dynamic route. TMPDIR decides where mktemp lands, so
-    # refuse the run rather than inherit a policy that half-works.
-    case "$tmproot" in
-        "$HOME"/*) rm -rf -- "$tmproot"
-                   die "TMPDIR resolves under \$HOME ($tmproot); set TMPDIR outside the home directory" ;;
-    esac
     trap 'gemini_cleanup "$tmproot"' EXIT INT TERM
 
-    # The provider appends every prompt - the whole diff with it - to a
-    # plaintext session log keyed by the directory it ran in. Invoking
-    # from a throwaway checkout keeps a private diff out of any real
-    # project's history; the trap then takes the log away with it.
+    # The provider appends every prompt - every unit of the diff with it
+    # - to a plaintext session log keyed by the directory it ran in.
+    # Invoking from a throwaway directory keeps a private diff out of any
+    # real project's history; the trap then takes the log away with it.
+    # The directory stays empty: the model gets the unit on stdin and
+    # has no tool with which to read anything anyway.
     #
-    # The provider home is a sibling of that checkout rather than a
+    # The provider home is a sibling of that directory rather than a
     # directory inside it. One root still means one thing to remove if
     # the process is killed outright, but the copied credential stays
-    # outside the tree the model is allowed to read.
-    checkout="$tmproot/checkout"
+    # outside the tree the model runs in.
+    workdir="$tmproot/work"
     clihome="$tmproot/clihome"
-    mkdir -p "$checkout" "$clihome"
-    export_checkout "$checkout" "$tmproot/checkout.tar"
+    units="$tmproot/units"
+    mkdir -p "$workdir" "$clihome" "$units"
     gemini_home "$clihome"
+
+    slice_diff "$units" > "$tmproot/units.list" \
+        || fail_soft "could not cut $DIFF_FILE into units"
+    total=$(wc -l < "$tmproot/units.list")
+    [ "$total" -gt 0 ] \
+        || fail_soft "no reviewable units in $DIFF_FILE: no diff --git header found"
 
     raw="$tmproot/raw.json"
     errlog="$tmproot/stderr.txt"
@@ -168,52 +319,26 @@ run_gemini() {
     [ -n "${GEMINI_CLI_HOME:-}" ] || die "GEMINI_CLI_HOME is not set"
 
     # --skip-trust: headless runs in an untrusted directory exit 55
-    #   with empty stdout, and a fresh checkout is untrusted by
+    #   with empty stdout, and a fresh directory is untrusted by
     #   definition.
-    # --policy: denies every tool but the read-only four, see
-    #   assets/deny-tools.toml.
-    # -m names an alias the service resolves however it likes, and the
-    #   model misreports itself when asked, so the served model is read
-    #   back from the response below instead of echoed from here.
-    status=0
-    ( cd "$checkout" && gemini --skip-trust --policy "$policy" \
-        -m gemini-flash-latest -o json -p "$prompt" ) \
-        < "$DIFF_FILE" > "$raw" 2>"$errlog" || status=$?
+    # --policy: denies every tool, see assets/deny-tools.toml.
+    # -m names an alias the service may resolve however it likes, and
+    #   the model misreports itself when asked, so the served model is
+    #   read back from the response below instead of echoed from here.
+    n=0
+    while IFS= read -r unitfile; do
+        n=$((n + 1))
+        run_unit "$unitfile" "unit $n of $total" \
+            "$(printf '%s/unit-%04d.json' "$tmproot" "$n")"
+    done < "$tmproot/units.list"
 
-    if [ "$status" -ne 0 ]; then
-        fail_soft "gemini exited $status: $(tr '\n' ' ' < "$errlog" | cut -c1-300)"
-    fi
-
-    # A rule the provider refuses to compile - an unsafe regex, an
-    # unknown tool name - is dropped from the policy, reported on stderr
-    # and otherwise ignored: the run continues under whatever rules
-    # survived and still exits 0. Losing a rule silently is the one
-    # failure this script must not swallow.
-    if grep -q 'Policy file error' "$errlog"; then
-        fail_soft "policy rejected: $(tr '\n' ' ' < "$errlog" | cut -c1-300)"
-    fi
-
-    # A denied tool call ends the run with an empty response, an error
-    # field and exit 0. Findings that will not parse are therefore
-    # reported as a failure, never as "the second model found nothing".
-    envelope=$(jq -n --arg provider "$PROVIDER" --slurpfile raw "$raw" '
-        ($raw[0] // {}) as $r
-        | ([($r.stats.models // {}) | to_entries[]
-            | select((.value.api.totalRequests // 0) > 0) | .key] | join(", ")) as $served
-        | (if $served == "" then null else $served end) as $model
-        | (($r.response // "")
-            | sub("^\\s*```[a-zA-Z]*\\s*"; "")
-            | sub("\\s*```\\s*$"; "")
-            | (fromjson? // null)) as $parsed
-        | if ($parsed | type) == "object" and ($parsed.findings | type) == "array"
-          then {provider: $provider, model_served: $model,
-                findings: $parsed.findings, error: null}
-          else {provider: $provider, model_served: $model, findings: [],
-                error: ("provider returned no parseable findings"
-                        + (if ($r.error.message // "") == "" then ""
-                           else ": " + $r.error.message end))}
-          end
-    ') || fail_soft "provider output was not valid JSON"
+    envelope=$(jq -s --arg provider "$PROVIDER" '
+        ([.[].model | select(. != null)] | unique | join(", ")) as $served
+        | {provider: $provider,
+           model_served: (if $served == "" then null else $served end),
+           findings: (map(.findings) | add),
+           error: null}
+    ' "$tmproot"/unit-*.json) || fail_soft "could not merge the unit findings"
 
     printf '%s\n' "$envelope"
 }
@@ -231,9 +356,9 @@ main() {
                 PROMPT_FILE=$2
                 shift 2
                 ;;
-            --base-sha)
+            --model)
                 [ $# -ge 2 ] || die "option requires a value: $1"
-                BASE_SHA=$2
+                MODEL=$2
                 shift 2
                 ;;
             --provider)
@@ -249,10 +374,10 @@ main() {
 
     [ -n "$DIFF_FILE" ]   || die "missing required option: --diff-file"
     [ -n "$PROMPT_FILE" ] || die "missing required option: --prompt-file"
-    [ -n "$BASE_SHA" ]    || die "missing required option: --base-sha"
     [ -f "$DIFF_FILE" ]   || die "diff file not found: $DIFF_FILE"
     [ -s "$DIFF_FILE" ]   || die "diff file is empty: $DIFF_FILE"
     [ -f "$PROMPT_FILE" ] || die "prompt file not found: $PROMPT_FILE"
+    [ -n "$MODEL" ]       || die "missing value for --model"
     command -v jq >/dev/null 2>&1 || die "jq not found on PATH"
 
     case $PROVIDER in
