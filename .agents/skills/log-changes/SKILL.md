@@ -1,9 +1,9 @@
 ---
 name: log-changes
-description: "Use when asked to update the changelog, document version changes, prepare a release, or add entries for recent work. Handles CHANGELOG.md updates following Keep a Changelog format and Semantic Versioning. Do NOT use for committing or creating release notes outside CHANGELOG.md."
+description: "Use when asked to update the changelog, document version changes, prepare a release, or add entries for recent work, and when reviewing a diff or pull request that touches CHANGELOG.md. Handles CHANGELOG.md updates following Keep a Changelog format and Semantic Versioning, and the review-side check that an added bullet sits under [Unreleased] rather than under a version already published. Do NOT use for committing or creating release notes outside CHANGELOG.md."
 metadata:
   author: Serghei Iakovlev
-  version: "1.3"
+  version: "1.4"
   category: documentation
 ---
 
@@ -37,6 +37,7 @@ Use the detected values everywhere a project key, tracker URL, or GitHub URL is 
 - Adding entries for new features, fixes, or breaking changes.
 - Preparing a release: moving Unreleased entries under a versioned heading.
 - Creating CHANGELOG.md from scratch when it does not exist.
+- Reviewing a diff or pull request that touches CHANGELOG.md: a hunk header names the category, never the enclosing version.
 
 ## Workflow
 
@@ -224,6 +225,38 @@ To cut a release:
 - [ ] When an issue/task exists, the bullet references the issue/task only - not also the PR.
 - [ ] **If the project's tracker is not GitHub Issues:** no `https://github.com/OWNER/REPO/issues/NNN` links are present in the changelog.
 
+## Reviewing a CHANGELOG diff
+
+Reviewing someone else's changelog edit is not the authoring workflow run backwards. The rules above are enforced by *where the insert is anchored*, and a reviewer never sees the anchor - only the result. The result hides the one fact that decides whether the edit is legal.
+
+A unified-diff hunk header names the enclosing **category**, never the enclosing **version**:
+
+```
+@@ -76,6 +76,16 @@
+ ### Fixed
+```
+
+That reads as a plausible `### Fixed`, and it is one. It says nothing about whether the `## [x.y.z]` heading above it is `[Unreleased]` or a version shipped months ago - that heading can sit dozens of lines further up and never appear in the diff at all. The built-in markdown diff driver does not rescue this: its function-name pattern matches any heading level, so it reports the nearest `###` and not the `##`.
+
+Resolve the version yourself, one line per added hunk:
+
+```bash
+git diff -U0 "$BASE".."$HEAD" -- CHANGELOG.md \
+| sed -n 's/^@@ -[^ ]* +\([0-9]*\).*/\1/p' \
+| while read -r n; do
+    v=$(git show "$HEAD":CHANGELOG.md | awk -v n="$n" 'NR<=n && /^## \[/{h=$0} END{print h}')
+    printf '+%-6s %s\n' "$n" "${v:-<preamble>}"
+  done
+```
+
+Every hunk must resolve to `## [Unreleased]`, unless the change under review is deliberately cutting a release. A hunk resolving to a dated version is an edit to shipped history. Confirm it against what was actually published - `git tag --list`, plus the forge's release list when the project publishes releases - because a section can carry a date before anyone has shipped it, and only the tag settles the question.
+
+Two further defects travel with this one, because a bullet anchored against the wrong heading is usually drafted against the wrong neighbours too. Check all three in the same pass:
+
+- **Placement.** Every hunk resolves to `[Unreleased]`.
+- **Order.** The bullet sits at whichever end of its category the file's convention reserves for new work - the direction detected in Step 1, not the direction that looks natural.
+- **Width.** The bullet wraps to the width its new neighbours use, not the width of whatever it was drafted against.
+
 ## Error Recovery
 
 | Problem                    | Fix                                                        |
@@ -250,3 +283,4 @@ To cut a release:
 | Anchoring an edit on a bare `### Added` / `### Fixed` heading | Those headings repeat once per version, and the first match in the file usually sits inside the newest release - so the insert mutates shipped history. | Anchor on text unique to the `[Unreleased]` window, then confirm with `git diff` that no dated section moved. |
 | Rewriting an entry that was already committed | The prose was reviewed and approved by a human; a silent rewrite can drop a caveat that was accurate when written, and the diff hides it among the new work. | Append a new bullet. Report the stale wording to the user and let them decide. |
 | GitHub Issue links in changelog **when the project's tracker is not GitHub Issues** | The detected tracker is the authoritative source for task references. Adding `/issues/NNN` links is misleading and breaks over time as the GitHub Issues tab is unused. | Use tracker links for all task references; GitHub links remain only for PRs. |
+| Reading a CHANGELOG hunk header as proof of the section | The header names the category (`### Fixed`), never the enclosing version, so a bullet inserted into a shipped release reviews as clean. | Resolve each added hunk's line number to the nearest preceding `## [` heading and require `[Unreleased]`. |
