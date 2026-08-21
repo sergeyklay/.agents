@@ -211,7 +211,9 @@ This prohibition is absolute and has no exceptions:
 - Do NOT share your analysis, reasoning, plans, or rationale with the reviewer.
 - Do NOT explain why you accepted or rejected a suggestion.
 - Do NOT evaluate or react to the quality of the review.
-- Do NOT use any CLI or API call that writes to the PR (comments, reviews, reactions, resolutions, marking-as-outdated).
+- Do NOT use any CLI or API call that writes to a review surface (comments, reviews, reactions, thread resolutions, marking-as-outdated, locking the conversation).
+
+The prohibition covers what reaches the reviewer, not the pull request itself. Merging, closing, reopening, marking ready and updating the branch are lifecycle operations: this protocol never performs one on its own initiative, and when the operator explicitly instructs one, carry it out - Step 5 is not a reason to refuse a direct instruction.
 
 Before producing the Step 6 summary, confirm you have not executed any of the forbidden operations. All reasoning, all evidence, all decisions belong in the summary for the human operator - not in the PR thread.
 
