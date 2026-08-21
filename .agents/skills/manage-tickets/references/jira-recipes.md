@@ -65,6 +65,20 @@ jq '(if (.issues|type)=="array" then .issues else .issues.nodes end)[]
     | {key, status: .fields.status.name, type: .fields.issuetype.name, summary: .fields.summary, parent: .fields.parent.key}' <persisted-file>
 ```
 
+### Key-range bounds and other silently empty predicates
+
+A JQL predicate that references an issue key which does not exist matches nothing and reports success. `key <= {KEY}-400` on a project whose highest key is `{KEY}-398` returns zero rows with no error, no warning, and no hint that the bound was the problem rather than the data.
+
+The trap survives the obvious check. A positive control over a range that *does* exist - `key >= {KEY}-13 AND key <= {KEY}-23` - returns rows, so the instrument looks healthy and the tool looks correctly scoped. It is; the bound is what is wrong, and nothing in the response distinguishes "no issues match" from "one endpoint of your range is fictional".
+
+Sequential keys also lie about coverage. Keys are allocated across a site, not densely per project, and a project can be missing whole runs of numbers, so a range that looks contiguous need not cover what you assume it covers.
+
+Defence, in order of cost:
+
+1. **Do not bound by a key you have not confirmed exists.** Resolve the endpoint first with `getJiraIssue`, or bound by a field that cannot be fictional - `created`, `updated`, `resolutiondate`, `statusCategory`, `parent`.
+2. **Reconcile subset arithmetic against the whole.** When a result set is split into buckets to fit the output limit, the bucket totals must sum to a `searchResultMode: "count"` call over the unbucketed query. A shortfall is the tell: in one sweep the buckets summed to 45 against a known 61, and only that arithmetic exposed the dead bound.
+3. **Treat a single positive control as insufficient here.** It proves the tool can see the project. Only the reconciliation in step 2 proves the predicate covered it.
+
 ### Single ticket
 
 Tool: `getJiraIssue`
