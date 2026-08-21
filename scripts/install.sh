@@ -501,6 +501,7 @@ sync_settings() {
     printf 'syncing settings...\n'
 
     merge_settings "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
+    sync_to "$REPO_ROOT/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
     merge_settings "$REPO_ROOT/.gemini/settings.user.json" "$HOME/.gemini/settings.json"
     sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
 }
