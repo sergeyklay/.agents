@@ -453,21 +453,24 @@ apply_skill_overlays() {
     done
 }
 
+# Mirror the skill tree into every registered destination, pairing each
+# mirror with its own frontmatter overlay pass.
 sync_skills() {
     printf 'syncing skills...\n'
 
     sync_to "$REPO_ROOT/.agents/skills" "$HOME/.claude/skills"
+    apply_skill_overlays ".claude" "$HOME/.claude/skills"
+
     # Codex preserves .system/ and other Codex-managed dot entries.
     sync_to "$REPO_ROOT/.agents/skills" "$HOME/.codex/skills" --exclude='.*'
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills"
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills"
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills"
 
-    # Per-vendor SKILL.md frontmatter overlays. Codex and OpenCode are
-    # excluded until their hook-frontmatter dialect is known to match.
-    apply_skill_overlays ".claude"  "$HOME/.claude/skills"
+    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills"
     apply_skill_overlays ".copilot" "$HOME/.copilot/skills"
-    apply_skill_overlays ".gemini"  "$HOME/.gemini/skills"
+
+    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills"
+    apply_skill_overlays ".gemini" "$HOME/.gemini/skills"
+
+    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills"
 }
 
 # Mirror $1 onto $2 by merging, so keys the destination holds and the
