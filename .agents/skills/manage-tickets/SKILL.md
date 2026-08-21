@@ -3,7 +3,7 @@ name: manage-tickets
 description: "Create, edit, search, transition, close, and triage Jira tickets via the Atlassian MCP. Use when asked to file a bug, request a feature, create a task, log a defect, search the backlog, triage findings into the tracker, edit ticket fields, transition status, or manage Jira work items. Also use when the user says 'create a Jira issue', 'file a bug', 'open a ticket', 'add to backlog', 'search Jira', 'close ticket', 'move to Done', or names any Jira issue key (e.g. 'PROJ-123'). Handles type discovery, parent linking, label assignment, duplicate detection via JQL, status transitions, and issue-link creation. Defers all field-content formatting to the `jira-syntax` skill. Do NOT use for pull requests, changelog entries, non-Jira trackers (GitHub Issues, Linear, GitLab), or managing local TODO.md."
 metadata:
   author: Serghei Iakovlev
-  version: "1.4"
+  version: "1.5"
   category: roadmap
 ---
 
@@ -90,6 +90,21 @@ ORDER BY created DESC
 - **Exact duplicate.** Stop. Report the existing ticket key.
 - **Partial overlap.** Mention the related ticket. Ask whether to proceed.
 - **No match.** Proceed.
+
+### Proportionality check
+
+A ticket is a durable artifact with a cost of its own: the prose to write it, and the re-derivation a future reader faces because the context that produced it is gone. When the change it would request is smaller than that cost, the ticket is the more expensive half of the transaction.
+
+Weigh both sides before creating:
+
+- **The fix.** Is the whole change a small, local edit whose correctness is evident from the diff, inside code the current work already touches, and covered by the checks that work already runs?
+- **The ticket.** How much of the body would restate context that exists only right now, and how much re-derivation does a future reader inherit?
+
+When the fix is clearly the cheaper half, do not create it. Propose the edit instead: name the file and lines, state the change in a sentence or two, give the cost comparison that justifies doing it now, and **ask the user for approval, then wait.** On approval, apply the edit under the boy-scout principle - leave the code better than you found it - and report it as applied rather than filed. On refusal or silence, create the ticket as normal.
+
+Never self-approve this path. The approval is what makes the edit part of the requested work instead of unrequested scope, which is the distinction a surgical-changes convention turns on.
+
+Cheapness alone does not admit an edit. Create the ticket regardless of size when the change would alter behaviour a user notices, touch a security boundary, require a decision the agent cannot make, or reach code the current work does not already touch.
 
 ## Create
 
@@ -189,6 +204,7 @@ Links:
 
 MCP invocations for these three operations are catalogued in [references/jira-recipes.md](references/jira-recipes.md). Load that file when the user asks to find, modify, or transition a ticket. For broad searches over a populated project, follow the "Querying large projects without overflowing tool output" recipe in that file: pass narrow `fields`, cap `maxResults`, and avoid whole-project `ORDER BY` dumps. The rules below are policy and bind regardless of which recipe is used:
 
+- **Search.** A JQL predicate that names an issue key which does not exist is not an error - it silently matches nothing. A bound like `key <= {KEY}-400` on a project whose highest key is `{KEY}-398` returns zero rows, and a positive control over a range that does exist still passes, so the query looks healthy. Never bound a search by a key you have not confirmed exists, and when a result set is split into buckets, reconcile the bucket totals against a `searchResultMode: "count"` call over the unbucketed query before reporting any of them.
 - **Edit.** Read current state via `getJiraIssue` before destructive edits (body replacement, label replacement, type change). Confirm destructive edits with the user before executing. Pass only the changing fields - do not resend unchanged fields.
 - **Transition.** Match the user's intent ("close", "done", "in progress", "in review") to a transition name returned by `getTransitionsForJiraIssue`; transition IDs vary per project workflow. After transitioning, verify the new status via `getJiraIssue`.
 - **Linking.** Use `getIssueLinkTypes` to confirm the type name and read its `inward`/`outward` labels. For "Blocks", `inwardIssue` is the blocker and `outwardIssue` is the blocked: a link created with `inwardIssue` = X and `outwardIssue` = Y renders in the UI as "Y is blocked by X". The `inward`/`outward` field names are not self-evident, so do not reason direction out from them - confirm against the type's own labels, and after creating any directional link verify orientation by re-reading one endpoint via `getJiraIssue` and inspecting `issuelinks`, or by checking the rendered relationship in the UI. This MCP exposes no delete-issue-link tool: a wrong-direction link succeeds silently and cannot be removed programmatically, so get direction right before the call and flag any stray link id for the user to delete manually. If the link fails, report the ticket as created and the link as pending - do not delete the ticket to retry from scratch.
@@ -223,6 +239,7 @@ Before executing `createJiraIssue`, verify:
 - [ ] Chosen type appears in `getJiraProjectIssueTypesMetadata`
 - [ ] Required custom fields from `getJiraIssueTypeMetaWithFields` are filled
 - [ ] Duplicate check performed (JQL keyword search)
+- [ ] Proportionality weighed: filing costs less than the change it requests, or the cheaper edit was proposed and approved
 - [ ] Title: imperative, ≤ 80 chars, no trailing period, no `[type]` prefix, code identifiers backtick-wrapped
 - [ ] Body matches the type's template; bracketed sections dropped if empty
 - [ ] Requirements present for Bug and Story, in MUST / MUST NOT form

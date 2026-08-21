@@ -23,7 +23,7 @@ Copy this block verbatim. Fill every section. Write `_(none)_` as the body of an
 
 ### Applied (N comments)
 
-- **[@reviewer, file:line]** - What was changed and why. C7 validation: {row # or N/A}.
+- **[@reviewer, file:line]** - What was changed and why. C7 validation: {row # or N/A}. When the edit was admitted by the proportionality step instead of being filed, say so and name the approval.
 
 ### Deferred to Backlog (N comments)
 
@@ -56,6 +56,7 @@ Copy this block verbatim. Fill every section. Write `_(none)_` as the body of an
 - **File:line citations are mandatory** for every entry except comments explicitly classified as "general feedback" in Step 3.
 - **Internal tags like `[C7-REQUIRED]` MUST NOT appear.** They are working annotations for Steps 2 and 3 only. A tag leaked into the summary is a protocol violation.
 - **No reviewer-facing language.** Write as a maintainer reporting to themselves. Avoid phrasing like "we should tell the reviewer that…" - the reviewer never reads this.
+- **An edit admitted by proportionality is reported under Applied, not Deferred**, and names the human's approval. Without that approval it does not belong in the summary at all, because it should not have been made.
 - **Every Deferred entry MUST name a ticket reference.** Use the exact form `{ticket reference} (created via discovered skill)`, `{ticket reference} (created via manual fallback)`, or `{ticket reference} (existing)`. The ticket reference is whatever the project's tracker uses - `#42`, `ABC-123`, a Linear `ENG-1234` URL slug, etc. **The phrase "not added" is forbidden in this section** - a Deferred entry without a ticket is a misclassification and must be moved to Rejected (Category 5, when architecture forbids the work) or Needs Discussion (Category 7, when no roadmap lane fits or the create operation failed).
 - **Deferred entries note the creation path.** When a sibling skill handled the create operation, name the discovery ("via discovered skill"); when manual fallback was used, name that ("via manual fallback"). The human operator needs to know which path was taken to verify against project conventions.
 - **Evidence log is complete.** Every `[C7-REQUIRED]` comment from Step 2a must have a row. Use N/A in the Verdict column only for comments that turned out not to make a library claim after all.

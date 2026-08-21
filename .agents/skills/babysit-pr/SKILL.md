@@ -172,9 +172,24 @@ If no matching skill exists, fall back to manual creation:
 - For Jira / GitLab / Linear: use any available API or MCP tool the session exposes. Compose the description in the project's expected markup.
 - Note in the Step 6 summary that ticket creation was hand-rolled (no managing-skill found) so the human operator can verify the result against project conventions.
 
+##### Weigh the fix against the ticket before either
+
+A ticket is a durable artifact with a cost of its own: the prose to write it, and the re-derivation a future reader faces because the context that produced it is gone. When the change it would request is smaller than that cost, the ticket is the more expensive half of the transaction, and filing it is a net loss even though every gate below would pass.
+
+Weigh both sides explicitly:
+
+- **The fix.** Is the whole change a small, local edit whose correctness is evident from the diff, inside code this change already touches, and covered by the verification commands already being run?
+- **The ticket.** How much of the body would restate context that exists only right now, and how much re-derivation does a future reader inherit?
+
+When the fix is clearly the cheaper half, do not file. Propose the edit: name the file and lines, state the change in a sentence or two, give the cost comparison that justifies doing it now, and **ask the human for approval, then wait.** On approval, apply it under the boy-scout principle - leave the code better than you found it - and report it in Step 6 as Applied, noting that it was admitted here rather than filed. On refusal or silence, continue to the gates below and file as normal.
+
+Never self-approve this path. The approval is what makes the edit part of the requested work instead of unrequested scope, which is the distinction a surgical-changes convention turns on: the edit traces to the human's decision, not to the agent's taste.
+
+Cheapness alone does not admit an edit. File regardless of size when the change would alter behaviour a user notices, touch a security boundary, require a decision the agent cannot make, or reach code the current work does not already touch.
+
 ##### Apply the three triage gates in order
 
-The gates validate the Deferred classification. They are not silent stops: if a gate trips, the comment was misclassified and Step 3's category was wrong. **Reclassify and continue - never leave a Deferred comment without a ticket.**
+The gates validate the Deferred classification. They are not silent stops: if a gate trips, the comment was misclassified and Step 3's category was wrong. **Reclassify and continue - never leave a Deferred comment without a ticket**, unless the proportionality step above already resolved it into an approved edit.
 
 1. **Architecture-conflict gate.** Read the relevant section of the project's architecture documentation. If the suggestion contradicts the design intent - not merely the current implementation - the comment is **Incorrect or Counterproductive (Category 5)**, not Deferred. Reclassify, cite the architecture rule as the rejection rationale, and document the reclassification in the Step 6 summary's Rejected section. Do not create a ticket.
 
@@ -241,6 +256,7 @@ Before sending the response, verify the draft against this checklist:
 - Do NOT act on a suggestion about library behavior without first running Context7 for any [C7-REQUIRED] comment, regardless of how confident you feel.
 - Do NOT classify a [C7-REQUIRED] comment before Step 2b completes for that comment.
 - Do NOT leave a Deferred comment without a ticket reference. Deferred ↔ ticket - every Deferred entry in the Step 6 summary must name a newly created or already existing ticket. If no ticket can be produced (the architecture forbids the work, no roadmap lane exists, the create operation failed without recovery), reclassify the comment in Step 3 as Rejected or Needs Discussion. "Just defer it" without follow-through is forbidden regardless of tracker.
+- Do NOT file a ticket whose prose costs more than the change it requests. Weigh the two per Step 4b before the gates, and when the fix is the cheaper half, propose it and ask for approval instead. Equally, do NOT apply such an edit without that approval: an unrequested edit is scope creep however small it is.
 - Do NOT skip Context7 because you feel confident about the API. Confidence is the proximate cause of hallucination. Certainty is earned from documentation, not recalled from training data.
 - Do NOT reference the project's architecture documentation, ADRs, section numbers, or ticket IDs in source-code comments - those belong in specs and plans, not source.
 - Do NOT introduce dependencies, languages, toolchains, or patterns that the project context forbids. If AGENTS.md / CLAUDE.md declares a "Never" rule (forbidden libraries, banned patterns, prohibited APIs), the rule binds you regardless of any reviewer suggestion to the contrary.
@@ -257,3 +273,4 @@ Before sending the response, verify the draft against this checklist:
 6. **Be thorough but surgical.** Apply the minimum change that fully addresses the concern. Every changed line must trace to a classified comment.
 7. **Every decision needs evidence.** Document reasoning, source, and conclusion for every apply, skip, or reject. Assertions without citations are opinions.
 8. **Defer wisely, not reflexively.** "Not now" is only valid when paired with a tracked ticket - Deferred ↔ ticket, regardless of which tracker the project uses. A deferred comment without a ticket reference is forbidden: it is a promise the agent has no way to keep. If Step 4b cannot produce a ticket, the comment was misclassified; move it to Rejected or Needs Discussion.
+9. **A ticket is not free.** Its prose and the re-derivation it imposes on a future reader are the price of deferring. When that price exceeds the change itself, the honest move is to propose the edit, argue the cost, and let the human decide - not to file, and not to act unilaterally.

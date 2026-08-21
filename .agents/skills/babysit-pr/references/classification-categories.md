@@ -34,6 +34,8 @@ This reference expands the seven-category classification table in SKILL.md with 
 
 **Hard rule. Deferred ↔ ticket.** A comment is only Category 2 if Step 4b can produce a ticket reference for it - newly created or already existing. A Deferred classification without a ticket reference is forbidden, regardless of which tracker the project uses. If Step 4b's gates prevent creation, the comment was misclassified and belongs in Category 5 (Incorrect, when the architecture conflicts) or Category 7 (Needs Discussion, when no appropriate roadmap lane exists or creation failed without recovery in this session).
 
+**Proportionality.** Category 2 also requires that the ticket be worth more than the change it requests. When the fix is a small local edit inside code this change already touches, and the ticket's prose plus the re-derivation it imposes on a future reader would cost more than simply making it, the comment is not Deferred: Step 4b proposes the edit, asks the human, and on approval it becomes Category 1. Filing in that situation trades a cheap edit for an expensive artifact. This is a judgement about cost, not about severity - a change that alters behaviour a user notices, touches a security boundary, or needs a decision the agent cannot make is filed however small it looks.
+
 **Preconditions.**
 
 - The concern is real (Context7 or architecture confirms it, or logic supports it).
@@ -43,6 +45,8 @@ This reference expands the seven-category classification table in SKILL.md with 
 **Action.** Trigger tracker triage per SKILL.md Step 4b - discover the project's tracker and any sibling skill that manages it, then apply the three gates. The end state of Step 4b is a ticket reference (newly created or pre-existing) recorded in the Step 6 summary. If no ticket reference can be produced, the comment is not Deferred.
 
 **Boundary versus Subjective.** A Deferred concern has an objective basis and will eventually be addressed. A Subjective concern has no objective basis and will never be addressed. Do not route real improvements through Subjective to avoid the triage work.
+
+**Boundary versus Category 1.** Deferring is not the safe default for anything real but small. A concern whose fix is cheaper than its ticket belongs in Category 1 once the human approves it, and reaching for Category 2 to avoid asking converts a two-line edit into a roadmap item nobody scheduled.
 
 **Worked example.** Reviewer writes: "The retry loop should back off exponentially on repeated upstream failures, not retry at a fixed interval." The project's architecture agrees adaptive backoff is the long-term direction, but the current spec defines fixed-interval retry, and the change would ripple across multiple call sites. → Valid - Deferred. Open a refactor ticket under the closest-fitting milestone or epic, citing the architecture section that needs to evolve first.
 

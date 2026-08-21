@@ -96,6 +96,21 @@ gh issue list --search "<keywords>" --state all --limit 20 \
 - **Partial overlap.** Mention the related issue. Ask whether to proceed.
 - **No match.** Proceed.
 
+### Proportionality check
+
+A issue is a durable artifact with a cost of its own: the prose to write it, and the re-derivation a future reader faces because the context that produced it is gone. When the change it would request is smaller than that cost, the issue is the more expensive half of the transaction.
+
+Weigh both sides before creating:
+
+- **The fix.** Is the whole change a small, local edit whose correctness is evident from the diff, inside code the current work already touches, and covered by the checks that work already runs?
+- **The issue.** How much of the body would restate context that exists only right now, and how much re-derivation does a future reader inherit?
+
+When the fix is clearly the cheaper half, do not create it. Propose the edit instead: name the file and lines, state the change in a sentence or two, give the cost comparison that justifies doing it now, and **ask the user for approval, then wait.** On approval, apply the edit under the boy-scout principle - leave the code better than you found it - and report it as applied rather than filed. On refusal or silence, create the issue as normal.
+
+Never self-approve this path. The approval is what makes the edit part of the requested work instead of unrequested scope, which is the distinction a surgical-changes convention turns on.
+
+Cheapness alone does not admit an edit. Create the issue regardless of size when the change would alter behaviour a user notices, touch a security boundary, require a decision the agent cannot make, or reach code the current work does not already touch.
+
 ## Create
 
 ### Body rules
@@ -214,6 +229,7 @@ Before executing `gh issue create`, verify:
 - [ ] Taxonomy fetched this session (or cache is under 24h old)
 - [ ] `ISSUES_ENABLED: true`
 - [ ] Duplicate check performed
+- [ ] Proportionality weighed: filing costs less than the change it requests, or the cheaper edit was proposed and approved
 - [ ] Title: imperative, under 80 chars, no trailing period
 - [ ] Issue type assigned via GraphQL `updateIssue` if `ISSUE_TYPES` is configured (else skipped)
 - [ ] At least one label from taxonomy, following the detected convention
