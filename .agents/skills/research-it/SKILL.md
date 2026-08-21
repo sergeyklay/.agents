@@ -3,7 +3,7 @@ name: research-it
 description: "Investigate a technical question with a detective's discipline - gathering evidence from primary sources, cross-referencing independent confirmations, and never accepting the first plausible answer. Use when asked to investigate, research, fact-check, verify, deep-dive, or 'find out the truth' about a technology, claim, system, or behaviour. Also use before any explanation of a real-world system, library, or protocol that depends on external facts. Establishes source priority, scales effort to question complexity, triangulates every implementation claim across at least two independent sources, reports conflicts between sources, and refuses to cite training data as evidence. Do NOT use for opinion questions, code generation independent of external facts, internal refactoring, or trivial lookups the user could do themselves."
 metadata:
   author: Serghei Iakovlev
-  version: "1.2"
+  version: "1.3"
   category: research
 ---
 
@@ -144,12 +144,37 @@ When you hand a sub-question to a subagent, a research tool, or another model, w
 
 This is more dangerous than tier 7, not less. Training data at least announces itself as memory. A delegated answer arrives wearing the costume of a research result - structured, confident, often carrying citation-shaped strings - and inherits credibility it never earned.
 
+**A retrieval tool that answers instead of returning is a delegate too, and it does not announce itself as one.** Read the contract of every fetch tool before treating its output as "the page". A tool whose own description says it converts a page and *answers a prompt against it* with a small fast model hands you a reader's answer, not the document. That is the same laundering as a subagent, one layer lower and far easier to miss, because it arrives in the slot where you expected primary evidence.
+
+The dangerous output shape is the confident negative. The summariser saw one page; the grammar of its answer is about the world. Asked whether a reviewer needs test-account credentials, a fetch of an overview page on access justification answered "Google reviewers do not require test account credentials. Instead, developers must provide a demonstration video." The requirement lives on a sibling leaf page, which reads "We are unable to log in and test your application" and "We require authorized login credentials to access the application" (`support.google.com/cloud/answer/13807382`, fetched 2026-08-19). Nothing on the page the tool read was false. The page simply did not carry the fact, and the summariser converted that silence into an absence.
+
+The existing defences do not catch this, which is why it needs its own rule. **Snippet summarisation** tells you to read whole pages, and this error happens *while obeying it*. The silent-zero defences all pass: the URL resolves, the source is first-party, a positive control over that page succeeds. Instrument and scope are both healthy; only the reader's reach is bounded.
+
+Five rules, applied whenever a retrieval tool answers rather than returns:
+
+1. **A negative never leaves its page.** Write "`<url>` does not cover X", never "X is not required". The scope of the claim is the scope of the document actually read.
+2. **Ask for extraction, not for a verdict.** Request verbatim quotes, the page's section headings, and its outbound links. A quote survives the summariser; a judgement is manufactured by it.
+3. **Go to the leaf page.** A hub or overview page structurally cannot carry the enumeration, the threshold table, or the level definitions. Its silence about them is a property of its genre, not evidence about the subject.
+4. **A positive control proves the page, not the claim.** Confirming the fetch returned something real says nothing about whether that page was ever supposed to carry the fact you are chasing.
+5. **Publish a categorical negative only after reading the page that would have to carry the fact.** If you cannot name that page, you do not have the negative - you have one document's silence.
+
 Treat the delegate's output as a map of where to look, then read the primary sources it points at. Two cases demand this before you write a word of the answer:
 
 - **A categorical claim**, especially a categorical negative ("X is not supported", "there is no way to Y"). Absolutes are where an over-generalisation hides, and a delegate that conflated two adjacent concepts will state the merged conclusion with full confidence.
 - **Any claim the answer's structure depends on.** If the recommendation changes when the claim is false, verify it yourself.
 
 When a delegate's conclusion turns out wrong, report that too. "A first pass suggested X; the primary source says Y" tells the reader something real about how firm the ground is.
+
+### The brief that reached you is not a source either
+
+The delegation rule has a mirror. Context handed *down* to you - a task description, a "background" section, an issue body, a paragraph of framing in the prompt - is a set of claims, not evidence. It was written by someone who had not yet read the sources, often before the question was fully understood. It arrives carrying the authority of an instruction and none of the provenance of a source.
+
+Two shapes cost the most:
+
+- **A named artefact presented as authoritative.** "Per the design doc at `<path>`" invites you to treat the file as settled. A document can be superseded, rejected, or never ratified and still sit on disk as the best keyword match for the topic. Check its status before its content, and check whether anything later contradicts it.
+- **A premise welded into the question.** "Why does X do Y?" asserts that X does Y. Answering the question as asked ratifies the premise silently, and the answer is then unfalsifiable in the one place it was wrong. Confirm that X does Y before explaining why.
+
+Report three verdicts, not two: **true**, **false**, and **true only under condition C**. The third is the one that survives review and breaks in production, and it stays invisible unless you look for it - a binary check finds the premise "supported" and stops. When a premise turns out false or conditional, say so before answering from it, and say what the correction changes about the answer.
 
 ## Effort scaling - quick reference
 
@@ -177,6 +202,8 @@ These are not anti-patterns of writing (those live in the `explaining-technical-
 - **Anchoring on the first plausible source.** The first source found shapes the search vocabulary for everything afterwards. Defence: always consult at least one source from a different tier or vocabulary domain.
 - **Laundering a delegated conclusion into a fact.** A subagent or research tool returns a confident, well-formatted verdict, and it enters the answer as though it were sourced - often because it *looks* more like a research result than a raw page does. The delegate's own conflations and scope errors travel with it, invisibly. Defence: treat every delegated conclusion as an unverified claim, and check categorical statements and load-bearing claims against the primary source yourself before citing them.
 - **Snippet summarisation.** Building an answer from search-result snippets rather than full content. Defence: fetch and read full content before citing.
+- **Summariser-bounded negatives.** A retrieval tool that answers a prompt against a page rather than returning the page reports "X is not required" when the page it read merely did not mention X. The reader's scope was one document; the grammar of its answer is the world. Every silent-zero defence passes - the URL resolves, the source is first-party, a positive control over that page returns content - because instrument and scope are both fine and only the reader's reach is bounded, so this needs its own check. Defence: ask for verbatim quotes, section headings and outbound links instead of a verdict; keep the negative attached to its URL ("`<url>` does not cover X"); go to the leaf page, since a hub cannot carry an enumeration; and treat a categorical negative as unpublishable until you have read the page that would have to carry the fact.
+- **Inherited premises treated as given.** The task's own framing - a background paragraph, an issue body, a named artefact - enters the investigation as settled fact because it arrived as an instruction rather than as a source. A premise welded into the question ("why does X do Y?") is ratified by any answer that addresses it, and a cited document can be superseded and still be the best match on disk. Defence: verify the premise before answering from it, check an artefact's status before its content, and report the conditional verdict ("true only when C") rather than collapsing it to true or false.
 - **Rendered-page omissions.** A vendor's documentation page loads in full and simply lacks the field, enum value or list the product has - no error, no truncation marker. Unlike a silent zero the instrument is healthy and the scope is right, so reading the page harder cannot recover what it never carried. Defence: the rendered page is the last source, not the first. Work down the machine-readable originals - the published OpenAPI description (curl to disk and grep locally; a condensing fetch tool drops what you came for), the GraphQL schema by introspection or published SDL, then the docs repository's raw markdown, searching the fragments a page includes and not just the page file, since enumerated lists usually live in a fragment. Prove each rung before trusting its zero: grep the artifact for something you know it contains.
 - **Silent-zero search results.** A scoped search (a `repo:`/`org:` qualifier, a `site:` filter, a path-filtered grep) returns zero hits and the zero is read as evidence of absence - but the scope identifier was stale (renamed repo, moved domain, wrong path) and the tool failed silently instead of erroring. Defence: before treating zero results as evidence of absence, resolve the scope identifier to its canonical form and run a positive control - a query that must return hits if the tool can see the scope at all.
 - **Format-assumption false negatives.** An extraction over real output (a regex or grep for an HTML tag, a JSON field, a config key) returns zero and the zero is read as absence - but the pattern encoded a wrong assumption about the output's *format*, not its content: production HTML is often minified with unquoted attributes (`name=description`), whereas a local build is pretty-printed with quotes and spacing (`name="description"`, `"description": "..."`). Defence: match format-agnostically (optional quotes and whitespace) or dump the whole element or section and read it, then run a positive control before concluding the tag or field is absent.

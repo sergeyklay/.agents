@@ -138,6 +138,24 @@ Detection heuristics for content farms:
 
 **Defence.** Fetch and read full pages before citing. If full content is not available (paywalled, deleted, hostile bot detection), explicitly note this - do not silently substitute a snippet.
 
+### Summariser-bounded negatives
+
+**Symptom.** A retrieval tool returns a clean, confident negative - "X is not required", "the API has no Y" - and it enters the answer as a fact about the subject. But the tool did not return the page; it *answered a prompt against* the page with a small model. The reader's evidence was one document. The grammar of its answer was the world.
+
+This is not the snippet trap. It happens **while obeying** the rule against snippets: a full page was fetched and read end to end. It is also invisible to the silent-zero defences - the URL resolves, the source is first-party, and a positive control over that page returns real content. Instrument and scope are both healthy. What is bounded is the reach of a reader you cannot inspect, and the tool has no way to say "this page does not discuss that" instead of "that is not so".
+
+Observed instance: a fetch of a vendor's overview page on access justification answered that reviewers "do not require test account credentials" and want a demonstration video instead. The sibling leaf page on in-app testing says "We are unable to log in and test your application" and "We require authorized login credentials to access the application". The overview page contained nothing false. It simply never addressed the question, and the summariser reported that silence as an answer.
+
+Hub pages make this systematically worse. An index, an overview, or a landing page structurally cannot carry an enumeration, a threshold table, or a set of level definitions - those live on leaves. Asking a hub a leaf question guarantees a bounded reader, and the tool will still answer.
+
+**Defence.**
+
+1. **Read the tool's contract before trusting its output as a document.** If the description says it converts a page and answers a prompt against it with a small or fast model, it is a delegate. Treat its output as a claim to verify, exactly as with a subagent.
+2. **Ask for extraction, not adjudication.** Request verbatim quotes matching the terms in question, the page's section headings in order, and its outbound links. Quotes survive the summariser; verdicts are manufactured by it. The headings and links also tell you which leaf to fetch next.
+3. **Bound the negative to its URL in your own notes and in the output.** Write "`<url>` does not cover X as of `<date>`", never "X is not required". A negative that has left its page cannot be audited by the reader and cannot be corrected by the next fetch.
+4. **Chase the negative to the page that would have to carry the fact.** Name that page before publishing any categorical negative. If you cannot name it, you do not have a negative - you have one document's silence, which is a different and much weaker thing.
+5. **Do not let a positive control launder the claim.** A control proves the fetch reached a live page with real content. It says nothing about whether that page was ever the right one. The control to run here is the leaf-page fetch in step 4, not a re-query of the same URL.
+
 ### Silent-zero search results
 
 **Symptom.** A scoped search returns zero results, and the zero is cited as evidence of absence ("the project has no X anywhere in its codebase"). But the scope identifier was stale, and the tool reported the dead scope as an empty result rather than an error. GitHub code search is the canonical trap: for a repository that has been renamed or transferred, `search/code?q=repo:old-owner/name+term` returns `total_count: 0` with no error and no redirect notice - while `GET /repos/old-owner/name` follows the rename silently, so a spot-check against the repo appears to confirm the search scope was alive. Re-running the search with different terms returns more zeros, which feels like triangulation but is the same broken instrument consulted twice: instrument-level failures are perfectly correlated across queries.
