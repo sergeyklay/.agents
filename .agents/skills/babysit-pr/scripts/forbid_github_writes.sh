@@ -46,6 +46,12 @@ while [ "$i" -lt 2 ]; do
     i=$((i + 1))
 done
 
+# Command-position view: blank quoted string literals so a command that is
+# only *named* inside an argument is not read as an invoked one. Used by the
+# subcommand rules alone - the body-content rules below must still see inside
+# quotes (a GraphQL mutation lives in `-f query='mutation {...}'`).
+cmdpos=$(printf '%s' "$norm" | sed -E "s/'[^']*'/''/g; s/\"[^\"]*\"/\"\"/g")
+
 verdict=""
 write_method='(--method|--request|-X)[[:space:]]+(POST|PATCH|PUT|DELETE)\b'
 get_method='(--method|--request|-X)[[:space:]]+GET\b'
@@ -63,7 +69,8 @@ curl_body_flag='(^|[[:space:]])(-d|--data|--data-raw|--data-binary|--data-urlenc
 # acts on the PR and is left to the operator's instruction. `reaction`
 # is not a gh subcommand today; it costs nothing and covers the name if
 # gh ever adds it.
-if printf '%s' "$norm" | grep -iEq '\bgh[[:space:]]+pr[[:space:]]+(comment|review|reaction|lock|unlock)\b'; then
+if printf '%s' "$cmdpos" | grep -iEq '\bgh[[:space:]]+pr[[:space:]]+(comment|review|reaction|lock|unlock)\b' \
+   && ! printf '%s' "$cmdpos" | grep -Eq '(^|[[:space:]])(--help|-h)([[:space:]]|$)'; then
     verdict="gh pr subcommand writes to the reviewer"
 fi
 
@@ -71,7 +78,8 @@ fi
 # tickets via `gh issue create`. `edit` kept blocked: the skill only
 # references duplicate tickets and creates new ones with full context.
 if [ -z "$verdict" ] \
-   && printf '%s' "$norm" | grep -iEq '\bgh[[:space:]]+issue[[:space:]]+(comment|edit|close|reopen|reaction|lock|unlock|delete)\b'; then
+   && printf '%s' "$cmdpos" | grep -iEq '\bgh[[:space:]]+issue[[:space:]]+(comment|edit|close|reopen|reaction|lock|unlock|delete)\b' \
+   && ! printf '%s' "$cmdpos" | grep -Eq '(^|[[:space:]])(--help|-h)([[:space:]]|$)'; then
     verdict="gh issue subcommand writes to GitHub"
 fi
 
