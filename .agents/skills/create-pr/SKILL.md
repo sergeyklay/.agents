@@ -3,7 +3,7 @@ name: create-pr
 description: "Use when asked to create a pull request, open a PR, or submit changes for review. Handles branch verification, change analysis, title and description generation, and gh pr create. Do NOT use for committing, pushing without PR, or reviewing existing PRs"
 metadata:
   author: Serghei Iakovlev
-  version: "1.1"
+  version: "1.2"
   category: vcs
 ---
 
@@ -76,6 +76,20 @@ Formatting rules:
 - All sections required, sub-sections only when relevant data exists
 
 Do NOT reference specifications (`./specs/*.md`), plans (`./plans/*.md`), its section numbers, or `TODO.md` in pull request descriptions. These are internal artifacts for agent coordination and should not be exposed to human reviewers. If you need to explain a design decision, implementation detail, or rationale, do so in the description without citing internal documents. The description should be self-contained and understandable on its own.
+
+**Verify every claim about repository state before writing it.** A diff supports claims about the *change*; it supports nothing about the *environment* the change lands in. The diff shows a workflow referencing `CICDBOT_TOKEN` - it says nothing about whether that secret exists. Writing "requires `CICDBOT_TOKEN` to be configured" silently promotes a reference into a missing prerequisite, and the reviewer goes chasing a risk that is not there.
+
+Confirm with a command, or do not assert. When a check is unavailable, address the reviewer instead: "Confirm `CICDBOT_TOKEN` is set for this repo" is useful; "requires `CICDBOT_TOKEN`" is a guess wearing a warning's clothes.
+
+| Claim | Check before writing it |
+| ----- | ----------------------- |
+| A secret or variable exists | `gh secret list`, `gh variable list` |
+| A branch rule or required status check is in force | `gh api repos/{owner}/{repo}/rulesets` |
+| A person, bot, or team has access | `gh api repos/{owner}/{repo}/collaborators` |
+| A repository setting or feature is enabled | `gh api repos/{owner}/{repo} --jq '.<field>'` |
+| An external action, workflow, or tag is reachable | `gh api repos/{owner}/{repo}` |
+
+This governs every section, not only Risk Assessment. An unverified line under "Sensitive Areas" costs the reviewer the same time.
 
 Complexity guide:
 
