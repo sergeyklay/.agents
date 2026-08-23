@@ -1,10 +1,10 @@
 ---
 name: improve-self
-description: "Detect when a missing Agent Skill would have made the current task faster or more reliable, then scaffold a candidate SKILL.md for user review. Use after a non-trivial task when one of these signals fires: the same procedure repeated 3+ times, error recovery required inventing a workflow, the user corrected the approach (not the answer), the agent realized mid-task that a playbook did not exist, or 5+ tool calls produced what should have taken 1-2. Detects which `.{vendor}/skills/` directories actually exist on the host (project and home), reads every existing SKILL.md across them before proposing, and never duplicates. Writes candidates into the project's .{vendor}/skills/{name} directory that the running host actually loads, never the home folder. Do NOT use for first-attempt failures, one-off questions, fact gaps that belong in research, or style gaps that belong in rules files. Runs in its own forked context, blind to the invoking conversation, so pass the trace and the signal that fired as arguments."
+description: "Detect when a missing Agent Skill would have made the current task faster or more reliable, then scaffold a candidate SKILL.md for user review. Use after a non-trivial task when one of these signals fires: the same procedure repeated 3+ times, error recovery required inventing a workflow, the user corrected the approach (not the answer), the agent realized mid-task that a playbook did not exist, or 5+ tool calls produced what should have taken 1-2. Detects which `.{vendor}/` directories exist on the host (project and home), reads every skill and slash command in them before proposing, and never duplicates. Writes candidates into the project's .{vendor}/skills/{name} directory that the running host actually loads, never the home folder. Do NOT use for first-attempt failures, one-off questions, fact gaps that belong in research, or style gaps that belong in rules files. Runs in its own forked context, blind to the invoking conversation, so pass the trace and the signal that fired as arguments."
 context: fork
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: meta
 ---
 
@@ -67,7 +67,7 @@ Restate the gap as a single sentence that names the procedural domain. Good: "in
 
 ### Phase 2 — Check existing skills (mandatory)
 
-Phase 2 is mandatory. Discovery is two steps so the agent only consults the vendor prefixes it actually reads at runtime — not every `.{name}/skills/` directory that happens to exist on the filesystem.
+Phase 2 is mandatory. Discovery is three steps so the agent only consults the vendor prefixes it actually reads at runtime — not every `.{name}/skills/` directory that happens to exist on the filesystem.
 
 **Step A — Identify the vendor directories THIS agent reads from.** Use [references/platform-vendors.md](references/platform-vendors.md) to resolve the comma-separated `--vendors` list. It holds the running-agent → vendor mapping, a filesystem-probe fallback for when self-identification fails, and the empty-result rule (skip Step B and treat as "no existing skills to deduplicate against").
 
@@ -82,11 +82,23 @@ python3 scripts/discover_skills.py --vendors "$vendors"
 
 Default output is XML, one `<skill>` element per skill, with `<name>`, `<category>`, `<description>` in a fixed order. For opt-in fields (`--with-type`, `--with-agent`, `--with-path`), alternative formats (`--format json|markdown|csv`), ordering, user-vs-project precedence, exit codes, and the no-python3 bash fallback, see [references/discover-skills-reference.md](references/discover-skills-reference.md).
 
-Read each `description`. For each, classify against the candidate gap:
+**Step C — Enumerate the slash commands in the same vendor directories.** A procedure already codified as a command is not a gap, and the discovery script cannot see it: the script scans `.{vendor}/skills/` only, while the host loads `.{vendor}/commands/` alongside it. Skipping this step is how a candidate gets proposed as a skill while an equivalent command sits one directory over, and the report still says "no overlap".
+
+```bash
+for v in ${vendors//,/ }; do
+  for d in "./.$v/commands" "$HOME/.$v/commands"; do
+    [ -d "$d" ] && grep -H '^description:' "$d"/*.md 2>/dev/null
+  done
+done
+```
+
+A command with no `description:` key still counts - read its body before dismissing it.
+
+Read each `description`, from Step B and Step C alike. For each, classify against the candidate gap:
 
 | Comparison | Action |
 |---|---|
-| Exact or near-overlap with an existing skill | Do not create. Either use the existing skill (re-read its body) or propose an *edit* to its SKILL.md. Surface this to the user. |
+| Exact or near-overlap with an existing skill or command | Do not create. Either use the existing one (re-read its body) or propose an *edit* to its SKILL.md or command file. Surface this to the user. |
 | Partial overlap (existing covers half) | Narrow the candidate to the uncovered delta. Re-state the gap. Loop back to Phase 1. |
 | No overlap | Proceed to Phase 3. |
 
@@ -145,7 +157,7 @@ These degrade the skill library and erode trust in the self-improvement loop:
 
 - **Fabricated gaps.** Inventing a recurring pattern that did not actually occur. Defence: every gap claim cites a trace quotation in Phase 1.
 - **Over-broad skills.** "Handles all Postgres questions" is monolithic and will not trigger precisely. Defence: name the *procedure*, not the *domain*. When loaded by investigation skills like `sleuth`, the typical gap is a narrow source catalogue or bias-detection pattern for one domain — not a skill called "investigating things" (that is what `research-it` already is).
-- **Duplicate skills.** Failing to read existing descriptions before proposing. Defence: Phase 2 is non-negotiable.
+- **Duplicate skills.** Failing to read existing descriptions - skills *and* slash commands - before proposing. Defence: Phase 2 is non-negotiable.
 - **Self-validation.** Treating the agent's confidence in the draft as sufficient quality control. Defence: the user is the external validator before any write, the script-based validator after.
 - **Encoding transient or version-specific behavior.** "Library X v2.3 returns a list" rots the moment v2.4 ships. Defence: skills capture *procedure* (how to find out, how to triangulate, how to verify), not facts that change.
 - **Skill-shaped facts.** Information that belongs in `CLAUDE.md` or `AGENTS.md` compressed into an unwieldy skill. Defence: route via [references/alternatives-to-a-skill.md](references/alternatives-to-a-skill.md).
