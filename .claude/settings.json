@@ -90,7 +90,8 @@
   "model": "opus",
   "attribution": {
     "commit": "",
-    "pr": ""
+    "pr": "",
+    "sessionUrl": false
   },
   "statusLine": {
     "type": "command",
