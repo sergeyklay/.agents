@@ -100,6 +100,9 @@ These sources tell you *why* something was built the way it was, which is often 
 **How to access.**
 
 - **arXiv.** `https://arxiv.org/abs/XXXX.XXXXX` - pre-prints, **not** peer reviewed. Useful as the fastest source on current ML research, but treat arXiv-only claims as preliminary unless cross-referenced.
+
+  **Getting the body.** `/abs/XXXX.XXXXX` is the landing page - abstract and metadata, no results. Fetch `/html/XXXX.XXXXX` for the paper itself: methods, tables, model and benchmark names, and it converts cleanly through HTML-to-markdown fetch tools. Fall back to `/pdf/XXXX.XXXXX` only where no HTML version exists, since arXiv PDF extraction often returns unreadable output. Never take a number from `/abs/`: the abstract gives directions, the body gives magnitudes - on 2408.02442 the abstract says "a significant decline in LLMs reasoning abilities" where the body says 86.51% against 23.44%.
+
 - **Conference proceedings.** USENIX (OSDI, NSDI, ATC, Security), ACM (SOSP, SIGCOMM, SIGMOD, PLDI), IEEE (S&P) - these are top-tier and searchable through their respective digital libraries or open-access proceedings.
 - **Google Scholar.** Useful as a search index. Do not cite it; cite the underlying paper.
 - **Semantic Scholar.** Better citation graph than Google Scholar for ML/AI work.
