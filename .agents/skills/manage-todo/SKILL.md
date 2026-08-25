@@ -114,8 +114,8 @@ If all filters pass, follow the **Add** operation. Place the task in the milesto
 
 ## Constraints
 
-- **Never renumber existing tasks.** External artifacts (plans, specs, PRs,commit messages) reference task IDs. Renumbering breaks traceability.
+- **Renumber only to close the gap a removal leaves.** External artifacts (plans, specs, PRs, commit messages) reference task IDs, and contiguous numbering is a hard validation error, so a removal and stable IDs cannot both hold. Search the repository and its history for the IDs that would move, renumber only when nothing references them, and report which IDs changed.
 - **Never reorder milestones.** They encode a dependency chain. Reordering requires explicit user approval because it implies architectural replanning.
-- **Never remove tasks.** Mark them `[x]` if complete, or leave them as-is. Removal destroys history.
+- **Remove a task only when its premise is gone** - the work is already done by other means, or the thing it described no longer exists. A task whose wording went stale gets rewritten in place; a task that was completed gets `[x]`. Removal is the user's call, not the agent's.
 - **Never modify project documentation** based on roadmap work. The architecture doc is the upstream authority; the roadmap is downstream.
 - **Append only within milestones.** New tasks go after the last existing task in the target milestone. Do not insert between existing tasks.

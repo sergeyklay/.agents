@@ -103,7 +103,7 @@ Rules:
 - Task number prefix MUST match the milestone it appears under
 - Sequence numbers MUST be contiguous (no gaps: 6.1, 6.2, 6.3 - not 6.1, 6.3)
 - New tasks always get the next sequential number (append-only)
-- Never renumber existing tasks
+- Renumber existing tasks only to close the gap a removal leaves
 
 ## Line Width and Wrapping
 
