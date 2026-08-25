@@ -30,7 +30,7 @@ Run this before recording any green as proof, and always when one of these is tr
 - The run is a rehearsal of a future input ("simulate the next release", "pretend the version bumped", "assume the API returns X").
 - The check passed on the first attempt after a change that should have been hard.
 
-Not this skill: a search returning zero hits, or a claim that something is absent — those are `research-it` (silent-zero results, format-assumption false negatives) and, for third-party capabilities, `verify-absent-capability`.
+Not this skill: a search returning zero hits, or a claim that something is absent — those are `research-it` (silent-zero results, format-assumption false negatives, summariser-bounded negatives), including when the absent thing is a third-party capability.
 
 ## Procedure
 
