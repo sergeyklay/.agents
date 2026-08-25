@@ -75,6 +75,7 @@ Then write down, internally:
 Before searching, examine what tools and sources are actually available in the current environment. Tool availability differs across platforms and sessions:
 
 - Web search and web fetch - almost always available
+- `search-web` skill - keyless search and page fetch over plain HTTP, returning raw JSON and markdown instead of a summariser's answer, which is what *A delegated conclusion is not a source* below asks for
 - `context7` MCP server - for library and framework docs (when present)
 - `github` MCP server, `github_repo` tool, or web fetch of `github.com` - for source code, issues, PRs, discussions
 - Project-local source code via filesystem tools - when working inside a workspace

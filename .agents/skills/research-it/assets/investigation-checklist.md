@@ -13,6 +13,7 @@ Copy this checklist into the reasoning trace when starting a tier-2 or tier-3 in
 ## Phase 2 - Tool inventory
 
 - [ ] Available web search and fetch confirmed
+- [ ] `search-web` skill availability checked (keyless HTTP search and fetch, raw results)
 - [ ] `context7` MCP server availability checked (for library docs)
 - [ ] GitHub access confirmed (MCP server, `github_repo` tool, or web fetch)
 - [ ] Local filesystem source code checked (when working in a workspace)
