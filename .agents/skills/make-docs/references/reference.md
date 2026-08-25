@@ -155,4 +155,6 @@ The example does not explain retry strategies. It shows the parameter in use. No
 
 Reference is the only Diataxis type where exhaustive completeness is an explicit requirement. For the other three types, practical utility outweighs completeness. For reference, missing information is a defect. A user who consults reference and finds no entry for an existing feature has been failed.
 
+The requirement covers the entries themselves, not the prose around them. A sentence that counts the rows of a complete table says nothing the table does not already say, and it falsifies itself the moment a row is added. Keep the table exhaustive and let it speak for its own size.
+
 Maintain reference as a living mirror of the product. When the product changes, reference changes in the same commit.

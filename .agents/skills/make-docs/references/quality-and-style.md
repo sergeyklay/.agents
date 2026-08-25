@@ -137,7 +137,7 @@ When you encounter these words, replace or remove them. The replacement column s
 | "robust" (as decoration) | "strong" or remove; be specific about what makes it strong |
 | "seamless" | "automatic" or describe the actual behavior |
 | "performant" | "fast" or give benchmarks |
-| "numerous" | "many" or give the actual count |
+| "numerous" | "many", or name the members |
 | "sufficient" | "enough" |
 | "remainder" | "rest" |
 | "individual" (as noun) | "person" |
@@ -192,9 +192,24 @@ When you encounter these words, replace or remove them. The replacement column s
 | Back claims with evidence | "Reduces latency by 40%" not "Significantly reduces latency." |
 | Use Oxford commas | "Tutorials, how-to guides, and reference" not "Tutorials, how-to guides and reference." |
 
+### Counts and Lists the Code Owns
+
+Prose that counts a set the code defines is a promise the next editor will break. "Six events drive the transitions", "four cards across the top", "all five dimensions" are true on the day they are written and silently false the first time someone adds a member without reading that sentence. The count is rarely what the reader came for. They want to know which members exist, or whether theirs is one of them.
+
+State the rule that generates the set instead of its tally, and derive that rule from the code rather than from the words already on the page. The names in a stale sentence are the least reliable description of the set, because they are the thing that drifted. Grep for what makes something a member, the call it goes through, the interface it implements, the registration it performs, and expect the result to include members the prose omitted. That surplus is the evidence that a rule, not a longer list, is the repair.
+
+Two traps swallow this fix:
+
+- **Refreshing the number.** Incrementing "fourteen" to "fifteen" is correct until the next commit, and it teaches the next editor that hand-maintained counts are acceptable.
+- **Coarsening the list.** Replacing a stale list of field names with a list of the sections that hold those fields looks like a fix because it is shorter. It rots on the same event. Test every rewrite by asking whether it stays true when a member is added tomorrow and nobody edits this sentence.
+
+Scope the repair to what your own change falsified. A count elsewhere in the corpus that is still accurate is not yours to rewrite. Report it and leave it. Rewriting correct prose is churn, and it buries the edit that mattered.
+
 ### Sentence and Paragraph Rhythm
 
 Vary sentence length deliberately. Three long sentences in a row create fatigue. Three short sentences in a row feel robotic. Mix them.
+
+A sentence that chains more than two or three clauses stops being read and gets skimmed. Enumerations fail this way most often: one sentence walking the reader through a dozen comma-separated items gives them no structure to hold on to. Split it into sentences that each carry one item or one group, or turn it into a list.
 
 A paragraph develops one idea. New idea, new paragraph. In code-heavy docs, single-sentence paragraphs before code blocks are normal.
 
@@ -284,6 +299,7 @@ Run this checklist before considering any document complete:
 - [ ] Oxford commas used consistently
 - [ ] Straight quotes only (no curly/smart quotes)
 - [ ] Passes the read-aloud test (no awkward or robotic sentences)
+- [ ] No prose count or hand-copied list stands in for a set the code defines
 - [ ] The document serves one Diataxis type, no type mixing
 
 ### Tutorial-Specific

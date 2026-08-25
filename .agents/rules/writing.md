@@ -167,7 +167,7 @@ const options = useMemo(() => ({ retry: false }), []);
 | implement (as noun) | do, build, write |
 | commence | start |
 | sufficient | enough |
-| numerous | many (or state the count) |
+| numerous | many, or name the members |
 | robust | name the property: durable, crash-safe, retry-tolerant |
 | seamless | automatic, transparent |
 | performant | fast, or state the metric |
