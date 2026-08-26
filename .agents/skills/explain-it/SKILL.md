@@ -1,9 +1,9 @@
 ---
 name: explain-it
-description: "Explain technical concepts, mechanisms, and systems to a technically fluent reader who is unfamiliar with the specific topic. Use when asked to explain how something works, walk through an algorithm or protocol, write a deep-dive or onboarding article, answer 'what is X', 'why does X behave this way', 'how does X work', 'break down X', or when synthesising findings from research into a written explanation. Builds understanding progressively along the reader's 'aha path' - opens with the why, bridges to adjacent knowledge, introduces one concept at a time, traces mechanics through worked examples, closes with tradeoffs and a runnable experiment. Do NOT use for end-user documentation aimed at non-technical audiences, marketing copy, code review, reference-style API documentation, or commit messages."
+description: "Explain technical concepts, mechanisms, and systems to a technically fluent reader who is unfamiliar with the specific topic. Use when asked to explain how something works, walk through an algorithm or protocol, write a deep-dive or onboarding article, answer 'what is X', 'why does X behave this way', 'how does X work', 'break down X', or when synthesising findings from research into a written explanation. Also use when the reader will decide, review or approve rather than build, and asks what a change, task or proposal means in practice, what it costs, or what users will see. Builds understanding progressively along the reader's 'aha path' - opens with the why, bridges to adjacent knowledge, introduces one concept at a time, works the example at the altitude the reader needs, closes with tradeoffs. Do NOT use for marketing copy, code review, reference-style API documentation, or commit messages."
 metadata:
   author: Serghei Iakovlev
-  version: "2.0"
+  version: "2.1"
   category: communication
 ---
 
@@ -51,7 +51,7 @@ Before writing a word of explanation, do four things:
 1. **Classify the question.** Internal mechanics, design tradeoff, usage pattern, or architectural decision? "How does X work?" gets a different shape than "when should I use X?" or "what's the difference between X and Y?"
 2. **Separate explicit from implicit requirements.** What did they literally ask? What do they need to understand for the answer to land? A question about "how does Go's GC pause work" implicitly requires understanding what a pause is in this context. Satisfy both.
 3. **Map prerequisites.** List the prerequisite concepts mentally. The order in which you introduce ideas should mirror their logical dependency, not alphabetical order or perceived importance.
-4. **Estimate depth.** A narrow, specific question gets a focused answer. "How does X work?" gets thorough investigation. Don't pad narrow questions. Don't compress broad ones.
+4. **Estimate depth, then set a budget.** A narrow, specific question gets a focused answer. "How does X work?" gets thorough investigation. Don't pad narrow questions. Don't compress broad ones. Then name a length ceiling before drafting and check the draft against it - depth and length are separate dials, and a reader who is drowning is not receiving depth. Defaults are in [references/output-templates.md](references/output-templates.md); a ceiling stated by the reader replaces them and is a hard limit, not a target to approach.
 
 ### Phase 2 - Build the understanding map
 
@@ -71,7 +71,7 @@ Construct the explanation to build understanding progressively, not to enumerate
 | Open with the **why** | Problem, motivation, context. Mechanisms are easier to understand when you know what they were built to solve. | 2–3 sentences |
 | **Bridge** to adjacent knowledge | Connect to something the reader likely already knows before introducing the first new concept. The bridge does not need to be perfect - it needs to be a handhold. The same move recurs at sentence scale: open from the known, end on the new (see Information flow). | 1 sentence |
 | Introduce concepts **one at a time** | Each new concept gets a name, a one-sentence definition, and a concrete example *before* the next concept is introduced. Never stack three new terms in a paragraph. | 1 paragraph each |
-| Show **mechanics as a worked example** | Trace an execution path through real code. What happens, step by step, when you call this function? What data structures are involved? What triggers what? | As long as needed |
+| Show **mechanics as a worked example** | At mechanism altitude, trace an execution path through real code: what happens step by step when you call this function, what data structures are involved, what triggers what. At behaviour altitude, trace one real scenario through observable events instead - the move and its step-by-step discipline are the same, only the units change. | As long as needed |
 | Report internals **honestly** | Go as deep as the question warrants. Do not hand-wave with "under the hood, it handles this efficiently." If it is worth mentioning, it is worth explaining. If you do not know - say so, or go find it. | As needed |
 | Close with **tradeoffs and practice** | What does this sacrifice for what it gains? Where does it break down? What do practitioners learn the hard way? When to use, when not to. For software topics: a minimal, concrete experiment the reader can run. | 1–2 paragraphs |
 
@@ -99,10 +99,32 @@ These are failure modes. If you catch yourself doing any of these, stop and rest
 8. **The Unverified Survey** (Quality) - Listing frameworks, tools, or APIs from training data without checking they apply to the current version.
 9. **The Hollow Opener** (Quantity + Quality) - A filler claim included for rhythm, not because it carries information ("these are easy to confuse" when they are not). The reader assumes it has a point and hunts for one that is not there.
 10. **The Cold Start** (Manner) - A sentence or paragraph that opens on new or unanchored information instead of linking to what the reader already has. Every word is clear, yet the reader stumbles because the search for an antecedent fails. Fix: known to the front, new to the end.
+11. **The Wrong Altitude** (Relation + Quantity) - Answering a question about consequences with the mechanism that produces them. True, on-topic, cited - and useless to a reader who will never touch the code.
 
 ## Output format
 
-Two things shape the output independently: **scope** (how much to say) and **register** (how it should read). Scope splits into narrow and broad shapes, with templates in [references/output-templates.md](references/output-templates.md). Register splits into conversational and written - getting it wrong is why a technically correct explanation can still read unlike how a person actually explains something out loud.
+Three things shape the output independently: **scope** (how much to say), **altitude** (which layer to say it at) and **register** (how it should read). Scope splits into narrow and broad shapes, with templates in [references/output-templates.md](references/output-templates.md). Altitude splits into mechanism and behaviour - getting it wrong is why an answer can be correct, cited, well-paced and still useless to the person who asked. Register splits into conversational and written - getting it wrong is why a technically correct explanation can still read unlike how a person actually explains something out loud.
+
+### Altitude: match the layer to what the reader will do with the answer
+
+Scope controls length and register controls rhythm. Altitude controls **which layer of the system the answer is about**, and it is set by the reader's role - what will they do once they understand?
+
+| Altitude | The reader will | The answer is about | Identifiers |
+|---|---|---|---|
+| **Mechanism** | change, debug or extend the thing | how it works: control flow, data structures, the code path | expected - names, signatures, files, flags |
+| **Behaviour** | decide, review, approve, or use the thing | what it does: the situation today, what changes, what it costs | only ones the reader will type |
+
+Infer the altitude from the question. "Why does X do Y?", "how is this implemented?" and "walk me through this algorithm" are mechanism. "What problem does this solve?", "what changes for our users?", "explain this proposal/task to me" are behaviour. An instruction from the reader overrides the inference. When a question genuinely spans both, answer at behaviour altitude and offer the mechanism as a named optional follow-up - do not interleave them, because a reader who wanted one is paying full price for the other.
+
+**Lowering the altitude does not lower the register.** Breaking this is the standard failure and the expensive one. Behaviour altitude is not a simplified explanation, a beginner's explanation, or a metaphorical one: the reader is the same competent professional, and only the subject moved from the code to what the code does. Every rule in *Communication calibration* holds at full strength - precision most of all.
+
+Mechanism altitude draws its concreteness from code, so removing identifiers looks like removing the only way to be specific. It is not. The worked-example move is unchanged; only its vocabulary is:
+
+- **Trace a scenario, not an execution path.** Name one real situation, state what happens in it today, then what happens after.
+- **Keep the numbers.** Durations, counts, frequencies, money, error rates are precise without being implementation detail.
+- **Name the observable, not its cause.** "The report opens in about a second instead of about forty" is as falsifiable as the index that caused it, and it is the half the reader can act on.
+
+Full treatment, with the vague/mechanism/behaviour comparison table, is in [references/communication-calibration.md](references/communication-calibration.md). Reaching for an analogy instead is a choice, and the wrong one.
 
 ### Register: match how the answer reads to how the question was asked
 
@@ -139,7 +161,7 @@ Use real code from real sources. Cite where you found things. When you traced a 
 
 The right depth is determined by what was asked, not by what you know. A question about "how does Go's garbage collector decide when to run?" goes deep into the pacer algorithm. A question about "should I use Go or Rust here?" stays at the tradeoff level.
 
-When uncertain about depth, err toward more depth with clear structure. The reader can stop when they have enough. They cannot extract detail that is not there.
+When uncertain about depth, let the reader's role break the tie. At mechanism altitude, err toward more depth with clear structure: the reader can stop when they have enough, and they cannot extract detail that is not there. At behaviour altitude, err toward less and name what you left out - "the mechanism behind this is a separate pass; ask if you want it". The reader who wanted more can ask for it in one sentence, while the reader who did not has already stopped reading.
 
 **Depth is not length.** A precisely traced execution path through 20 lines of real code teaches more than three pages of architectural description. Concreteness is a form of depth. Brevity (the Manner maxim) and depth do not conflict: brevity removes words that carry no information - repetition, hedging, restatement - never the detail the reader needs.
 

@@ -2,8 +2,9 @@
 
 ## Contents
 
-- Audience model
+- Audience model (expertise vs altitude)
 - Precision
+- Concreteness at behaviour altitude
 - Analogies (the bounded-analogy pattern)
 - Tone (banned phrases, acceptable warmth)
 - Vocabulary pacing
@@ -19,6 +20,14 @@ This document expands the five calibration dimensions from `SKILL.md`: **precisi
 Hold one model of the reader at all times: a competent technical professional who is unfamiliar with *this specific topic*. They write software (or build systems, or do science) for a living. They handle complexity for a living. They have not encountered this particular thing yet.
 
 This single fact shapes every calibration choice below. The reader is not fragile. They are not lazy. They are not a beginner. They are a peer with a different specialisation.
+
+### Expertise and altitude are different dials
+
+The model above fixes the reader's **expertise**. It does not fix the **altitude** - whether the answer is about how the thing works or about what it does (see `SKILL.md`, *Output format*). The reader's role sets that: someone who will change the code needs the mechanism, while someone who will decide, review, approve or merely use it needs the behaviour.
+
+Confusing the two dials is the most common way this file gets misapplied, and the failure is symmetrical. A reader asking for the behaviour level has not become less expert - so turning the *expertise* dial down in response produces analogies, folk stories and worked examples pitched at a child, which is the Kindergarten Trap and the Allegory Cascade arriving together inside an answer that was trying to be accommodating. Move the altitude. Leave the expertise where it is.
+
+The reverse is just as costly: holding the altitude at mechanism because the reader is clearly expert buries a decision-maker in a code tour they cannot use (the Wrong Altitude, `anti-patterns.md`).
 
 ## Precision
 
@@ -55,6 +64,33 @@ Abstraction hides action. A *nominalisation* - a verb or adjective turned into a
 | "Acquisition of the lock precedes modification of the row." | "The worker acquires the lock before it modifies the row." |
 
 The rule is not "ban the passive". A passive earns its place when the actor is irrelevant ("the row is locked for the length of the transaction") or when it keeps the given before the new (see Information flow). Convert a passive only once you know which of those it is doing.
+
+## Concreteness at behaviour altitude
+
+Every example in the precision table above is an implementation detail, which makes it easy to conclude that precision *is* implementation detail and that an answer without identifiers must be a vague one. That conclusion is wrong, and acting on it is what produces metaphor-soaked writing when a reader asks for the behaviour level.
+
+Precision survives the move. What changes is the vocabulary that carries it.
+
+| Vague | Mechanism altitude | Behaviour altitude |
+|---|---|---|
+| "it will be faster" | "the query moves from a sequential scan to a B-tree index lookup" | "the report opens in about a second instead of about forty" |
+| "we improved reliability" | "the client retries with exponential backoff" | "a provider outage no longer loses the payment - it goes through on the retry" |
+| "configuration is simpler" | "the schema is validated at startup" | "a typo in the config surfaces on boot rather than an hour later in production" |
+| "it scales better" | "the worker pool grows to the core count" | "the nightly import finishes before the morning shift instead of during it" |
+
+The right-hand column is exactly as falsifiable as the middle one: someone can time the report, replay the outage, or watch the boot. A claim you cannot check is not a behaviour-level claim - it is just a vague one.
+
+### The three moves
+
+1. **Trace a scenario, not an execution path.** The worked example does not disappear at behaviour altitude, it changes units. Name one real situation, state what happens in it today, then what happens after. The step-by-step discipline is identical; the steps are observable events rather than calls.
+2. **Keep the numbers.** Durations, counts, frequencies, money and error rates are precise without being implementation detail. They are where behaviour altitude earns its keep, and they are the first thing dropped when a writer mistakes "no identifiers" for "no specifics".
+3. **Name the observable, not its cause.** State the effect the reader can see. The cause belongs one altitude down, and mentioning it is the reflex that pulls an answer back to mechanism one sentence at a time.
+
+### The identifier test
+
+At behaviour altitude, an identifier earns its place only when the reader will **type it, click it, or search for it** - a command they will run, a setting they will change, a product name they will say in a meeting. Everything else (function names, variables, file paths, line numbers, internal type names) fails the test.
+
+The test is a filter, not a gag: when the identifier fails it, replace it with what it *does*, never with an analogy. "The part that checks the file before upload" beats both the internal name and any metaphor about bouncers or gatekeepers.
 
 ## Analogies
 
@@ -214,4 +250,7 @@ Before publishing an explanation, walk this checklist:
 - [ ] No sentence is filler: each carries information the reader needs, none is included only for rhythm (Quantity - the reader assumes filler has a point).
 - [ ] Each sentence opens from something already established and ends on the new; across sentences, the new becomes the next sentence's starting point (given before new).
 - [ ] Actions are concrete verbs, not nominalisations ("validates", not "performs validation"); every passive earns its place - actor irrelevant, or preserving given-new.
+- [ ] The altitude matches what the reader will do with the answer, and the answer holds that altitude to the end rather than drifting down into mechanism.
+- [ ] At behaviour altitude: every surviving identifier passes the identifier test, and precision is carried by numbers and observable outcomes rather than by analogy.
+- [ ] The draft is inside the length ceiling set in Phase 1 - measured, not estimated.
 - [ ] The closing paragraph names a tradeoff, a failure mode, or a runnable experiment - not a triumphant summary.

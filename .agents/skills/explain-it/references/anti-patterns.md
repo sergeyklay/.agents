@@ -12,9 +12,10 @@
 8. The Unverified Survey
 9. The Hollow Opener
 10. The Cold Start
-11. Maxims and the cross-cutting principle
+11. The Wrong Altitude
+12. Maxims and the cross-cutting principle
 
-Ten failure modes that show up repeatedly in technical writing. Each one includes a symptom, an example of the broken form, and the structural fix.
+The failure modes that show up repeatedly in technical writing, one section each. Every entry gives a symptom, an example of the broken form, and the structural fix.
 
 If you catch yourself doing any of these, stop writing and restructure. They are not stylistic preferences - they are predictable ways an explanation fails to land.
 
@@ -186,6 +187,32 @@ The sentence opens on a long, brand-new noun phrase. The reader has nothing esta
 
 **Fix.** Known to the front, new to the end, and let the new become the starting point of the next sentence (the given-new contract; theme before rheme). Reworked: *"Before each call, the client checks its retry budget. That budget decrements on every attempt and refuses new work at zero."* Each sentence now starts on something already established. This is the sentence-level form of Manner's *be orderly*.
 
+## 11. The Wrong Altitude
+
+**Symptom.** A question about consequences is answered with the mechanism that produces them. Every claim is true, on-topic and verified. The reader still cannot use any of it, because they were never going to open the code.
+
+The giveaway is the reader's follow-up: "yes, but what does that mean for us?" A second giveaway is a question the answer never asks itself, namely what the reader will *do* once they understand.
+
+**Broken form** (responding to "explain this proposal to me, I'm approving it, not building it")
+
+> The change introduces a write-through cache in front of the lookup path.
+> On a miss, the handler falls through to the primary store and populates
+> the entry with a thirty-second TTL. Eviction is LRU with a fixed ceiling,
+> so the resident set stays bounded even when the key space does not.
+
+Someone deciding whether to approve this needs to know what breaks today, what stops breaking, what it costs, and what the risk is if it goes wrong. None of that is here, and none of it can be recovered from what is.
+
+**Fix.** Set the altitude from what the reader will do with the answer, then hold it (`SKILL.md`, *Output format*). At behaviour altitude the worked example survives, told in observable events rather than calls.
+
+> Right now the dashboard re-reads the same customer record on every widget,
+> so a busy account waits about four seconds for a page that should take
+> one. After the change the record is read once and reused for thirty
+> seconds, which puts the page under a second. The cost is that an edit made
+> in another tab can take up to thirty seconds to show up here, so this is
+> the wrong trade for anything a support agent edits while watching it.
+
+**The failure that follows the fix.** Removing identifiers looks like removing the only way to be specific, so the correction routinely overshoots into analogy, folk framing and examples pitched several levels too low. That overshoot is not a new pattern, it is the Kindergarten Trap and the Allegory Cascade reached from a different direction, and it is why a reader who asks twice for a plainer answer often gets a worse one both times. Behaviour altitude keeps the numbers and the observable outcomes; see *Concreteness at behaviour altitude* in `communication-calibration.md`.
+
 ## Maxims and the cross-cutting principle
 
 Each anti-pattern is a broken conversational maxim, and naming the maxim points straight at the fix:
@@ -202,7 +229,8 @@ Each anti-pattern is a broken conversational maxim, and naming the maxim points 
 | 8. Unverified Survey | Quality | lists recited without checking currency |
 | 9. Hollow Opener | Quantity + Quality | filler with a phantom point, often untrue |
 | 10. Cold Start | Manner | given/new order inverted: new before its antecedent |
+| 11. Wrong Altitude | Relation + Quantity | the right layer for a different reader, at length |
 
 Quality is primary: patterns 4, 8, and the Quality half of 9 corrupt the reader's model directly, which is the worst failure mode - an honest gap beats a fluent error.
 
-Two root causes underlie the table. Patterns 1, 2, 4, 5, 7, 8 ship a skipped verification or synthesis step; defend with the **investigation discipline** of the `conducting-deep-research` skill. Patterns 3, 6, 9, 10 are calibration failures - over-explaining, talking down, filling space, or mis-ordering information; defend with the **calibration discipline** of `communication-calibration.md`.
+Two root causes underlie the table. Patterns 1, 2, 4, 5, 7, 8 ship a skipped verification or synthesis step; defend with the **investigation discipline** of the `conducting-deep-research` skill. Patterns 3, 6, 9, 10, 11 are calibration failures - over-explaining, talking down, filling space, mis-ordering information, or misreading what the reader will do with the answer; defend with the **calibration discipline** of `communication-calibration.md`.

@@ -3,14 +3,16 @@
 ## Contents
 
 - When to use which shape
+- Length budgets
 - Narrow question template
 - Broad question template
 - TL;DR pattern
+- Behaviour-altitude template
 - "Try it" pattern
 - Citation patterns
 - Diagnostic question template
 
-Two shapes apply to almost every explanation produced under this skill. This file gives the templates plus the small patterns that go inside them.
+Two shapes apply to almost every explanation produced under this skill, plus a third for answers pitched at behaviour altitude. This file gives the templates, the length budgets they run under, and the small patterns that go inside them.
 
 Read this file before writing the first broad-question response in a session.
 
@@ -24,6 +26,25 @@ Read this file before writing the first broad-question response in a session.
 | Conceptual ("what is X?") | TL;DR + full investigation |
 | Architectural ("when should I use X?") | Direct recommendation, then conditions and reversal triggers |
 | Diagnostic ("why is X behaving this way?") | Hypothesis-led - most likely cause first, then alternatives, then verification step |
+| Consequence ("what does this change for our users?", "explain this proposal to me") | Behaviour-altitude template |
+
+The last row is set by the reader's role rather than the question's grammar, so it can pair with any of the rows above it. "How does X work?" from someone who will approve X and never open it is a behaviour-altitude question wearing a mechanism-question's clothes. Read the role, not only the wording (`SKILL.md`, *Output format*).
+
+## Length budgets
+
+Name a ceiling in Phase 1, before drafting, and check the finished draft against it by counting rendered lines including blank ones. That is the unit the reader experiences. Estimating instead of counting defeats the exercise, because the drift this guards against is invisible from inside the draft.
+
+| Answer | Default ceiling | Rationale |
+|---|---|---|
+| Narrow question | under 10 lines | the answer plus the one sentence that makes it actionable |
+| Behaviour altitude | about 70 lines | roughly a screen and a half; past that a reader who wanted the short version has stopped |
+| Mechanism altitude, broad | no fixed ceiling, but state one | the ceiling exists to be checked against, not to be uniform |
+
+Three rules govern the ceiling:
+
+1. **A ceiling from the reader replaces the default and is a hard limit.** Not a target to approach, and not a suggestion to round up from. Coming in under it is a good outcome, never a shortfall to pad.
+2. **Cut extraneous load first, then scope, then depth.** When a draft runs over, the repair order is fixed: delete restatement, hedging and filler; then narrow the question being answered; only then reduce depth. Reducing depth first produces a vague answer of the right length, which is the worst available trade (see *Cognitive load* in `communication-calibration.md`).
+3. **Name what you cut.** One sentence offering the omitted material ("the mechanism behind this is a separate pass; ask if you want it") costs a line and turns a truncated answer into a scoped one.
 
 ## Narrow question template
 
@@ -107,9 +128,40 @@ If the topic genuinely needs five sentences, use five. Never more. If you need a
 
 Three sentences. Each carries a load. Together they orient the reader.
 
+## Behaviour-altitude template
+
+For a reader who will decide, review, approve or use the thing rather than change it. Same standard of precision as the broad template, different subject matter: what happens, not what runs.
+
+```markdown
+## What is broken now
+
+[The situation as the reader would encounter it, not as the code produces it. One
+concrete scenario, with the numbers that make it real: how often, how long, how
+many, how much. This is the section that earns the rest.]
+
+## What changes
+
+[The same scenario after the change, told as observable events. The reader should be
+able to check this claim by watching the system, not by reading the diff.]
+
+## What it costs
+
+[The trade. Every change buys one property with another - latency for freshness,
+storage for speed, flexibility for a smaller surface. Name what is given up and the
+situation in which giving it up would be the wrong call.]
+
+## What you will see
+
+[The behaviour-altitude counterpart of "Try it": the observation that confirms the
+change landed. A screen that loads differently, a number that moves, an error that
+stops arriving. Name the before and after values.]
+```
+
+Identifiers appear in this template only when the reader will type, click or search for them (the identifier test in `communication-calibration.md`). An internal name that fails the test is replaced by what it does, never by an analogy.
+
 ## "Try it" pattern
 
-For software topics, every broad-question response ends with a runnable experiment. The experiment must satisfy four constraints:
+At mechanism altitude, every broad-question response about a software topic ends with a runnable experiment. At behaviour altitude the closing move is "What you will see" above: the reader is not going to run anything, and handing them a command is the altitude slipping at the last paragraph. The experiment must satisfy four constraints:
 
 1. **Runnable in under five minutes** with tools the reader already has, or with one obvious install command.
 2. **Concrete enough to copy-paste** - exact commands, exact code, exact inputs.
