@@ -458,19 +458,33 @@ apply_skill_overlays() {
 sync_skills() {
     printf 'syncing skills...\n'
 
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.claude/skills"
+    # Skills another tool owns, living in the destinations this
+    # function sweeps. sync_to mirrors a directory with rsync
+    # --delete, which removes whatever the source does not carry, so
+    # without this every discovery-engine-* skill disappears on the
+    # next --skills run. rsync spares an excluded path from deletion
+    # as well as from transfer, so one pattern covers both. The
+    # discovery-engine-* family is installed and updated by the
+    # discovery-engine-manager skill, which writes them directly into
+    # ~/.claude/skills; the exclusion is applied to every destination
+    # because the sweep is identical in all of them. Quote the
+    # expansion at each call site: unquoted, the shell would glob the
+    # pattern against the current directory before rsync ever sees it.
+    keep_foreign='--exclude=discovery-engine-*'
+
+    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.claude/skills" "$keep_foreign"
     apply_skill_overlays ".claude" "$HOME/.claude/skills"
 
     # Codex preserves .system/ and other Codex-managed dot entries.
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.codex/skills" --exclude='.*'
+    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.codex/skills" --exclude='.*' "$keep_foreign"
 
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills"
+    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills" "$keep_foreign"
     apply_skill_overlays ".copilot" "$HOME/.copilot/skills"
 
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills"
+    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills" "$keep_foreign"
     apply_skill_overlays ".gemini" "$HOME/.gemini/skills"
 
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills"
+    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills" "$keep_foreign"
 }
 
 # Mirror $1 onto $2 by merging, so keys the destination holds and the
