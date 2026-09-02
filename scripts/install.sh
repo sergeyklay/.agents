@@ -18,30 +18,219 @@ set -eu
 SCRIPT_DIR=$(CDPATH="" cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH="" cd -- "$SCRIPT_DIR/.." && pwd)
 
-# Sync kinds dispatched by main; --all expands to this list.
+# Sync kinds and hosts dispatched by main. --all expands actions only;
+# host options independently restrict destinations.
 ALL_ACTIONS='agents commands hooks rules settings skills'
+ALL_HOSTS='claude codex copilot gemini opencode'
+
+# Formatting follows terminal capabilities and the NO_COLOR convention.
+setup_formatting() {
+    if [ -t 1 ] && [ "${TERM-}" != "dumb" ] && [ -z "${NO_COLOR-}" ]; then
+	ESC=$(printf '\033')
+	BOLD="${ESC}[1m"
+	DIM="${ESC}[2m"
+	RED="${ESC}[31m"
+	GREEN="${ESC}[32m"
+	YELLOW="${ESC}[33m"
+	CYAN="${ESC}[36m"
+	RESET="${ESC}[0m"
+    else
+	BOLD=
+	DIM=
+	RED=
+	GREEN=
+	YELLOW=
+	CYAN=
+	RESET=
+    fi
+}
+
+info() {
+    printf '%s::%s %s\n' "${BOLD}${CYAN}" "$RESET" "$*"
+}
+
+ok() {
+    printf '%s::%s %s\n' "${BOLD}${GREEN}" "$RESET" "$*"
+}
+
+warn() {
+    printf '%s-%s %s\n' "${BOLD}${YELLOW}" "$RESET" "$*"
+}
+
+err() {
+    printf '%serror:%s %s\n' "${BOLD}${RED}" "$RESET" "$*" >&2
+}
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") [options]
 
-Install agent assets from this repository to user home.
+${BOLD}${CYAN}  .agents${RESET}
+  ${DIM}Portable agent assets, installed where your tools expect them.${RESET}
 
-Options:
-  --all       Install all.
-  --agents    Install agents to user home.
-  --commands  Install commands to user home.
-  --hooks     Install agent hooks to user home.
-  --rules     Install agent rules to user home.
-  --settings  Install agents settings to user home.
-  --skills    Install skills to registered skill destinations.
-  -h, --help  Show this help and exit.
+${BOLD}Usage${RESET}
+  $(basename "$0") ${CYAN}[asset options] [host options]${RESET}
+
+${BOLD}Asset options${RESET}
+  ${BOLD}${YELLOW}--all${RESET}       Install all asset types
+  ${BOLD}${YELLOW}--agents${RESET}    Install agent definitions
+  ${BOLD}${YELLOW}--commands${RESET}  Install commands and prompts
+  ${BOLD}${YELLOW}--hooks${RESET}     Install agent hooks
+  ${BOLD}${YELLOW}--rules${RESET}     Install agent rules and instructions
+  ${BOLD}${YELLOW}--settings${RESET}  Install host settings
+  ${BOLD}${YELLOW}--skills${RESET}    Install skills
+
+${BOLD}Host options${RESET}
+  ${BOLD}${YELLOW}--claude${RESET}    Target Claude Code
+  ${BOLD}${YELLOW}--codex${RESET}     Target Codex
+  ${BOLD}${YELLOW}--copilot${RESET}   Target GitHub Copilot
+  ${BOLD}${YELLOW}--gemini${RESET}    Target Gemini CLI
+  ${BOLD}${YELLOW}--opencode${RESET}  Target opencode
+
+${BOLD}Other options${RESET}
+  ${BOLD}${YELLOW}-h, --help${RESET}  Show this help and exit
+
+${BOLD}Selection${RESET}
+  Asset and host options intersect. Multiple host options are combined.
+  With no asset option, all supported asset types are installed. With no
+  host option, every registered host is targeted.
+
+${BOLD}Examples${RESET}
+  ${DIM}# Install every supported asset for Claude Code.${RESET}
+  ${CYAN}bash scripts/install.sh --claude${RESET}
+
+  ${DIM}# Install only agent definitions for opencode.${RESET}
+  ${CYAN}bash scripts/install.sh --agents --opencode${RESET}
+
+  ${DIM}# Install skills for Claude Code and Codex.${RESET}
+  ${CYAN}bash scripts/install.sh --skills --claude --codex${RESET}
+
+  ${DIM}# Install every asset type for every registered host.${RESET}
+  ${CYAN}bash scripts/install.sh --all${RESET}
+
+${BOLD}Environment${RESET}
+  ${CYAN}NO_COLOR${RESET}   Disable color output (https://no-color.org/)
 EOF
 }
 
 die() {
-    printf 'error: %s\n' "$1" >&2
+    err "$1"
     exit 1
+}
+
+host_selected() {
+    case " $hosts " in
+	*" $1 "*) return 0 ;;
+    esac
+    return 1
+}
+
+host_active() {
+    host_selected "$1" && [ -d "$(host_root "$1")" ]
+}
+
+any_host_active() {
+    for candidate do
+	host_active "$candidate" && return 0
+    done
+    return 1
+}
+
+host_root() {
+    case $1 in
+	claude)   printf '%s/.claude\n' "$HOME" ;;
+	codex)    printf '%s/.codex\n' "$HOME" ;;
+	copilot)  printf '%s/.copilot\n' "$HOME" ;;
+	gemini)   printf '%s/.gemini\n' "$HOME" ;;
+	opencode) printf '%s/.config/opencode\n' "$HOME" ;;
+    esac
+}
+
+host_name() {
+    case $1 in
+	claude)   printf 'Claude Code\n' ;;
+	codex)    printf 'Codex\n' ;;
+	copilot)  printf 'GitHub Copilot\n' ;;
+	gemini)   printf 'Gemini CLI\n' ;;
+	opencode) printf 'opencode\n' ;;
+    esac
+}
+
+for_host() {
+    selected_host=$1
+    shift
+    host_active "$selected_host" || return 0
+    "$@"
+}
+
+join_words() {
+    words=$1
+    # Selection lists contain only installer-owned identifiers.
+    # shellcheck disable=SC2086
+    set -- $words
+    separator=
+    for word do
+	printf '%s%s' "$separator" "$word"
+	separator=', '
+    done
+}
+
+canonical_selection() {
+    selected=$1
+    shift
+    for candidate do
+	case " $selected " in
+	    *" $candidate "*) printf '%s ' "$candidate" ;;
+	esac
+    done
+}
+
+display_path() {
+    path=$1
+    case $path in
+	"$HOME")        printf '~\n' ;;
+	"$HOME"/*)      printf '%s/%s\n' '~' "${path#"$HOME"/}" ;;
+	"$REPO_ROOT")   printf '.\n' ;;
+	"$REPO_ROOT"/*) printf './%s\n' "${path#"$REPO_ROOT"/}" ;;
+	*)               printf '%s\n' "$path" ;;
+    esac
+}
+
+progress_section() {
+    printf '\n%s%s%s\n' "$BOLD" "$1" "$RESET"
+}
+
+progress_updated() {
+    UPDATED_COUNT=$((UPDATED_COUNT + 1))
+    printf '  %s+%s %s %s->%s %s\n' "$GREEN" "$RESET" \
+	"$(display_path "$1")" "$DIM" "$RESET" "$(display_path "$2")"
+}
+
+progress_skipped() {
+    SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+    printf '  %s-%s %s %s(%s)%s\n' "$YELLOW" "$RESET" \
+	"$(display_path "$1")" "$DIM" "$2" "$RESET"
+}
+
+print_plan() {
+    info "Installing agent assets"
+    printf '   %sAssets%s  %s\n' "$BOLD" "$RESET" "$(join_words "$actions")"
+    printf '   %sHosts%s   %s\n' "$BOLD" "$RESET" "$(join_words "$hosts")"
+
+    for candidate in $hosts; do
+	candidate_root=$(host_root "$candidate")
+	if [ ! -d "$candidate_root" ]; then
+	    SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+	    warn "$(host_name "$candidate") not found at $(display_path "$candidate_root"); skipping"
+	fi
+    done
+}
+
+ensure_subdir() {
+    root=$1
+    subdir=$2
+    if [ -d "$root" ]; then
+	mkdir -p "$root/$subdir"
+    fi
 }
 
 # Print the canonical absolute path of $1, resolving symlinks one
@@ -74,11 +263,11 @@ sync_to() {
     label=${SYNC_TO_LABEL:-$src}
     parent=$(dirname -- "$dst")
     if [ ! -d "$parent" ]; then
-        printf '  skip: %s -> %s (no %s)\n' "$label" "$dst" "$parent"
+	progress_skipped "$label" "destination directory missing: $(display_path "$parent")"
         return 0
     fi
     if [ -e "$dst" ] && [ "$(canonical_path "$src")" = "$(canonical_path "$dst")" ]; then
-        printf '  skip: %s -> %s (symlink to source)\n' "$label" "$dst"
+	progress_skipped "$label" "destination is a symlink to the source"
         return 0
     fi
     if [ -d "$src" ]; then
@@ -89,7 +278,7 @@ sync_to() {
     else
         die "source missing: $src"
     fi
-    printf '  %s -> %s\n' "$label" "$dst"
+    progress_updated "$label" "$dst"
 }
 
 # Return 0 when mikefarah/yq v4 is on PATH. Other yq forks share the
@@ -356,7 +545,8 @@ sync_view_toml() {
 }
 
 sync_agents() {
-    printf 'syncing agents...\n'
+    any_host_active claude copilot gemini opencode || return 0
+    progress_section "Agent definitions"
 
     src_dir="$REPO_ROOT/.agents/agents"
     [ -d "$src_dir" ] || die "source missing: $src_dir"
@@ -364,17 +554,18 @@ sync_agents() {
     # Pre-create agents/ in each installed host so the per-file mirrors
     # below are not skipped on a missing parent. Gating on root
     # existence keeps uninstalled hosts un-bootstrapped.
-    for root in "$HOME/.claude" "$HOME/.copilot" "$HOME/.gemini" "$HOME/.config/opencode"; do
-        [ -d "$root" ] && mkdir -p "$root/agents"
-    done
+    for_host claude ensure_subdir "$HOME/.claude" agents
+    for_host copilot ensure_subdir "$HOME/.copilot" agents
+    for_host gemini ensure_subdir "$HOME/.gemini" agents
+    for_host opencode ensure_subdir "$HOME/.config/opencode" agents
 
     for f in "$src_dir/"*.md; do
         [ -f "$f" ] || continue
         name=$(basename -- "$f" .md)
 
-        sync_view ".claude/agents"  "$f" "$HOME/.claude/agents/$name.md"
-        sync_view ".copilot/agents" "$f" "$HOME/.copilot/agents/$name.agent.md"
-        sync_view ".gemini/agents"  "$f" "$HOME/.gemini/agents/$name.md"
+	for_host claude sync_view ".claude/agents" "$f" "$HOME/.claude/agents/$name.md"
+	for_host copilot sync_view ".copilot/agents" "$f" "$HOME/.copilot/agents/$name.agent.md"
+	for_host gemini sync_view ".gemini/agents" "$f" "$HOME/.gemini/agents/$name.md"
 
         # opencode derives the agent name from the filename and defaults
         # an agent without `mode` to "all", which would put all ten into
@@ -397,12 +588,13 @@ sync_agents() {
         #                the provider default, and "default" is not a value
         #                the effort enum accepts.
         # Change a level here only against a measurement of this stack.
-        sync_view ".opencode/agents" "$f" "$HOME/.config/opencode/agents/$name.md"
+	for_host opencode sync_view ".opencode/agents" "$f" "$HOME/.config/opencode/agents/$name.md"
     done
 }
 
 sync_commands() {
-    printf 'syncing commands...\n'
+    any_host_active claude copilot gemini opencode || return 0
+    progress_section "Commands and prompts"
 
     src_dir="$REPO_ROOT/.agents/commands"
     [ -d "$src_dir" ] || die "source missing: $src_dir"
@@ -410,10 +602,10 @@ sync_commands() {
     # Pre-create per-host destination directories so the per-file mirrors
     # below are not skipped on a missing parent. Each host gates itself
     # on its own root, so an uninstalled tool stays untouched.
-    [ -d "$HOME/.claude" ]  && mkdir -p "$HOME/.claude/commands"
-    [ -d "$HOME/.copilot" ] && mkdir -p "$HOME/.copilot/prompts"
-    [ -d "$HOME/.gemini" ]  && mkdir -p "$HOME/.gemini/commands"
-    [ -d "$HOME/.config/opencode" ] && mkdir -p "$HOME/.config/opencode/commands"
+    for_host claude ensure_subdir "$HOME/.claude" commands
+    for_host copilot ensure_subdir "$HOME/.copilot" prompts
+    for_host gemini ensure_subdir "$HOME/.gemini" commands
+    for_host opencode ensure_subdir "$HOME/.config/opencode" commands
 
     for f in "$src_dir/"*.md; do
         [ -f "$f" ] || continue
@@ -423,14 +615,14 @@ sync_commands() {
         # ~/.claude/skills/<name>/SKILL.md per the docs and accepts the
         # same frontmatter, but stays out of --skills' --delete sweep
         # against .agents/skills/.
-        sync_view ".claude/commands" "$f" "$HOME/.claude/commands/$name.md"
+	for_host claude sync_view ".claude/commands" "$f" "$HOME/.claude/commands/$name.md"
 
         # Copilot calls these "prompts" and uses the .prompt.md suffix.
-        sync_view ".copilot/prompts" "$f" "$HOME/.copilot/prompts/$name.prompt.md"
+	for_host copilot sync_view ".copilot/prompts" "$f" "$HOME/.copilot/prompts/$name.prompt.md"
 
         # Gemini commands are TOML files with `description` and `prompt`
         # keys; sync_view dispatches on the .toml extension.
-        sync_view ".gemini/commands" "$f" "$HOME/.gemini/commands/$name.toml"
+	for_host gemini sync_view ".gemini/commands" "$f" "$HOME/.gemini/commands/$name.toml"
 
         # opencode derives the command name from the filename and reads
         # `description`, `agent`, `model` and `subtask` from frontmatter;
@@ -438,7 +630,7 @@ sync_commands() {
         # templates/.opencode/commands/ supplies `subtask: true` where
         # Claude uses `context: fork`, since opencode has no equivalent
         # frontmatter key and runs the command as a child task instead.
-        sync_view ".opencode/commands" "$f" "$HOME/.config/opencode/commands/$name.md"
+	for_host opencode sync_view ".opencode/commands" "$f" "$HOME/.config/opencode/commands/$name.md"
     done
 }
 
@@ -466,29 +658,30 @@ apply_skill_overlays() {
         label="$vendor/skills/$name"
 
         if [ ! -f "$src_skill" ]; then
-            printf '  skip: %s (no source skill at %s)\n' "$label" "$src_skill"
+	    progress_skipped "$label" "source skill missing: $(display_path "$src_skill")"
             continue
         fi
         if [ ! -d "$(dirname -- "$dst_skill")" ]; then
-            printf '  skip: %s (destination %s missing)\n' "$label" "$dst_skill"
+	    progress_skipped "$label" "destination directory missing: $(display_path "$(dirname -- "$dst_skill")")"
             continue
         fi
         if [ -e "$dst_skill" ] && [ "$(canonical_path "$src_skill")" = "$(canonical_path "$dst_skill")" ]; then
-            printf '  skip: %s (symlink to source)\n' "$label"
+	    progress_skipped "$label" "destination is a symlink to the source"
             continue
         fi
 
         tmp=$(mktemp) || die "mktemp failed"
         frontmatter_overlay "$src_skill" "$tmpl" "$tmp"
         mv -f -- "$tmp" "$dst_skill"
-        printf '  %s -> %s\n' "$label" "$dst_skill"
+	progress_updated "$label" "$dst_skill"
     done
 }
 
 # Mirror the skill tree into every registered destination, pairing each
 # mirror with its own frontmatter overlay pass.
 sync_skills() {
-    printf 'syncing skills...\n'
+    any_host_active claude codex copilot gemini opencode || return 0
+    progress_section "Skills"
 
     # Skills another tool owns, living in the destinations this
     # function sweeps. sync_to mirrors a directory with rsync
@@ -504,19 +697,19 @@ sync_skills() {
     # pattern against the current directory before rsync ever sees it.
     keep_foreign='--exclude=discovery-engine-*'
 
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.claude/skills" "$keep_foreign"
-    apply_skill_overlays ".claude" "$HOME/.claude/skills"
+    for_host claude sync_to "$REPO_ROOT/.agents/skills" "$HOME/.claude/skills" "$keep_foreign"
+    for_host claude apply_skill_overlays ".claude" "$HOME/.claude/skills"
 
     # Codex preserves .system/ and other Codex-managed dot entries.
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.codex/skills" --exclude='.*' "$keep_foreign"
+    for_host codex sync_to "$REPO_ROOT/.agents/skills" "$HOME/.codex/skills" --exclude='.*' "$keep_foreign"
 
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills" "$keep_foreign"
-    apply_skill_overlays ".copilot" "$HOME/.copilot/skills"
+    for_host copilot sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills" "$keep_foreign"
+    for_host copilot apply_skill_overlays ".copilot" "$HOME/.copilot/skills"
 
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills" "$keep_foreign"
-    apply_skill_overlays ".gemini" "$HOME/.gemini/skills"
+    for_host gemini sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills" "$keep_foreign"
+    for_host gemini apply_skill_overlays ".gemini" "$HOME/.gemini/skills"
 
-    sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills" "$keep_foreign"
+    for_host opencode sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills" "$keep_foreign"
 }
 
 # Mirror $1 onto $2 by merging, so keys the destination holds and the
@@ -537,33 +730,37 @@ merge_settings() {
         return 0
     fi
     if ! command -v jq >/dev/null 2>&1; then
-        printf '  skip: %s -> %s (jq not on PATH; refusing to overwrite host-local keys)\n' "$src" "$dst"
+	progress_skipped "$src" "jq not found; preserving host-local settings"
         return 0
     fi
     tmp=$(mktemp) || die "mktemp failed"
     jq -s '.[0] * .[1]' "$dst" "$src" > "$tmp" || die "settings merge failed: $src onto $dst"
+    SYNC_TO_LABEL=$src
     sync_to "$tmp" "$dst"
+    unset SYNC_TO_LABEL
     rm -f -- "$tmp"
 }
 
 sync_settings() {
-    printf 'syncing settings...\n'
+    any_host_active claude gemini opencode || return 0
+    progress_section "Host settings"
 
-    merge_settings "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
-    sync_to "$REPO_ROOT/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
-    merge_settings "$REPO_ROOT/.gemini/settings.user.json" "$HOME/.gemini/settings.json"
-    sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
+    for_host claude merge_settings "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
+    for_host claude sync_to "$REPO_ROOT/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
+    for_host gemini merge_settings "$REPO_ROOT/.gemini/settings.user.json" "$HOME/.gemini/settings.json"
+    for_host gemini sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
 
     # opencode reads every opencode.json and opencode.jsonc it finds in
     # ~/.config/opencode and deep-merges them, with .jsonc winning on a
     # conflicting key. Owning the .json half outright therefore needs no
     # merge pass: host-local choices live in the user's opencode.jsonc
     # and still override whatever this repository declares.
-    sync_to "$REPO_ROOT/.opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
+    for_host opencode sync_to "$REPO_ROOT/.opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
 }
 
 sync_rules() {
-    printf 'syncing rules...\n'
+    any_host_active claude copilot opencode || return 0
+    progress_section "Rules and instructions"
 
     src_dir="$REPO_ROOT/.agents/rules"
     [ -d "$src_dir" ] || die "source missing: $src_dir"
@@ -571,9 +768,9 @@ sync_rules() {
     # Pre-create per-host destination directories so the per-file mirrors
     # below are not skipped on a missing parent. Each host gates itself
     # on its own root, so an uninstalled tool stays untouched.
-    [ -d "$HOME/.claude" ]  && mkdir -p "$HOME/.claude/rules"
-    [ -d "$HOME/.copilot" ] && mkdir -p "$HOME/.copilot/instructions"
-    [ -d "$HOME/.config/opencode" ] && mkdir -p "$HOME/.config/opencode/rules"
+    for_host claude ensure_subdir "$HOME/.claude" rules
+    for_host copilot ensure_subdir "$HOME/.copilot" instructions
+    for_host opencode ensure_subdir "$HOME/.config/opencode" rules
 
     for f in "$src_dir/"*.md; do
         [ -f "$f" ] || continue
@@ -583,12 +780,12 @@ sync_rules() {
         # templates/.claude/rules/<name>.yaml supplies `paths:` for
         # path-scoped rules; rules without one install as verbatim
         # markdown and load unconditionally on session start.
-        sync_view ".claude/rules" "$f" "$HOME/.claude/rules/$name.md"
+	for_host claude sync_view ".claude/rules" "$f" "$HOME/.claude/rules/$name.md"
 
         # VS Code Copilot: ~/.copilot/instructions/<name>.instructions.md.
         # templates/.copilot/instructions/<name>.yaml carries the
         # name/description/applyTo frontmatter Copilot expects.
-        sync_view ".copilot/instructions" "$f" "$HOME/.copilot/instructions/$name.instructions.md"
+	for_host copilot sync_view ".copilot/instructions" "$f" "$HOME/.copilot/instructions/$name.instructions.md"
 
         # opencode: ~/.config/opencode/rules/<name>.md, pulled in by the
         # `instructions` glob in .opencode/opencode.json. Only rules that
@@ -599,19 +796,24 @@ sync_rules() {
         # conditional exactly when templates/.claude/rules/<name>.yaml
         # exists to carry its `paths:`, so that file's absence is the test.
         if [ ! -f "$REPO_ROOT/templates/.claude/rules/$name.yaml" ]; then
-            sync_view ".opencode/rules" "$f" "$HOME/.config/opencode/rules/$name.md"
+	    for_host opencode sync_view ".opencode/rules" "$f" "$HOME/.config/opencode/rules/$name.md"
         fi
     done
 }
 
 sync_hooks() {
-    printf 'syncing hooks...\n'
+    any_host_active claude || return 0
+    progress_section "Hooks"
 
-    sync_to "$REPO_ROOT/.claude/hooks" "$HOME/.claude/hooks"
+    for_host claude sync_to "$REPO_ROOT/.claude/hooks" "$HOME/.claude/hooks"
 }
 
 main() {
+    setup_formatting
+    UPDATED_COUNT=0
+    SKIPPED_COUNT=0
     actions=
+    hosts=
     while [ $# -gt 0 ]; do
         case $1 in
             --all)       actions="$actions $ALL_ACTIONS" ;;
@@ -621,18 +823,36 @@ main() {
             --rules)     actions="$actions rules" ;;
             --skills)    actions="$actions skills" ;;
             --settings)  actions="$actions settings" ;;
+	    --claude)    hosts="$hosts claude" ;;
+	    --codex)     hosts="$hosts codex" ;;
+	    --copilot)   hosts="$hosts copilot" ;;
+	    --gemini)    hosts="$hosts gemini" ;;
+	    --opencode)  hosts="$hosts opencode" ;;
             -h|--help)   usage; exit 0 ;;
-            -*)          die "unknown option: $1" ;;
-            *)           die "unexpected argument: $1" ;;
+	    -*)          die "unknown option: $1 (try --help)" ;;
+	    *)           die "unexpected argument: $1 (try --help)" ;;
         esac
         shift
     done
-    [ -n "$actions" ] || { usage >&2; exit 2; }
+    [ -n "$actions$hosts" ] || { usage >&2; exit 2; }
+    [ -n "$actions" ] || actions=$ALL_ACTIONS
+    [ -n "$hosts" ] || hosts=$ALL_HOSTS
+    actions=$(canonical_selection "$actions" agents commands hooks rules settings skills)
+    hosts=$(canonical_selection "$hosts" claude codex copilot gemini opencode)
+
+    print_plan
     # Dispatch in canonical order; the membership check drops
     # duplicates when --all is combined with individual flags.
     for action in $ALL_ACTIONS; do
         case " $actions " in *" $action "*) "sync_$action" ;; esac
     done
+
+    printf '\n'
+    if [ "$UPDATED_COUNT" -gt 0 ]; then
+	ok "Installation complete: $UPDATED_COUNT updated, $SKIPPED_COUNT skipped"
+    else
+	warn "No destinations were updated ($SKIPPED_COUNT skipped)"
+    fi
 }
 
 main "$@"
