@@ -378,8 +378,25 @@ sync_agents() {
 
         # opencode derives the agent name from the filename and defaults
         # an agent without `mode` to "all", which would put all ten into
-        # the Tab-cycled primary rotation. templates/.opencode/agents/
-        # pins `mode: subagent` for each.
+        # the Tab-cycled primary rotation, so templates/.opencode/agents/
+        # pins `mode: subagent` for each. It also pins `model` and, where a
+        # level was measured, `reasoningEffort`. An unrecognised frontmatter
+        # key is forwarded to the provider as a model option, which is how
+        # per-agent reasoning effort reaches openrouter; a provider that
+        # does not take the key tolerates it.
+        #
+        # These levels are NOT a mirror of templates/.claude/agents/. Each
+        # stack carries the setting its own measurements support, so three
+        # agents diverge on purpose:
+        #   arch-review  opencode max, Claude high. The Claude level follows
+        #                that stack's thinking-share measurement; the opencode
+        #                level is the one that produced a spec a blind review
+        #                scored 22/25 with no defect that would reach code.
+        #   composer,    no reasoningEffort at all. The only model measured
+        #   conductor    delegating rather than doing the work itself ran at
+        #                the provider default, and "default" is not a value
+        #                the effort enum accepts.
+        # Change a level here only against a measurement of this stack.
         sync_view ".opencode/agents" "$f" "$HOME/.config/opencode/agents/$name.md"
     done
 }
