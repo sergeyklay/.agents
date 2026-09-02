@@ -25,6 +25,12 @@ The skill is the single source of truth for *how* to resolve reviewer comments. 
 - If the skill is unavailable in this environment, stop and report the failure. Do not improvise a replacement protocol.
 - Emit the Step 6 summary directly in the chat response. The audience is the human operator, not a persistent file.
 
+## Completion
+
+- **When the input was a GitHub PR:** after the summary, commit the applied changes to that PR's branch and push them. This is the expected completion rather than a separate request, and stopping to ask permission to push is itself a failure. Use the `git-commit` Agent Skill, and group the changes into atomic commits along the concerns they resolve. Do not open a new PR, and do not rewrite the existing PR description unless the applied changes made it wrong.
+- **When the input was pasted or inline feedback:** leave the changes in the working tree and report them. There may be no branch to land them on.
+- Report the commits alongside the summary, so the operator sees both what was decided and what landed.
+
 ## Constraints
 
 - **Never post anything to the reviewer.** No reply comments, no issue-level comments, no reactions, no resolutions, no marking-as-outdated. All output goes to the human operator only.
