@@ -26,6 +26,11 @@ by hand):
     - No oversized fenced code blocks (heuristic for runnable code rather
       than signature). Default threshold is 80 lines; pass --code-block-limit
       to override.
+    - Section 5, Open questions, stays inside its word budget. Default 400;
+      pass --questions-word-limit to override.
+    - Section 6, File structure summary, carries little prose around its file
+      listing, whether that listing is a fenced tree or a table. Default 80
+      words; pass --file-summary-prose-limit to override.
 
 Exit codes:
     0   no errors (warnings may be present)
@@ -53,6 +58,8 @@ EM_OR_EN_DASH = re.compile(r"[–—]")
 FILENAME_PATTERN = re.compile(r"^Spec-[\w.\-]+\.md$")
 COMPLIANCE_HEADER = re.compile(r"^##\s+Compliance check\s*$", re.MULTILINE)
 RISK_HEADER = re.compile(r"^##\s+4\.\s+Risk assessment\s*$", re.MULTILINE)
+QUESTIONS_HEADER = re.compile(r"^##\s+5\.\s+Open questions\s*$", re.MULTILINE)
+FILE_SUMMARY_HEADER = re.compile(r"^##\s+6\.\s+File structure summary\s*$", re.MULTILINE)
 NEXT_SECTION = re.compile(r"^##\s+", re.MULTILINE)
 TABLE_ROW = re.compile(r"^\|(?P<cells>.+)\|\s*$", re.MULTILINE)
 SEPARATOR_ROW = re.compile(r"^\|\s*[:\- ]+\s*\|")
@@ -90,7 +97,24 @@ def table_data_rows(section: str) -> list[list[str]]:
     return rows
 
 
-def validate(path: Path, code_block_limit: int) -> tuple[list[str], list[str]]:
+def words_outside_listing(section: str) -> int:
+    """Count a section's prose, ignoring fenced blocks and table rows.
+
+    Section 6 may present its file set as a fenced tree or as a table; both are
+    listings and neither is padding. What this counts is the prose around them,
+    which is where a restatement of section 3 accumulates.
+    """
+    stripped = FENCED_BLOCK.sub(" ", section)
+    lines = [ln for ln in stripped.splitlines() if not ln.strip().startswith("|")]
+    return len("\n".join(lines).split())
+
+
+def validate(
+    path: Path,
+    code_block_limit: int,
+    questions_word_limit: int,
+    file_summary_prose_limit: int,
+) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
 
@@ -141,6 +165,31 @@ def validate(path: Path, code_block_limit: int) -> tuple[list[str], list[str]]:
         if not rows:
             errors.append("Risk-assessment table has no data rows")
 
+    # Section 5 budget. The template asks for four bullets per question. Anything
+    # past that is deliberation the reader did not ask for: one measured spec spent
+    # 869 words here where two others answering the same issue spent 103 and 65.
+    questions_body = section_body(content, QUESTIONS_HEADER)
+    if questions_body:
+        count = len(questions_body.split())
+        if count > questions_word_limit:
+            errors.append(
+                f"Section 5 is {count} words (limit {questions_word_limit}); keep each question "
+                "to the template's four bullets and drop option catalogues"
+            )
+
+    # Section 6 budget. The section is a file tree whose annotations belong inside
+    # the tree, so the budget counts only prose outside the fence and stays correct
+    # however many files the change touches. Prose here restates section 3.
+    summary_body = section_body(content, FILE_SUMMARY_HEADER)
+    if summary_body:
+        prose = words_outside_listing(summary_body)
+        if prose > file_summary_prose_limit:
+            errors.append(
+                f"Section 6 carries {prose} words of prose around the file listing "
+                f"(limit {file_summary_prose_limit}); annotate entries inside the tree "
+                "rather than restating section 3"
+            )
+
     # Em-dash and en-dash check.
     for m in EM_OR_EN_DASH.finditer(content):
         line_no = content.count("\n", 0, m.start()) + 1
@@ -175,10 +224,27 @@ def main() -> int:
         default=80,
         help="Maximum lines per fenced code block before warning (default 80).",
     )
+    parser.add_argument(
+        "--questions-word-limit",
+        type=int,
+        default=400,
+        help="Maximum words in section 5, Open questions (default 400).",
+    )
+    parser.add_argument(
+        "--file-summary-prose-limit",
+        type=int,
+        default=80,
+        help="Maximum words of prose around the file listing in section 6 (default 80).",
+    )
     args = parser.parse_args()
 
     path = Path(args.spec_path).resolve()
-    errors, warnings = validate(path, args.code_block_limit)
+    errors, warnings = validate(
+        path,
+        args.code_block_limit,
+        args.questions_word_limit,
+        args.file_summary_prose_limit,
+    )
 
     for w in warnings:
         print(f"  [!] {w}")
