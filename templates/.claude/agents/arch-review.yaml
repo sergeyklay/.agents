@@ -11,5 +11,5 @@ skills:
   - review-spec
   - verify-impl
 model: opus
-effort: max
+effort: high
 color: blue
