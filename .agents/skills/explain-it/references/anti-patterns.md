@@ -233,4 +233,4 @@ Each anti-pattern is a broken conversational maxim, and naming the maxim points 
 
 Quality is primary: patterns 4, 8, and the Quality half of 9 corrupt the reader's model directly, which is the worst failure mode - an honest gap beats a fluent error.
 
-Two root causes underlie the table. Patterns 1, 2, 4, 5, 7, 8 ship a skipped verification or synthesis step; defend with the **investigation discipline** of the `conducting-deep-research` skill. Patterns 3, 6, 9, 10, 11 are calibration failures - over-explaining, talking down, filling space, mis-ordering information, or misreading what the reader will do with the answer; defend with the **calibration discipline** of `communication-calibration.md`.
+Two root causes underlie the table. Patterns 1, 2, 4, 5, 7, 8 ship a skipped verification or synthesis step; defend with the **investigation discipline** of the `research-it` skill. Patterns 3, 6, 9, 10, 11 are calibration failures - over-explaining, talking down, filling space, mis-ordering information, or misreading what the reader will do with the answer; defend with the **calibration discipline** of `communication-calibration.md`.

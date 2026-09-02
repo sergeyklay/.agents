@@ -31,6 +31,7 @@ These are the sources where the actual behaviour, specification, or authoritativ
 - **GitHub.** Use the `github_repo` tool (when available), or fetch raw files via the `https://raw.githubusercontent.com/...` URL pattern, or fetch rendered files via `https://github.com/.../blob/...`.
 - **Other forges.** GitLab, Codeberg, sourcehut, Bitbucket - all support raw file URLs.
 - **Mirrored stdlib / runtime.** For language standard libraries and runtimes (Go, Python, Node, JVM, .NET), the canonical repository is usually on GitHub or the language's own forge.
+- **Compiled or bundled artifact.** When the shipped thing is a single binary or a bundled script and the public repository is absent, unbuilt, or a different version from the one installed, the artifact on disk is the tier 1 source and the repository is not. Enter it with `strings -n 6` or `grep -rlc` on a distinctive literal, then read by byte-offset slice - never `grep -o` or `sed -n`, since one minified line can be megabytes wide - and confirm each reading against the tool's own introspection subcommand (`debug`, `config`, `--print-config`) run under a scratch `HOME`. The `confine-external-cli` skill owns this procedure in full.
 
 **Investigation tip.** When tracing a behaviour, search for the **error message text** or **log line text** in the source. This is faster than walking call graphs from the entry point.
 
