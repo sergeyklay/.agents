@@ -48,7 +48,7 @@ For each claim that will appear as fact in the output:
 
 ## Phase 6 - Synthesis
 
-- [ ] Output uses the `explaining-technical-concepts` skill for writing
+- [ ] Output uses the `explain-it` skill for writing
 - [ ] Every implementation claim has an inline citation
 - [ ] What could not be confirmed is named explicitly in the output
 - [ ] Conflicts between sources are reported, not silently resolved

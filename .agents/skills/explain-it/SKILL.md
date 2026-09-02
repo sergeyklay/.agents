@@ -167,7 +167,7 @@ When uncertain about depth, let the reader's role break the tie. At mechanism al
 
 ## When this skill is one half of the job
 
-If the task involves both gathering evidence and writing the explanation, this skill governs only the writing. The investigation discipline - what counts as a source, how many to consult, how to triangulate, when to stop - belongs to the `conducting-deep-research` skill. Load both.
+If the task involves both gathering evidence and writing the explanation, this skill governs only the writing. The investigation discipline - what counts as a source, how many to consult, how to triangulate, when to stop - belongs to the `research-it` skill. Load both.
 
 ## References
 
