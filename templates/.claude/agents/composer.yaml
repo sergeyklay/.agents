@@ -6,6 +6,7 @@ tools:
   - TaskGet
   - TaskList
   - TaskUpdate
+  - SendMessage
   # project-level .mcp.json
   - mcp__atlassian__getJiraIssue
   - mcp__atlassian__searchJiraIssuesUsingJql

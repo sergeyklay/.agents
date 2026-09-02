@@ -17,6 +17,7 @@ tools:
   - TaskStop
   - AskUserQuestion
   - ExitPlanMode
+  - SendMessage
   # project-level .mcp.json
   - mcp__bpdb__search_schema
   - mcp__bpdb__explain
