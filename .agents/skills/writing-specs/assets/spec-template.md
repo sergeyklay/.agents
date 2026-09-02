@@ -156,11 +156,15 @@ Every question that blocked a design decision in Phase 2. For each:
 - What information would resolve it.
 - A proposed default if the question goes unanswered.
 
+Those four bullets are the whole entry. Do not add option catalogues, recommendations, or trade-off prose: the question is open precisely because this document cannot settle it. Budget for the section is 400 words, enforced by `scripts/validate_spec.py`.
+
 A spec with no open questions is suspicious in any non-trivial feature. Either the design is genuinely complete, or the questions are hidden.
 
 ## 6. File structure summary
 
-Tree view of every new or modified file. Annotate each entry with its role. Use whichever role markers the project documents; the example below is illustrative.
+Tree view of every new or modified file, or an equivalent table. Annotate each entry with its role, inside the listing. Use whichever role markers the project documents; the example below is illustrative.
+
+Prose around the listing is budgeted at 80 words and enforced by `scripts/validate_spec.py`. Everything a reader needs about *why* a file changes is already in section 3; repeating it per file doubles the document and adds nothing.
 
 ```
 src/
