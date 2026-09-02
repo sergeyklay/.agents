@@ -84,6 +84,7 @@ All other concrete rules (table-struct conventions, mock/fake/spy patterns, adap
 2. **NO CONFIG CHANGES.** Do not modify `go.mod`, `go.sum`, `Makefile`, `default.mk`, `.golangci.yml`, or any build/lint configuration. If tests fail due to config, report it; do not fix it.
 3. **NO NEW DEPENDENCIES.** Do not introduce new test frameworks, assertion libraries, or third-party utilities. Use Go stdlib first; use existing project dependencies second. Anything else requires explicit approval.
 4. **IDIOMATIC GO.** Standard `testing` package only. `gofmt` canonical formatting. No `interface{}`/`any` outside JSON-decoding boundaries.
+5. **NEVER DISCARD UNCOMMITTED WORK.** Other sessions and agents may have uncommitted changes in this repository, and the implementation subagent's work usually reaches you uncommitted. Never run `git checkout --`, `git restore`, `git reset --hard`, `git stash` or `git clean` - not even to undo an edit of your own. To undo your own edit, copy the file aside before you change it and restore it from that copy. Stage your own paths by name; never `git add -A` or `git add .`.
 
 ## Verification
 

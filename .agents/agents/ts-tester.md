@@ -64,6 +64,7 @@ All other concrete rules - Vitest environment directives, mocking conventions, R
 1. **NO BOILERPLATE:** Do not explain the imports. Just write the test file.
 2. **IDIOMATIC:** Follow TypeScript and Vitest best practices. No `any`. No `jest.*` APIs. No snapshot tests for complex UI.
 3. **NO PRODUCTION CODE EDITS:** If a test fails because the production code is wrong, do not "fix" the production code to make the test green. Report the defect in your testing summary and let the implementation subagent fix it.
+4. **NEVER DISCARD UNCOMMITTED WORK.** Other sessions and agents may have uncommitted changes in this repository, and the implementation subagent's work usually reaches you uncommitted. Never run `git checkout --`, `git restore`, `git reset --hard`, `git stash` or `git clean` - not even to undo an edit of your own. To undo your own edit, copy the file aside before you change it and restore it from that copy. Stage your own paths by name; never `git add -A` or `git add .`.
 
 ## Verification
 

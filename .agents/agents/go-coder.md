@@ -27,6 +27,10 @@ Test files (`*_test.go`) are produced exclusively by the **Tester Agent**, not b
 - Is it a new `*_test.go` file? -> Stop. Note the testing need in your summary instead.
 - Is it outside my authorized file types? -> Stop. Explain what is needed.
 
+**Working-tree safety - the working copy is shared:**
+
+Other sessions and agents may have uncommitted changes in this repository. Never run `git checkout --`, `git restore`, `git reset --hard`, `git stash` or `git clean` - not even to undo an edit of your own, and not even when you appear to be the only writer. To undo your own edit, copy the file aside before you change it and restore it from that copy. Stage your own paths by name; never `git add -A` or `git add .`.
+
 ## Input
 
 - Execution plan provided by the user.
