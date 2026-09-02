@@ -364,7 +364,7 @@ sync_agents() {
     # Pre-create agents/ in each installed host so the per-file mirrors
     # below are not skipped on a missing parent. Gating on root
     # existence keeps uninstalled hosts un-bootstrapped.
-    for root in "$HOME/.claude" "$HOME/.copilot" "$HOME/.gemini"; do
+    for root in "$HOME/.claude" "$HOME/.copilot" "$HOME/.gemini" "$HOME/.config/opencode"; do
         [ -d "$root" ] && mkdir -p "$root/agents"
     done
 
@@ -375,6 +375,12 @@ sync_agents() {
         sync_view ".claude/agents"  "$f" "$HOME/.claude/agents/$name.md"
         sync_view ".copilot/agents" "$f" "$HOME/.copilot/agents/$name.agent.md"
         sync_view ".gemini/agents"  "$f" "$HOME/.gemini/agents/$name.md"
+
+        # opencode derives the agent name from the filename and defaults
+        # an agent without `mode` to "all", which would put all ten into
+        # the Tab-cycled primary rotation. templates/.opencode/agents/
+        # pins `mode: subagent` for each.
+        sync_view ".opencode/agents" "$f" "$HOME/.config/opencode/agents/$name.md"
     done
 }
 
@@ -390,6 +396,7 @@ sync_commands() {
     [ -d "$HOME/.claude" ]  && mkdir -p "$HOME/.claude/commands"
     [ -d "$HOME/.copilot" ] && mkdir -p "$HOME/.copilot/prompts"
     [ -d "$HOME/.gemini" ]  && mkdir -p "$HOME/.gemini/commands"
+    [ -d "$HOME/.config/opencode" ] && mkdir -p "$HOME/.config/opencode/commands"
 
     for f in "$src_dir/"*.md; do
         [ -f "$f" ] || continue
@@ -407,6 +414,14 @@ sync_commands() {
         # Gemini commands are TOML files with `description` and `prompt`
         # keys; sync_view dispatches on the .toml extension.
         sync_view ".gemini/commands" "$f" "$HOME/.gemini/commands/$name.toml"
+
+        # opencode derives the command name from the filename and reads
+        # `description`, `agent`, `model` and `subtask` from frontmatter;
+        # the body becomes the template and expands $ARGUMENTS and $1..$N.
+        # templates/.opencode/commands/ supplies `subtask: true` where
+        # Claude uses `context: fork`, since opencode has no equivalent
+        # frontmatter key and runs the command as a child task instead.
+        sync_view ".opencode/commands" "$f" "$HOME/.config/opencode/commands/$name.md"
     done
 }
 
@@ -521,6 +536,13 @@ sync_settings() {
     sync_to "$REPO_ROOT/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
     merge_settings "$REPO_ROOT/.gemini/settings.user.json" "$HOME/.gemini/settings.json"
     sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
+
+    # opencode reads every opencode.json and opencode.jsonc it finds in
+    # ~/.config/opencode and deep-merges them, with .jsonc winning on a
+    # conflicting key. Owning the .json half outright therefore needs no
+    # merge pass: host-local choices live in the user's opencode.jsonc
+    # and still override whatever this repository declares.
+    sync_to "$REPO_ROOT/.opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
 }
 
 sync_rules() {
@@ -534,6 +556,7 @@ sync_rules() {
     # on its own root, so an uninstalled tool stays untouched.
     [ -d "$HOME/.claude" ]  && mkdir -p "$HOME/.claude/rules"
     [ -d "$HOME/.copilot" ] && mkdir -p "$HOME/.copilot/instructions"
+    [ -d "$HOME/.config/opencode" ] && mkdir -p "$HOME/.config/opencode/rules"
 
     for f in "$src_dir/"*.md; do
         [ -f "$f" ] || continue
@@ -549,6 +572,18 @@ sync_rules() {
         # templates/.copilot/instructions/<name>.yaml carries the
         # name/description/applyTo frontmatter Copilot expects.
         sync_view ".copilot/instructions" "$f" "$HOME/.copilot/instructions/$name.instructions.md"
+
+        # opencode: ~/.config/opencode/rules/<name>.md, pulled in by the
+        # `instructions` glob in .opencode/opencode.json. Only rules that
+        # load unconditionally go there. opencode has no path scoping, so
+        # every instruction file it reads enters the system prompt of every
+        # session in every project; shipping a Go style rule that way would
+        # state it as fact inside a TypeScript repository. A rule is
+        # conditional exactly when templates/.claude/rules/<name>.yaml
+        # exists to carry its `paths:`, so that file's absence is the test.
+        if [ ! -f "$REPO_ROOT/templates/.claude/rules/$name.yaml" ]; then
+            sync_view ".opencode/rules" "$f" "$HOME/.config/opencode/rules/$name.md"
+        fi
     done
 }
 
