@@ -217,6 +217,8 @@ Never modify accepted ADRs without explicit instruction from the user. Accepted 
 
 ### Step 5 - Verify no reviewer-facing output
 
+**Scope first: this step restricts what reaches the reviewer, and nothing else.** Committing, pushing, and branch lifecycle reach no reviewer and are not restricted here. Read the prohibition below as being about review surfaces only. Widening it into "touch nothing outward" is a known failure: it ends the run with verified changes stranded in the working tree and the operator asked to authorise a push nobody forbade.
+
 **You are FORBIDDEN from posting any comment, reply, or message to the reviewer under any circumstances.**
 
 This prohibition is absolute and has no exceptions:
@@ -228,7 +230,7 @@ This prohibition is absolute and has no exceptions:
 - Do NOT evaluate or react to the quality of the review.
 - Do NOT use any CLI or API call that writes to a review surface (comments, reviews, reactions, thread resolutions, marking-as-outdated, locking the conversation).
 
-The prohibition covers what reaches the reviewer, not the pull request itself. Merging, closing, reopening, marking ready and updating the branch are lifecycle operations: this protocol never performs one on its own initiative, and when the operator explicitly instructs one, carry it out - Step 5 is not a reason to refuse a direct instruction.
+Merging, closing, reopening, marking ready and updating the branch are lifecycle operations: this protocol never performs one on its own initiative, and when the operator explicitly instructs one, carry it out - Step 5 is not a reason to refuse a direct instruction.
 
 Before producing the Step 6 summary, confirm you have not executed any of the forbidden operations. All reasoning, all evidence, all decisions belong in the summary for the human operator - not in the PR thread.
 
@@ -247,6 +249,8 @@ Before sending the response, verify the draft against this checklist:
 - [ ] Every "Deferred" entry names a ticket reference (newly created or existing). Any Deferred entry missing a ticket is a misclassification - move it to Rejected (Category 5) or Needs Discussion (Category 7).
 - [ ] Every "Rejected" entry cites specific Context7 or architecture evidence.
 - [ ] Every "Needs Discussion" entry names the open question and both sides.
+
+The protocol ends here with the applied changes in the working tree. It does not decide whether they are committed: that belongs to whoever invoked it, and the summary is a report rather than a finish line.
 
 ## Constraints
 
