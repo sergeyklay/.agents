@@ -49,6 +49,7 @@ Never infer that a mutation applied from the mutating command's exit status. Mos
 | Env var or secret | Assert non-empty inside the job that consumes it and exit non-zero if unset. A missing secret expands to the empty string, not an error. |
 | Generated fixture or artifact | Stat it, read it back, and check a distinguishing field — not just that the path exists. |
 | Multi-file write by an agent tool | List the directory afterwards (`find <dir> -type f`) and match it against every intended path. A per-file success message reports the tool's intent, not the filesystem; a batch can report success for each write while only the last one survives. |
+| Agent-reported restoration of files it destroyed | Hash each file (`git hash-object <path>`) and compare against what you recorded from your own earlier read. An agent that reverted or overwrote work and then reports restoring it "byte-for-byte" is quoting its own memory, not the filesystem - and one file of a pair can match exactly while another silently differs. |
 | Service/container/branch state | Query it through its own API, not through the command that was supposed to change it. |
 
 The rule underneath the table: **verify through a different path than the one that wrote**. The writing path is the thing under suspicion.
@@ -67,7 +68,7 @@ Grep the job or script for `continue-on-error`, `|| true`, `set +e`, `|| exit 0`
 
 Break the thing on purpose and confirm the check turns red:
 
-- Revert the fix, or point the check at the pre-fix revision.
+- Revert the fix, or point the check at the pre-fix revision. Copy the file aside before you break it and restore from that copy; never with `git checkout --`, `git restore` or `git reset`, which take every uncommitted change in the tree with them.
 - Blank the secret, delete the fixture, or feed the old value.
 - Corrupt one field the assertion is supposed to notice.
 
@@ -98,4 +99,5 @@ Any unticked box downgrades the result from "verified" to "not contradicted".
 - **Building before syncing.** A rehearsal on a working copy that is behind the remote produces old output; the comparison then confirms the old output, in detail, convincingly.
 - **Warning-shaped failures.** A step that prints a warning and exits 0 turns a broken release into a green one. Warnings are for things that are allowed to be false.
 - **Treating repetition as confirmation.** Re-running the same vacuous check with different parameters returns the same green. Setup-level failures are perfectly correlated across runs, exactly like instrument-level failures are across queries.
+- **Accepting another agent's account of the tree.** A subagent reporting that it restored, reverted or reconstructed files is reporting its intent and its memory, not the filesystem. The tree is a different path; hash it.
 - **Skipping the negative control because it is inconvenient.** It is one revert and one re-run, and it is the only step that distinguishes a check from a ritual.
