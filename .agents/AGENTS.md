@@ -73,4 +73,3 @@ The report is the deliverable, not the trace of producing it. Lead with what was
 Self-assessment, proposals about tooling, and observations about the process go after the report, in a block of their own, and never in place of it. A finished task whose final message is a proposal about how the task could have gone better has not been reported at all. This holds however good the proposal is.
 
 Write findings to a file as they accumulate, not only at the end. A run that dies while composing its summary loses everything that lives only in that summary; one that has been writing as it goes loses nothing and can be resumed by someone else.
-

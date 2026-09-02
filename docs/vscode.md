@@ -1,5 +1,9 @@
 # My VS Code Configuration
 
+## Global Agent Instructions
+
+`scripts/install.sh --context --claude` installs `~/.claude/CLAUDE.md`; `chat.useClaudeMdFile` applies it to VS Code Copilot. `--context --copilot` targets Copilot CLI.
+
 ## Global Settings
 
 ```json

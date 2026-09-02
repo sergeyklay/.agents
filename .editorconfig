@@ -1,0 +1,5 @@
+root = true
+
+[scripts/*.sh]
+indent_style = tab
+shell_variant = posix
