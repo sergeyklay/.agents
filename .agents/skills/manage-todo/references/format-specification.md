@@ -1,6 +1,6 @@
 # TODO.md Format Specification
 
-Exact structural rules for the Sortie project roadmap file. This specification is derived from the established conventions in the existing TODO.md and the project's AGENTS.md requirements. All agents writing to TODO.md must conform.
+Exact structural rules for a project's TODO.md roadmap file. Derive the project-specific conventions from the existing TODO.md and the project's context file (AGENTS.md, CLAUDE.md). All agents writing to TODO.md must conform.
 
 ## Contents
 
@@ -27,7 +27,7 @@ Exact structural rules for the Sortie project roadmap file. This specification i
 ...
 ```
 
-**Title line:** `# Sortie Roadmap` - single H1, never changed.
+**Title line:** a single H1 naming the roadmap, conventionally `# {Product_name} Roadmap`. Set once and never changed afterwards; the validator checks only that line 1 begins with `# `.
 
 **Intro paragraph:** 1-2 lines wrapped at 90 characters describing the overall project. Ends with a blank line.
 
@@ -149,7 +149,7 @@ The verify section describes HOW to confirm the task is complete. Valid verifica
 | Unit tests | "unit tests cover happy path, missing file, bad YAML" |
 | Integration tests | "integration test with mock tracker confirms dispatch" |
 | Command execution | "`make lint` and `make fmt` exit 0 with no warnings" |
-| Build verification | "`go run ./cmd/sortie` prints version and exits 0" |
+| Build verification | "`go run ./cmd/<binary>` prints the version and exits 0" |
 | Observable outcome | "document exists with endpoint references and auth requirements" |
 
 The verify text follows the same wrapping and indentation rules as the task description.

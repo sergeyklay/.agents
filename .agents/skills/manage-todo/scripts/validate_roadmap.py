@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
-"""Validate TODO.md structural integrity against the Sortie roadmap format.
+"""Validate TODO.md structural integrity against the roadmap format.
 
 Usage:
     python3 validate_roadmap.py [path/to/TODO.md]

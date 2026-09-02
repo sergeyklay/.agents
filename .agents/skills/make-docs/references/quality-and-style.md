@@ -247,7 +247,7 @@ A title is a promise. It tells the reader exactly what they get if they keep rea
 - For tutorials: describe what will be built. "Build a real-time dashboard with WebSockets."
 - For how-to guides: start with "How to" and name the outcome.
 - For reference: mirror the product structure. "CLI reference: deploy command."
-- For explanation: frame around the "why." "Why Sortie uses adapter interfaces."
+- For explanation: frame around the "why." "Why {Product_name} uses adapter interfaces."
 
 ### Headings
 

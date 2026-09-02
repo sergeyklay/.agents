@@ -12,7 +12,7 @@ The word *explanation* comes from Latin *explanare* -- to unfold. You are unfold
 
 Explanation thrives on connections -- between concepts within the system, between the system and the wider world, between the current design and its alternatives. Isolated facts are reference. Connected understanding is explanation.
 
-- **Good:** "Sortie's workspace isolation is analogous to Docker's filesystem namespaces, but operates at the orchestrator level rather than the OS level. This means you get path containment without the overhead of container creation -- a deliberate trade-off that favors agent startup speed over the stronger isolation guarantees containers provide."
+- **Good:** "{Product_name}'s workspace isolation is analogous to Docker's filesystem namespaces, but operates at the orchestrator level rather than the OS level. This means you get path containment without the overhead of container creation -- a deliberate trade-off that favors agent startup speed over the stronger isolation guarantees containers provide."
 - **Bad:** "Workspaces are isolated from each other."
 
 The first connects to something the reader likely knows (Docker), names the trade-off explicitly, and explains the design rationale. The second states a fact that belongs in reference.
@@ -22,7 +22,7 @@ The first connects to something the reader likely knows (Docker), names the trad
 Why does this feature exist? What problem did it solve? What alternatives were considered? What constraints shaped the design? This is the context that tutorials cannot provide (too much theory), how-to guides ignore (irrelevant to the task), and reference cannot express (too opinionated).
 
 - **Good:** "The decision to use SQLite rather than PostgreSQL was driven by the single-binary deployment model. An orchestration tool that requires a running database server creates a dependency chain that contradicts the project's zero-dependency philosophy. SQLite embeds into the binary. The trade-off is write concurrency -- a constraint that the architecture addresses through careful transaction scoping."
-- **Bad:** "Sortie uses SQLite for persistence."
+- **Bad:** "{Product_name} uses SQLite for persistence."
 
 ### 3. Offer Opinions and Perspectives
 
@@ -37,7 +37,7 @@ Take positions. Support them with reasoning. Acknowledge alternatives respectful
 
 Analogies are the most powerful tool in explanatory writing. They bridge the gap between what the reader already understands and what they are trying to understand. An analogy that lands makes a paragraph of explanation unnecessary.
 
-- **Good:** "The adapter pattern in Sortie works like a universal power adapter. The orchestrator core is the appliance -- it has a fixed plug shape (the Go interface). Each integration (Jira, Claude Code) is a different country with a different socket. The adapter translates between them. You never rewire the appliance; you swap the adapter."
+- **Good:** "The adapter pattern in {Product_name} works like a universal power adapter. The orchestrator core is the appliance -- it has a fixed plug shape (the Go interface). Each integration (Jira, Claude Code) is a different country with a different socket. The adapter translates between them. You never rewire the appliance; you swap the adapter."
 - **Good:** "A state machine is to a workflow what a grammar is to a language. The grammar does not tell you what sentences to write. It tells you which sentences are valid."
 
 Analogies work best when they share structural similarity with the concept, not just surface similarity. A good analogy illuminates the *relationships* between parts, not just the parts themselves.
@@ -125,7 +125,7 @@ Explanation is the hardest type to scope. Tutorials have a clear start and end (
 
 **Two techniques for scoping:**
 
-1. **The "why" question.** Frame every explanation as answering a specific "why" question: "Why does Sortie use adapter interfaces instead of direct integrations?" This gives the article a clear center of gravity.
+1. **The "why" question.** Frame every explanation as answering a specific "why" question: "Why does {Product_name} use adapter interfaces instead of direct integrations?" This gives the article a clear center of gravity.
 
 2. **Draw a border.** Explicitly state what the article covers and what it does not: "This article explains the state machine design. For the persistence layer that stores state transitions, see [link]."
 

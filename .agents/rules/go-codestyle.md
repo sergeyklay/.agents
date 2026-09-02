@@ -293,8 +293,8 @@ import (
 
     "golang.org/x/sync/errgroup"
 
-    "github.com/sortie-ai/sortie/internal/domain"
-    "github.com/sortie-ai/sortie/internal/logging"
+    "example.com/project/internal/domain"
+    "example.com/project/internal/logging"
 )
 ```
 

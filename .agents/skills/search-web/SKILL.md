@@ -16,13 +16,13 @@ Two endpoints on `https://api.keenable.ai`, both usable with no key and no accou
 | Search    | `POST` | `/v1/search/public` | Ranked results with title, url, description, snippet |
 | Fetch     | `GET`  | `/v1/fetch/public`  | Page content as markdown                       |
 
-Both require the header `X-Keenable-Title: Sortie`. It has no default; omitting it returns `400 Missing app identifier`.
+Both require the header `X-Keenable-Title`, whose value is any non-empty string identifying the calling application - the examples below use `agent-skills`. It has no default; omitting it returns `400 Missing app identifier`.
 
 ## Search
 
 ```bash
 curl -s -X POST "https://api.keenable.ai/v1/search/public" \
-  -H "X-Keenable-Title: Sortie" \
+  -H "X-Keenable-Title: agent-skills" \
   -H "Content-Type: application/json" \
   -d '{"query":"model context protocol spec"}'
 ```
@@ -63,7 +63,7 @@ Only `title`, `url`, and `description` are guaranteed present on a result. Treat
 ```bash
 curl -s -G "https://api.keenable.ai/v1/fetch/public" \
   --data-urlencode "url=https://en.wikipedia.org/w/index.php?title=Markdown" \
-  -H "X-Keenable-Title: Sortie"
+  -H "X-Keenable-Title: agent-skills"
 ```
 
 Use `-G` with `--data-urlencode` so the URL is escaped correctly; a raw `?url=` breaks on query strings and fragments.
