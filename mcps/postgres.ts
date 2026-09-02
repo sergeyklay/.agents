@@ -33,7 +33,6 @@
  *                            Shorter - DDL changes (migrations) propagate sooner.
  *   MCP_DEBUG                Verbose stderr logs (set to "1")
  */
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import {
