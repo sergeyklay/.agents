@@ -11,9 +11,6 @@ tools:
   - edit/editFiles
   - search
   - web
-  - context7/*
-  - bpdb/*
-  - snyk/*
   - atlassian/createIssueLink
   - atlassian/createJiraIssue
   - atlassian/editJiraIssue
@@ -29,3 +26,6 @@ tools:
   - atlassian/searchConfluenceUsingCql
   - atlassian/searchJiraIssuesUsingJql
   - atlassian/transitionJiraIssue
+  - bpdb/*
+  - context7/*
+  - snyk/*

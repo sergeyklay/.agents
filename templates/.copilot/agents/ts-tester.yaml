@@ -14,5 +14,5 @@ tools:
   - search/listDirectory
   - search/textSearch
   - search/usages
-  - context7/*
   - bpdb/*
+  - context7/*

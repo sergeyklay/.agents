@@ -5,14 +5,15 @@ tools:
   - agent
   - read/readFile
   - todo
-  - atlassian/getJiraIssue
-  - atlassian/searchJiraIssuesUsingJql
-  - atlassian/searchConfluenceUsingCql
-  - atlassian/getJiraIssueTypeMetaWithFields
-  - atlassian/getConfluencePage
-  - atlassian/getAccessibleAtlassianResources
-  - atlassian/getVisibleJiraProjects
   - github.vscode-pull-request-github/issue_fetch
+  - atlassian/getAccessibleAtlassianResources
+  - atlassian/getConfluencePage
+  - atlassian/getJiraIssue
+  - atlassian/getJiraIssueTypeMetaWithFields
+  - atlassian/getVisibleJiraProjects
+  - atlassian/searchConfluenceUsingCql
+  - atlassian/searchJiraIssuesUsingJql
+  - context7/*
 agents:
   - Architect
   - Planner

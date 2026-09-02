@@ -14,19 +14,6 @@ tools:
   - TaskUpdate
   - TaskStop
   # project-level .mcp.json
-  - mcp__context7__resolve-library-id
-  - mcp__context7__query-docs
-  - mcp__bpdb__search_schema
-  - mcp__bpdb__explain
-  - mcp__bpdb__query
-  - mcp__snyk__snyk_auth
-  - mcp__snyk__snyk_logout
-  - mcp__snyk__snyk_trust
-  - mcp__snyk__snyk_code_scan
-  - mcp__snyk__snyk_sca_scan
-  - mcp__snyk__snyk_version
-  - mcp__context7__resolve-library-id
-  - mcp__context7__query-docs
   - mcp__atlassian__createIssueLink
   - mcp__atlassian__createJiraIssue
   - mcp__atlassian__editJiraIssue
@@ -42,6 +29,17 @@ tools:
   - mcp__atlassian__searchConfluenceUsingCql
   - mcp__atlassian__searchJiraIssuesUsingJql
   - mcp__atlassian__transitionJiraIssue
+  - mcp__bpdb__search_schema
+  - mcp__bpdb__explain
+  - mcp__bpdb__query
+  - mcp__context7__resolve-library-id
+  - mcp__context7__query-docs
+  - mcp__snyk__snyk_auth
+  - mcp__snyk__snyk_logout
+  - mcp__snyk__snyk_trust
+  - mcp__snyk__snyk_code_scan
+  - mcp__snyk__snyk_sca_scan
+  - mcp__snyk__snyk_version
 model: sonnet
 color: blue
 effort: high
