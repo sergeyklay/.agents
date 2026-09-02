@@ -15,11 +15,11 @@ tools:
   - search/textSearch
   - search/usages
   - vscode/askQuestions
-  - context7/*
-  - atlassian/getJiraIssue
-  - atlassian/searchJiraIssuesUsingJql
-  - atlassian/searchConfluenceUsingCql
-  - atlassian/getJiraIssueTypeMetaWithFields
-  - atlassian/getConfluencePage
   - atlassian/getAccessibleAtlassianResources
+  - atlassian/getConfluencePage
+  - atlassian/getJiraIssue
+  - atlassian/getJiraIssueTypeMetaWithFields
   - atlassian/getVisibleJiraProjects
+  - atlassian/searchConfluenceUsingCql
+  - atlassian/searchJiraIssuesUsingJql
+  - context7/*

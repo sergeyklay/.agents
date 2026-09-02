@@ -6,15 +6,15 @@ tools:
   - Glob
   - Grep
   # project-level .mcp.json
+  - mcp__atlassian__getAccessibleAtlassianResources
+  - mcp__atlassian__getConfluencePage
+  - mcp__atlassian__getJiraIssue
+  - mcp__atlassian__getJiraIssueTypeMetaWithFields
+  - mcp__atlassian__getVisibleJiraProjects
+  - mcp__atlassian__searchConfluenceUsingCql
+  - mcp__atlassian__searchJiraIssuesUsingJql
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
-  - mcp__atlassian__getJiraIssue
-  - mcp__atlassian__searchJiraIssuesUsingJql
-  - mcp__atlassian__searchConfluenceUsingCql
-  - mcp__atlassian__getJiraIssueTypeMetaWithFields
-  - mcp__atlassian__getConfluencePage
-  - mcp__atlassian__getAccessibleAtlassianResources
-  - mcp__atlassian__getVisibleJiraProjects
 skills:
   - writing-plans
 model: sonnet

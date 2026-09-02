@@ -1,14 +1,14 @@
 tools:
-    - Skill
-    - Bash
-    - Read
-    - Write
-    - Edit
-    - Glob
-    - Grep
-    # project-level .mcp.json
-    - mcp__context7__resolve-library-id
-    - mcp__context7__query-docs
+  - Skill
+  - Bash
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  # project-level .mcp.json
+  - mcp__context7__resolve-library-id
+  - mcp__context7__query-docs
 skills:
     - test-go
 model: sonnet

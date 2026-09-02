@@ -3,11 +3,12 @@ tools:
   - agent
   - read/readFile
   - todo
-  - atlassian/getJiraIssue
-  - atlassian/searchJiraIssuesUsingJql
-  - atlassian/searchConfluenceUsingCql
-  - atlassian/getJiraIssueTypeMetaWithFields
-  - atlassian/getConfluencePage
   - atlassian/getAccessibleAtlassianResources
+  - atlassian/getConfluencePage
+  - atlassian/getJiraIssue
+  - atlassian/getJiraIssueTypeMetaWithFields
   - atlassian/getVisibleJiraProjects
+  - atlassian/searchConfluenceUsingCql
+  - atlassian/searchJiraIssuesUsingJql
+  - context7/*
 model: GPT-5.5 (copilot)

@@ -8,3 +8,4 @@ tools:
   - edit/editFiles
   - search
   - web
+  - context7/*

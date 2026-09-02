@@ -16,7 +16,6 @@ tools:
   - search/usages
   - vscode/askQuestions
   - web
-  - context7/*
   - atlassian/createIssueLink
   - atlassian/createJiraIssue
   - atlassian/editJiraIssue
@@ -32,3 +31,4 @@ tools:
   - atlassian/searchConfluenceUsingCql
   - atlassian/searchJiraIssuesUsingJql
   - atlassian/transitionJiraIssue
+  - context7/*
