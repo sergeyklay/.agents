@@ -1,0 +1,23 @@
+name: Dependabot auto-merge
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types:
+      - completed
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
+    uses: sortie-ai/shared-workflows/.github/workflows/dependabot-merge.yml@d7d3eee35a3a49856abbb780d503eee59b5d5c6a # v1.0.0
+    with:
+      ci-workflow-name: CI
+      merge-method: squash
+    secrets:
+      bot-token: ${{ secrets.CICDBOT_TOKEN }}
