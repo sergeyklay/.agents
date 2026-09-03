@@ -24,7 +24,7 @@ RESERVED_WORDS = ["anthropic", "claude"]
 
 def validate_name(name: str) -> list[str]:
     """Validate skill name against specification. Returns list of errors."""
-    errors = []
+    errors: list[str] = []
     if len(name) > MAX_NAME_LENGTH:
         errors.append(f"Name exceeds {MAX_NAME_LENGTH} characters ({len(name)})")
     if not NAME_PATTERN.match(name):

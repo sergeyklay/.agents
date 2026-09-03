@@ -11,8 +11,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  basedpyright:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version-file: .tool-versions
+          enable-cache: false
+
+      - name: Type-check Python scripts
+        shell: bash
+        run: |
+          mapfile -d '' scripts < <(git ls-files -z -- '*.py')
+          ((${#scripts[@]} > 0)) || { echo "No tracked Python scripts found" >&2; exit 1; }
+          uvx basedpyright@1.39.10 --version
+          uvx basedpyright@1.39.10 --stats "${scripts[@]}"
+
   ruff:
-    name: Ruff
+    name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -38,7 +63,7 @@ jobs:
           uvx ruff@latest format --check -- "${scripts[@]}"
 
   shellcheck:
-    name: ShellCheck
+    name: Portability
     runs-on: ubuntu-latest
     timeout-minutes: 5
 

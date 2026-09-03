@@ -27,6 +27,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import Callable, Optional, TypedDict, cast
 
 NPM_DEP_KEYS = (
     "dependencies",
@@ -41,7 +42,130 @@ GOMOD_REQUIRE_BLOCK = re.compile(r"^\s*require\s*\($")
 GOMOD_REQUIRE_LINE = re.compile(r"^\s*require\s+(\S+)")
 
 
-def load_config(path: Path) -> dict:
+ObjectMapping = dict[object, object]
+Resolver = Callable[[Path], tuple[list[str], Optional[str]]]
+
+
+class GroupSpec(TypedDict):
+    patterns: list[str]
+    excludes: list[str]
+    applies_to: str
+    update_types: list[str]
+
+
+class UpdateSpec(TypedDict):
+    ecosystem: str
+    directory: str | None
+    directories: list[str]
+    groups: dict[str, GroupSpec]
+    ignored: list[str]
+
+
+def require_mapping(value: object, context: str) -> ObjectMapping:
+    if not isinstance(value, dict):
+        raise ValueError(f"{context} must be a mapping")
+    return cast(ObjectMapping, value)
+
+
+def require_list(value: object, context: str) -> list[object]:
+    if not isinstance(value, list):
+        raise ValueError(f"{context} must be a list")
+    return cast(list[object], value)
+
+
+def string_list(value: object | None, context: str) -> list[str]:
+    if value is None:
+        return []
+    result: list[str] = []
+    for item in require_list(value, context):
+        if not isinstance(item, str):
+            raise ValueError(f"{context} entries must be strings")
+        result.append(item)
+    return result
+
+
+def optional_string(
+    mapping: ObjectMapping, key: str, context: str, default: str
+) -> str:
+    value = mapping.get(key)
+    if value is None:
+        return default
+    if not isinstance(value, str):
+        raise ValueError(f"{context}.{key} must be a string")
+    return value
+
+
+def parse_group(value: object, context: str) -> GroupSpec:
+    mapping = require_mapping(value, context)
+    return {
+        "patterns": string_list(mapping.get("patterns"), f"{context}.patterns"),
+        "excludes": string_list(
+            mapping.get("exclude-patterns"), f"{context}.exclude-patterns"
+        ),
+        "applies_to": optional_string(
+            mapping, "applies-to", context, "version-updates"
+        ),
+        "update_types": string_list(
+            mapping.get("update-types"), f"{context}.update-types"
+        ),
+    }
+
+
+def parse_update(value: object, index: int) -> UpdateSpec:
+    context = f"updates[{index}]"
+    mapping = require_mapping(value, context)
+
+    directory = mapping.get("directory")
+    if directory is not None and not isinstance(directory, str):
+        raise ValueError(f"{context}.directory must be a string")
+
+    groups_value = mapping.get("groups")
+    groups: dict[str, GroupSpec] = {}
+    if groups_value is not None:
+        for name, group in require_mapping(groups_value, f"{context}.groups").items():
+            if not isinstance(name, str):
+                raise ValueError(f"{context}.groups names must be strings")
+            groups[name] = parse_group(group, f"{context}.groups.{name}")
+
+    ignored: list[str] = []
+    ignore_value = mapping.get("ignore")
+    if ignore_value is not None:
+        for ignore_index, item in enumerate(
+            require_list(ignore_value, f"{context}.ignore")
+        ):
+            ignored_mapping = require_mapping(item, f"{context}.ignore[{ignore_index}]")
+            target = ignored_mapping.get("dependency-name")
+            if target is None:
+                continue
+            if not isinstance(target, str):
+                raise ValueError(
+                    f"{context}.ignore[{ignore_index}].dependency-name must be a string"
+                )
+            if target:
+                ignored.append(target)
+
+    return {
+        "ecosystem": optional_string(mapping, "package-ecosystem", context, "?"),
+        "directory": directory,
+        "directories": string_list(
+            mapping.get("directories"), f"{context}.directories"
+        ),
+        "groups": groups,
+        "ignored": ignored,
+    }
+
+
+def config_updates(value: object) -> list[object] | None:
+    if not isinstance(value, dict):
+        return None
+    mapping = cast(ObjectMapping, value)
+    updates = mapping.get("updates")
+    if not isinstance(updates, list):
+        return None
+    return cast(list[object], updates)
+
+
+def load_config(path: Path) -> object:
     """Parse a Dependabot config from YAML, or from JSON when given .json.
 
     Accepting JSON removes the PyYAML requirement for callers that already
@@ -49,28 +173,36 @@ def load_config(path: Path) -> dict:
     """
     text = path.read_text()
     if path.suffix == ".json":
-        return json.loads(text)
+        json_data: object = json.loads(text)
+        return json_data
     try:
-        import yaml
+        # PyYAML is optional; the missing-module path below is valid behavior.
+        import yaml  # pyright: ignore[reportMissingModuleSource]
     except ModuleNotFoundError:
         sys.exit(
             "PyYAML is required to read YAML directly.\n"
             "Either `pip install pyyaml`, or convert the config to JSON first and\n"
             "pass it with --config (see the manual fallback in SKILL.md)."
         )
-    return yaml.safe_load(text)
+    yaml_data: object = yaml.safe_load(text)
+    return yaml_data
 
 
 def npm_names(base: Path) -> tuple[list[str], str | None]:
     manifest = base / "package.json"
     if not manifest.is_file():
         return [], str(manifest)
-    data = json.loads(manifest.read_text())
+    parsed: object = json.loads(manifest.read_text())
+    data = require_mapping(parsed, str(manifest))
     names: set[str] = set()
     for key in NPM_DEP_KEYS:
         value = data.get(key)
         if isinstance(value, dict):
-            names.update(value)
+            dependencies = cast(ObjectMapping, value)
+            for name in dependencies:
+                if not isinstance(name, str):
+                    raise ValueError(f"{manifest}:{key} names must be strings")
+                names.add(name)
     return sorted(names), None
 
 
@@ -144,7 +276,7 @@ def gomod_names(base: Path) -> tuple[list[str], str | None]:
     return sorted(names), None
 
 
-RESOLVERS = {
+RESOLVERS: dict[str, Resolver] = {
     "npm": npm_names,
     "github-actions": actions_names,
     "docker": docker_names,
@@ -161,16 +293,18 @@ def matches(name: str, pattern: str) -> bool:
     return fnmatch.fnmatchcase(name.lower(), pattern.lower())
 
 
-def claimed(name: str, group: dict) -> bool:
-    if not any(matches(name, p) for p in group.get("patterns") or []):
+def claimed(name: str, group: GroupSpec) -> bool:
+    if not any(matches(name, pattern) for pattern in group["patterns"]):
         return False
-    return not any(matches(name, e) for e in group.get("exclude-patterns") or [])
+    return not any(matches(name, exclude) for exclude in group["excludes"])
 
 
-def scope(group: dict) -> tuple[str, frozenset[str]]:
-    applies = group.get("applies-to", "version-updates")
-    types = group.get("update-types")
-    return applies, frozenset(types) if types else frozenset({"*"})
+def scope(group: GroupSpec) -> tuple[str, frozenset[str]]:
+    update_types = group["update_types"]
+    return (
+        group["applies_to"],
+        frozenset(update_types) if update_types else frozenset({"*"}),
+    )
 
 
 def scopes_overlap(
@@ -183,12 +317,12 @@ def scopes_overlap(
     return bool(a[1] & b[1])
 
 
-def expand_directories(root: Path, entry: dict) -> list[str]:
+def expand_directories(root: Path, entry: UpdateSpec) -> list[str]:
     """Dependabot accepts `directory` (one) or `directories` (many, globbable)."""
-    if entry.get("directory"):
+    if entry["directory"]:
         return [entry["directory"]]
     result: list[str] = []
-    for raw in entry.get("directories") or ["/"]:
+    for raw in entry["directories"] or ["/"]:
         if any(ch in raw for ch in "*?["):
             hits = sorted(p for p in root.glob(raw.lstrip("/")) if p.is_dir())
             result.extend("/" + str(p.relative_to(root)) for p in hits)
@@ -198,11 +332,11 @@ def expand_directories(root: Path, entry: dict) -> list[str]:
 
 
 def audit_directory(
-    root: Path, entry: dict, index: int, directory: str, show_ungrouped: bool
+    root: Path, entry: UpdateSpec, index: int, directory: str, show_ungrouped: bool
 ) -> tuple[list[tuple[str, str]], bool]:
     """Returns (findings, audited). audited=False means the ecosystem was skipped."""
     findings: list[tuple[str, str]] = []
-    ecosystem = entry.get("package-ecosystem", "?")
+    ecosystem = entry["ecosystem"]
     label = f"updates[{index}] {ecosystem} {directory}"
 
     base = root / directory.lstrip("/")
@@ -232,9 +366,9 @@ def audit_directory(
             )
         )
 
-    groups: dict = entry.get("groups") or {}
+    groups = entry["groups"]
     for gname, group in groups.items():
-        patterns = group.get("patterns") or []
+        patterns = group["patterns"]
         for pattern in patterns:
             if not any(matches(n, pattern) for n in names):
                 findings.append(
@@ -244,7 +378,7 @@ def audit_directory(
                     )
                 )
         matched = [n for n in names if any(matches(n, p) for p in patterns)]
-        for exclude in group.get("exclude-patterns") or []:
+        for exclude in group["excludes"]:
             if not any(matches(n, exclude) for n in matched):
                 findings.append(
                     (
@@ -272,9 +406,8 @@ def audit_directory(
                 ("ungrouped", f"{label}: '{name}' is in no group (individual PRs)")
             )
 
-    for ignored in entry.get("ignore") or []:
-        target = ignored.get("dependency-name")
-        if target and not any(matches(n, target) for n in names):
+    for target in entry["ignored"]:
+        if not any(matches(n, target) for n in names):
             findings.append(
                 (
                     "dead-ignore",
@@ -316,17 +449,24 @@ def main() -> int:
         print(f"parse error in {config}: {exc}", file=sys.stderr)
         return 2
 
-    if not isinstance(doc, dict) or not isinstance(doc.get("updates"), list):
+    updates = config_updates(doc)
+    if updates is None:
         print(f"{config}: no `updates` list - not a Dependabot config", file=sys.stderr)
         return 2
 
     print(f"auditing {config} against {root}")
     findings: list[tuple[str, str]] = []
     audited = skipped = 0
-    for index, entry in enumerate(doc["updates"]):
-        if not isinstance(entry, dict):
+    for index, raw_entry in enumerate(updates):
+        entry_value: object = raw_entry
+        if not isinstance(entry_value, dict):
             print(f"updates[{index}]: not a mapping, skipping", file=sys.stderr)
             continue
+        try:
+            entry = parse_update(cast(ObjectMapping, entry_value), index)
+        except ValueError as exc:
+            print(f"parse error in {config}: {exc}", file=sys.stderr)
+            return 2
         for directory in expand_directories(root, entry):
             entry_findings, was_audited = audit_directory(
                 root, entry, index, directory, args.show_ungrouped

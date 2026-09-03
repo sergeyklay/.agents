@@ -24,6 +24,20 @@ Exit codes: 0 = pass (may have warnings), 1 = errors found
 import re
 import sys
 from pathlib import Path
+from typing import Optional, TypedDict
+
+
+class Issue(TypedDict):
+    level: str
+    message: str
+    line: int
+
+
+class Heading(TypedDict):
+    level: int
+    title: str
+    line: int
+
 
 # --- Anti-pattern detectors ---
 
@@ -92,9 +106,9 @@ RECOMMENDED_SECTIONS = {"commands", "gotchas", "boundaries"}
 BOUNDARY_SUBSECTIONS = {"always", "ask first", "never"}
 
 
-def validate(file_path: str, project_dir: str | None = None) -> list[dict]:
+def validate(file_path: str, project_dir: Optional[str] = None) -> list[Issue]:
     """Validate context file. Returns list of {level, message, line} dicts."""
-    issues: list[dict] = []
+    issues: list[Issue] = []
     path = Path(file_path).resolve()
 
     def error(msg: str, line: int = 0) -> None:
@@ -184,7 +198,7 @@ def validate(file_path: str, project_dir: str | None = None) -> list[dict]:
                 break
 
     # --- Section structure ---
-    headings = []
+    headings: list[Heading] = []
     for i, line in enumerate(lines, 1):
         match = re.match(r"^(#{1,3})\s+(.+)", line)
         if match:

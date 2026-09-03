@@ -29,7 +29,17 @@ import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Union
+
+YamlValue = Union[
+    None,
+    bool,
+    int,
+    float,
+    str,
+    dict[str, "YamlValue"],
+    list["YamlValue"],
+]
 
 # --- Public limits and patterns ------------------------------------------------
 
@@ -127,7 +137,7 @@ def split_frontmatter(text: str) -> tuple[str, str]:
     raise FrontmatterError("frontmatter is missing closing '---' delimiter")
 
 
-def parse_yaml(text: str) -> Any:
+def parse_yaml(text: str) -> YamlValue:
     """Parse the YAML subset used in skill frontmatter."""
     parser = _Parser(text)
     value = parser.parse_root()
@@ -144,7 +154,7 @@ class _Parser:
 
     # --- Public entry points --------------------------------------------------
 
-    def parse_root(self) -> Any:
+    def parse_root(self) -> YamlValue:
         head = self._peek()
         if head is None:
             return {}
@@ -178,8 +188,8 @@ class _Parser:
 
     # --- Mapping --------------------------------------------------------------
 
-    def _parse_mapping(self, indent: int) -> dict[str, Any]:
-        result: dict[str, Any] = {}
+    def _parse_mapping(self, indent: int) -> dict[str, YamlValue]:
+        result: dict[str, YamlValue] = {}
         while True:
             head = self._peek()
             if head is None:
@@ -208,7 +218,9 @@ class _Parser:
 
     # --- Value dispatch -------------------------------------------------------
 
-    def _parse_value(self, value_text: str, parent_indent: int, line_no: int) -> Any:
+    def _parse_value(
+        self, value_text: str, parent_indent: int, line_no: int
+    ) -> YamlValue:
         if BLOCK_SCALAR_HEADER.match(value_text):
             return self._parse_block_scalar(value_text, parent_indent, line_no)
 
@@ -225,7 +237,7 @@ class _Parser:
             )
         return cleaned
 
-    def _parse_nested(self, parent_indent: int) -> Any:
+    def _parse_nested(self, parent_indent: int) -> YamlValue:
         head = self._peek()
         if head is None:
             return ""
@@ -238,8 +250,8 @@ class _Parser:
 
     # --- Sequence -------------------------------------------------------------
 
-    def _parse_sequence(self, indent: int) -> list[Any]:
-        items: list[Any] = []
+    def _parse_sequence(self, indent: int) -> list[YamlValue]:
+        items: list[YamlValue] = []
         while True:
             head = self._peek()
             if head is None:
@@ -457,7 +469,7 @@ def _decode_single_quoted(text: str, line_no: int) -> str:
 # --- Individual checks ---------------------------------------------------------
 
 
-def _check_name(fm: dict[str, Any], skill_dir: Path) -> Iterable[Issue]:
+def _check_name(fm: dict[str, YamlValue], skill_dir: Path) -> Iterable[Issue]:
     raw = fm.get("name")
     if raw is None or (isinstance(raw, str) and not raw.strip()):
         yield Issue(Severity.ERROR, "Missing required field: name")
@@ -494,7 +506,7 @@ def _check_name(fm: dict[str, Any], skill_dir: Path) -> Iterable[Issue]:
         )
 
 
-def _is_user_invoked_only(fm: dict[str, Any]) -> bool:
+def _is_user_invoked_only(fm: dict[str, YamlValue]) -> bool:
     """Detect frontmatter that prevents model invocation.
 
     Recognizes Claude Code's `disable-model-invocation: true`.
@@ -510,7 +522,7 @@ def _is_user_invoked_only(fm: dict[str, Any]) -> bool:
     return False
 
 
-def _check_description(fm: dict[str, Any]) -> Iterable[Issue]:
+def _check_description(fm: dict[str, YamlValue]) -> Iterable[Issue]:
     raw = fm.get("description")
     if raw is None:
         yield Issue(Severity.ERROR, "Missing required field: description")
@@ -563,7 +575,7 @@ def _check_description(fm: dict[str, Any]) -> Iterable[Issue]:
             )
 
 
-def _check_compatibility(fm: dict[str, Any]) -> Iterable[Issue]:
+def _check_compatibility(fm: dict[str, YamlValue]) -> Iterable[Issue]:
     compat = fm.get("compatibility")
     if compat is None:
         return
