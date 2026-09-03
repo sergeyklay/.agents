@@ -97,7 +97,7 @@ When you say "this feels like it could be a problem", you have condensed nothing
 
 ### Load vocabulary from the references
 
-The ATAM vocabulary (sensitivity point, tradeoff point, risk, non-risk, utility tree, scenarios) and the ISO/IEC 25010:2023 quality-attribute names are in [quality-attributes.md](quality-attributes.md). The anti-pattern names are in [anti-patterns.md](anti-patterns.md). Use them where they apply, not as decoration.
+The direct `quality-attributes.md` and `anti-patterns.md` references named in `review-arch`'s SKILL.md provide the ATAM vocabulary, ISO/IEC 25010:2023 quality-attribute names, and anti-pattern names. Use them where they apply, not as decoration.
 
 ## Basics - when to explain, when to skip
 

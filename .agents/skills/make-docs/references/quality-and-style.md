@@ -1,5 +1,13 @@
 # Quality and Style Guide
 
+## Contents
+
+- [Two Dimensions of Quality](#two-dimensions-of-quality)
+- [Writing Principles](#writing-principles)
+- [Voice and Tone](#voice-and-tone)
+- [Structural Rules](#structural-rules)
+- [Validation Checklist](#validation-checklist)
+
 This guide applies to all four Diataxis types. Load it alongside the type-specific reference for every documentation task.
 
 ## Two Dimensions of Quality

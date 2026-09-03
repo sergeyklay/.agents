@@ -1,5 +1,16 @@
 # Integration Testing Protocol
 
+## Contents
+
+- [File Naming](#file-naming)
+- [Environment Gates](#environment-gates)
+- [Skip Helper Pattern](#skip-helper-pattern)
+- [Config Builder](#config-builder)
+- [Running Integration Tests](#running-integration-tests)
+- [CI Behavior](#ci-behavior)
+- [Test Isolation](#test-isolation)
+- [Adding a New Integration Test Suite](#adding-a-new-integration-test-suite)
+
 Integration tests validate adapter behavior against real external services. They are separated from unit tests by file naming and environment gating.
 
 > See SKILL.md → "Placeholders" for the meaning of `{PROJECT}` and `{integration}`. Substitute with the project's real names when applying these patterns.

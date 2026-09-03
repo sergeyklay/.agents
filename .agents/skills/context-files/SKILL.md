@@ -131,7 +131,7 @@ If the script is unavailable, use the manual checklist below.
 If the user needs multi-platform support, generate bridge files:
 
 - **CLAUDE.md** bridge: `@AGENTS.md`
-- **Copilot** bridge: add `Refer to [AGENTS.MD](../AGENTS.md)` in `.github/copilot-instructions.md`
+- **Copilot** bridge: add ``Refer to [AGENTS.MD](../AGENTS.md)`` in `.github/copilot-instructions.md`
 - **GEMINI.md** bridge: set `context.fileName` to `["CLAUDE.md", "AGENTS.md", "GEMINI.md"]` in `.gemini/settings.json`
 
 Do not duplicate content across platform files. One source of truth, references everywhere else.

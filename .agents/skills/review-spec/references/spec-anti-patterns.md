@@ -1,9 +1,5 @@
 # Specification Anti-Patterns
 
-Use this reference at Phase 4 of `review-spec` to recognize common failure modes in specs. Each anti-pattern below has a recognition signal, examples, the impact on implementation, and the dimension it most often surfaces under. The catalogue is organized by category; the severity rubric at the end maps every instance to `Critical` / `Significant` / `Observation`.
-
-The patterns below are grounded in IEEE 830 / ISO/IEC 29148 requirement-quality attributes (correct, unambiguous, complete, consistent, ranked, verifiable, modifiable, traceable) and in defects observed in real spec-writing skills. They are the patterns reviewers actually catch in practice.
-
 ## Contents
 
 - Writing-quality defects: vague language, untestable requirements, over-specification
@@ -12,6 +8,10 @@ The patterns below are grounded in IEEE 830 / ISO/IEC 29148 requirement-quality 
 - Architectural-integrity defects: implementation in spec, architectural-decision contradiction
 - Decomposition defects: oversized steps
 - Severity rubric
+
+Use this reference at Phase 4 of `review-spec` to recognize common failure modes in specs. Each anti-pattern below has a recognition signal, examples, the impact on implementation, and the dimension it most often surfaces under. The catalogue is organized by category; the severity rubric at the end maps every instance to `Critical` / `Significant` / `Observation`.
+
+The patterns below are grounded in IEEE 830 / ISO/IEC 29148 requirement-quality attributes (correct, unambiguous, complete, consistent, ranked, verifiable, modifiable, traceable) and in defects observed in real spec-writing skills. They are the patterns reviewers actually catch in practice.
 
 ---
 
@@ -132,7 +132,7 @@ The patterns below are grounded in IEEE 830 / ISO/IEC 29148 requirement-quality 
 **Examples.**
 
 - "Per the architecture, we serialize via Avro." (No section reference; reviewer must search the architecture doc to verify.)
-- "Following [Section 9.6](../docs/architecture.md#96-workspace-safety)..." (Reference looks valid, but `architecture.md` has no §9.6, or §9.6 is about a different topic.)
+- "Following Section 9.6 of `docs/architecture.md`..." (Reference looks valid, but `architecture.md` has no §9.6, or §9.6 is about a different topic.)
 - A fundamental design decision (e.g., "we will introduce a new database") with no citation at all — meaning the architect has not justified it against the existing project.
 
 **Impact.** Reviewer cannot verify that the spec aligns with the project's architecture. Implementer cannot find the source of truth. Future revisions of the architecture doc do not propagate to the spec because the link does not exist.

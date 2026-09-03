@@ -53,7 +53,7 @@ Assuming the priorities. If the review says "for a high-availability system this
 - Where are the **tradeoff points** - decisions where improving one attribute degrades another?
 - Have the authors named the tradeoffs explicitly, or are they implicit (and therefore likely to be re-litigated later)?
 
-The ATAM vocabulary (sensitivity point, tradeoff point, risk, non-risk, utility tree, scenarios) and the ISO/IEC 25010:2023 quality characteristics are defined in [quality-attributes.md](quality-attributes.md). Load that file when the system has non-trivial tradeoffs or when the priorities from Dimension 1 are ambiguous.
+The direct `quality-attributes.md` reference named in `review-arch`'s SKILL.md defines the ATAM vocabulary (sensitivity point, tradeoff point, risk, non-risk, utility tree, scenarios) and the ISO/IEC 25010:2023 quality characteristics. Load it when the system has non-trivial tradeoffs or when the priorities from Dimension 1 are ambiguous.
 
 ### What counts as a finding
 
@@ -98,7 +98,7 @@ Evaluating structure against a generic "clean architecture" template rather than
 
 ### Questions to ask
 
-Walk the catalogue in [anti-patterns.md](anti-patterns.md) and ask, for each one, whether this architecture exhibits it. The catalogue names:
+Walk the direct `anti-patterns.md` reference named in `review-arch`'s SKILL.md and ask, for each one, whether this architecture exhibits it. The catalogue names:
 
 - Distributed monolith
 - Shared database

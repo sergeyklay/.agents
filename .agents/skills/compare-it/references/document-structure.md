@@ -209,7 +209,7 @@ After the table, add narrative analysis:
 - Run a **sensitivity check**: "If C1 and C2 are removed entirely and weight redistributed, Solution B still scores higher due to advantages in C3, C6, and C7."
 - The sensitivity check tests whether the conclusion depends on one or two criteria. If removing the dominant criteria flips the result, the recommendation is fragile and needs stronger justification for those weights
 
-See [evaluation methodology](evaluation-methodology.md) for weight calibration and sensitivity analysis techniques.
+Use the evaluation methodology reference named in `compare-it`'s SKILL.md for weight calibration and sensitivity analysis techniques.
 
 ---
 
