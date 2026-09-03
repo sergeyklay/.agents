@@ -1,6 +1,6 @@
 ---
-name: confine-external-cli
-description: "Run a third-party CLI as a subprocess without leaking into it or leaving state on the host, and prove both. Use when a script or skill shells out to an external tool, when a run must leave no trace outside the repository, when private input (a diff, a prompt, a credential) must not reach the tool's session log, when a policy or deny-list handed to the tool must actually be in force, when a claim about the tool's own behaviour (which paths it searches, which config file wins) must be settled against the shipped binary or bundle rather than its documentation, or before a measurement series whose runs must be comparable. Covers behaviour and state roots read out of the installed binary or bundle, a snapshot-diff-prune harness proven able to go red, and policy rules validated offline. Do NOT use to investigate an external system in general (that is research-it, which delegates here for artifacts on disk) or to judge whether a green result counts as evidence (that is prove-check-can-fail)."
+name: isolate-cli
+description: "Run a third-party CLI as a subprocess without leaking into it or leaving state on the host, and prove both. Use when a script or skill shells out to an external tool, when a run must leave no trace outside the repository, when private input (a diff, a prompt, a credential) must not reach the tool's session log, when a policy or deny-list handed to the tool must actually be in force, when a claim about the tool's own behaviour (which paths it searches, which config file wins) must be settled against the shipped binary or bundle rather than its documentation, or before a measurement series whose runs must be comparable. Covers behaviour and state roots read out of the installed binary or bundle, a snapshot-diff-prune harness proven able to go red, and policy rules validated offline. Do NOT use to investigate an external system in general (that is research-it, which delegates here for artifacts on disk) or to judge whether a green result counts as evidence (that is prove-checks)."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -11,7 +11,7 @@ metadata:
 
 A CLI invoked as a subprocess is not a function call. It reads the operator's global configuration, writes per-run state under the home directory keyed to the directory it ran in, and treats a config file it cannot compile as advice rather than as an instruction. None of those three shows up in an exit code: the private content piped in lands in a plaintext log outside the repository, the host accumulates state nobody audits, and the confinement believed to be in force is absent.
 
-This skill is the mechanics of running such a tool and being able to say afterwards what it read, what it wrote, and what it left behind. Whether the run's *result* is evidence is a separate question and belongs to `prove-check-can-fail`.
+This skill is the mechanics of running such a tool and being able to say afterwards what it read, what it wrote, and what it left behind. Whether the run's *result* is evidence is a separate question and belongs to `prove-checks`.
 
 ## Trigger
 
@@ -21,7 +21,7 @@ This skill is the mechanics of running such a tool and being able to say afterwa
 - The content piped in is private: an unmerged diff, a prompt, a credential, customer data.
 - A measurement or benchmark series will invoke the tool repeatedly and the runs have to be comparable to each other.
 
-Not this skill: reading the tool's behavior to answer a general question, which is `research-it`, or deciding whether the green that came out counts as proof, which is `prove-check-can-fail`.
+Not this skill: reading the tool's behavior to answer a general question, which is `research-it`, or deciding whether the green that came out counts as proof, which is `prove-checks`.
 
 ## Procedure
 
@@ -64,7 +64,7 @@ Then plant a decoy, an empty entry of the right shape inside a root, and re-run 
 
 Only then: run, diff, prune, diff again. The second diff must be empty.
 
-This is `prove-check-can-fail`'s negative control aimed at the audit instrument rather than at the check (REQUIRED reading when the run's own result will also be reported as evidence), and that skill's ordering rule carries over intact: any control asserting the *absence* of something runs before the run that would create it.
+This is `prove-checks`'s negative control aimed at the audit instrument rather than at the check (REQUIRED reading when the run's own result will also be reported as evidence), and that skill's ordering rule carries over intact: any control asserting the *absence* of something runs before the run that would create it.
 
 ### 3. Attribute entries by content, never by name
 

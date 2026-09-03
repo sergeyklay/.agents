@@ -1,6 +1,6 @@
 ---
-name: babysit-ci-run
-description: "Drive a long-running GitHub Actions run to a trustworthy conclusion without burning the session on polling. Use when asked to wait for a pipeline, watch a build, babysit a release or deploy run, restart it if it fails, or report whether it went green. Also use when a run must finish before a follow-up step such as a push, a tag, or a dependent job in another repository. Covers confirming the run is the intended one, bounded waiting instead of open-ended blocking, reading the real per-job outcome rather than the summary icon, extracting facts from logs without matching the workflow's own echoed source, and deciding between a re-run of failed jobs and a fresh dispatch. Do NOT use for authoring or debugging workflow YAML, for proving that a green result was capable of failing (that is prove-check-can-fail), or for reviewing pull request feedback (that is babysit-pr)."
+name: monitor-ci
+description: "Drive a long-running GitHub Actions run to a trustworthy conclusion without burning the session on polling. Use when asked to wait for a pipeline, watch a build, babysit a release or deploy run, restart it if it fails, or report whether it went green. Also use when a run must finish before a follow-up step such as a push, a tag, or a dependent job in another repository. Covers confirming the run is the intended one, bounded waiting instead of open-ended blocking, reading the real per-job outcome rather than the summary icon, extracting facts from logs without matching the workflow's own echoed source, and deciding between a re-run of failed jobs and a fresh dispatch. Do NOT use for authoring or debugging workflow YAML, for proving that a green result was capable of failing (that is prove-checks), or for reviewing pull request feedback (that is babysit-pr)."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -11,7 +11,7 @@ metadata:
 
 Waiting on a pipeline looks like a one-line job and is not. Three things go wrong, and each one produces a confident but wrong report: the wrong run gets watched, the waiting strategy exhausts the session before the run finishes, or the run's outcome is read off a summary that hides a suppressed failure.
 
-This skill is the mechanics of getting from "it is running" to "here is what actually happened". Whether the green that comes out is *evidence* is a separate question, and it belongs to `prove-check-can-fail`.
+This skill is the mechanics of getting from "it is running" to "here is what actually happened". Whether the green that comes out is *evidence* is a separate question, and it belongs to `prove-checks`.
 
 ## Trigger
 
@@ -54,7 +54,7 @@ gh api repos/<owner>/<repo>/actions/runs/<run-id>/jobs --paginate \
   --jq '.jobs[] | "\(.conclusion)\t\(.name)"'
 ```
 
-Then assert the count of non-success jobs is zero rather than eyeballing the list. Whether a green job proves anything is `prove-check-can-fail`'s question; this step only ensures you are reading the real status.
+Then assert the count of non-success jobs is zero rather than eyeballing the list. Whether a green job proves anything is `prove-checks`'s question; this step only ensures you are reading the real status.
 
 **Skipped jobs.** A conclusion of `skipped` is not `success`. A job gated behind an `if:` may silently not run, so a pipeline can go green having never executed the step the task cared about. Check that the jobs you were promised are present, not merely that none failed.
 

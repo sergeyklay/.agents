@@ -1,5 +1,5 @@
 ---
-name: prove-check-can-fail
+name: prove-checks
 description: "Prove a passing check was capable of failing before recording it as evidence. Use when a test, CI job, build-and-diff, smoke test or rehearsal comes back green and that green is about to be treated as proof - especially when the check depends on a setup mutation (a sed/awk rewrite, an env var, a secret, a fixture file, a branch or working-copy state), when a job passes under continue-on-error, `|| true`, `set +e` or warning-only output, when an event-driven workflow is hand-run while nothing has changed, or when simulating a future input such as the next release. Covers asserting the precondition actually took effect, confirming the subject rather than the receiver was exercised, stripping failure suppressors, and running a negative control. Do NOT use for zero-hit searches or absence claims (that is research-it), or for authoring unit tests in a specific language (that is test-go or test-ts)."
 metadata:
   author: Serghei Iakovlev

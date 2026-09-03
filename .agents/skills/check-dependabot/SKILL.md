@@ -1,5 +1,5 @@
 ---
-name: validate-dependabot-config
+name: check-dependabot
 description: "Validate a Dependabot configuration against the published JSON Schema and audit its groups against the repository's real dependency manifests. Use when creating or rewriting .github/dependabot.yml, when adding or reorganising `groups`, `ignore` or `exclude-patterns`, when a dependency lands in the wrong grouped PR or keeps arriving as an individual PR, when Dependabot stops opening PRs after a config edit, or when reviewing a PR that touches dependabot.yml. Catches keys the schema rejects, patterns that match no declared package, ignore entries for packages that no longer exist, and dependencies claimed by two groups at once. Do NOT use for diagnosing a Dependabot PR's failing CI, for choosing version bumps, for npm audit or vulnerability triage, or for validating GitHub Actions workflow files."
 metadata:
   author: Serghei Iakovlev
@@ -122,7 +122,7 @@ Semantic audit - each mutant must produce its own finding kind:
 3. rename an `ignore.dependency-name` → `dead-ignore`
 4. point `directory` at a path that does not exist → `missing-directory`
 
-Run an unmutated baseline first. A uniform failure across every mutant usually means the harness broke, not that the config is catastrophic. See the `prove-check-can-fail` skill for the general discipline.
+Run an unmutated baseline first. A uniform failure across every mutant usually means the harness broke, not that the config is catastrophic. See the `prove-checks` skill for the general discipline.
 
 ## Validation
 
