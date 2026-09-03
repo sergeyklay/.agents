@@ -27,6 +27,11 @@ SHFMT      ?= shfmt
 RUFF_VERSION         ?= latest
 BASEDPYRIGHT_VERSION ?= 1.39.10
 
+# ruff's --output-format: "github" emits GitHub Actions inline annotations and
+# is selected automatically when the CI variable is set (most CI/CD platforms
+# export it); "full" keeps locally readable output.
+RUFF_OUTPUT_FORMAT ?= $(if $(CI),github,full)
+
 # ── Agent Skill validation ─────────────────────────────────────────────────────
 
 SKILL_VALIDATOR := .agents/skills/make-skill/scripts/validate_skill.py
