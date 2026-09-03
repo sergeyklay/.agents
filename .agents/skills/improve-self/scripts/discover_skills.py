@@ -118,10 +118,10 @@ import enum
 import io
 import json
 import sys
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
-
+from typing import Callable
 
 # --- Public constants ---------------------------------------------------------
 
@@ -130,17 +130,19 @@ from typing import Callable, Iterable, Sequence
 # Copilot uses `.github/skills/` for project skills but `.copilot/skills/`
 # for user-level skills). All recognised names live in one set; the agent
 # decides which ones to pass based on what actually exists on the host.
-SUPPORTED_VENDORS: frozenset[str] = frozenset({
-    "agents",       # OpenAI Codex; emerging cross-platform convention
-    "claude",       # Claude Code
-    "cursor",       # Cursor
-    "gemini",       # Gemini CLI
-    "github",       # VS Code / GitHub Copilot (project scope)
-    "copilot",      # GitHub Copilot (home scope)
-    "opencode",     # OpenCode
-    "antigravity",  # Antigravity
-    "windsurf",     # Windsurf
-})
+SUPPORTED_VENDORS: frozenset[str] = frozenset(
+    {
+        "agents",  # OpenAI Codex; emerging cross-platform convention
+        "claude",  # Claude Code
+        "cursor",  # Cursor
+        "gemini",  # Gemini CLI
+        "github",  # VS Code / GitHub Copilot (project scope)
+        "copilot",  # GitHub Copilot (home scope)
+        "opencode",  # OpenCode
+        "antigravity",  # Antigravity
+        "windsurf",  # Windsurf
+    }
+)
 
 DEFAULT_FORMAT: str = "xml"
 DEFAULT_ORDER_BY: str = "category"
@@ -258,9 +260,8 @@ def read_frontmatter_fields(skill_md: Path) -> tuple[str, str, str]:
 
     name = _extract_scalar(block, "name")
     description = _extract_scalar(block, "description")
-    category = (
-        _extract_nested_scalar(block, "metadata", "category")
-        or _extract_scalar(block, "category")
+    category = _extract_nested_scalar(block, "metadata", "category") or _extract_scalar(
+        block, "category"
     )
 
     if not name:
@@ -288,7 +289,7 @@ def _extract_scalar(block: str, key: str) -> str:
     for i, raw in enumerate(lines):
         if not raw.startswith(prefix):
             continue
-        rest = raw[len(prefix):].lstrip()
+        rest = raw[len(prefix) :].lstrip()
         if not rest or rest[0] in (">", "|"):
             return _read_block_scalar(lines, i + 1)
         return _unquote(rest)
@@ -329,7 +330,7 @@ def _extract_nested_scalar(block: str, parent: str, child: str) -> str:
 
         child_prefix = f"{child}:"
         if stripped.startswith(child_prefix):
-            rest = stripped[len(child_prefix):].lstrip()
+            rest = stripped[len(child_prefix) :].lstrip()
             return _unquote(rest)
 
     return ""
@@ -399,7 +400,9 @@ def discover(
 
 
 def _scan_directory(
-    skills_root: Path, vendor: str, scope: Scope,
+    skills_root: Path,
+    vendor: str,
+    scope: Scope,
     project_root: Path | None = None,
 ) -> Iterable[SkillEntry | DiscoveryError]:
     if not skills_root.is_dir():
@@ -430,7 +433,8 @@ def _scan_directory(
 
 
 def sort_entries(
-    entries: Sequence[SkillEntry], order_by: str,
+    entries: Sequence[SkillEntry],
+    order_by: str,
 ) -> list[SkillEntry]:
     """Return ``entries`` sorted alphabetically by ``order_by``.
 
@@ -490,7 +494,12 @@ Formatter = Callable[[Sequence[SkillEntry], Sequence[str]], str]
 # Formatters pick a subset at call time so the on-the-wire schema can shrink
 # without changing the data model.
 ALL_FIELDS: tuple[str, ...] = (
-    "type", "agent", "name", "category", "description", "path",
+    "type",
+    "agent",
+    "name",
+    "category",
+    "description",
+    "path",
 )
 
 # Fields that are omitted from the default output and emitted only when the
@@ -531,10 +540,9 @@ def _opt_in_attr(field: str) -> str:
     """Return the argparse attribute name for an opt-in field's flag."""
     return f"with_{field.replace('-', '_')}"
 
+
 # Default agent-facing schema: ALL_FIELDS minus the opt-in ones.
-DEFAULT_FIELDS: tuple[str, ...] = tuple(
-    f for f in ALL_FIELDS if f not in OPT_IN_FIELDS
-)
+DEFAULT_FIELDS: tuple[str, ...] = tuple(f for f in ALL_FIELDS if f not in OPT_IN_FIELDS)
 
 
 def _select_fields(opt_ins: set[str]) -> tuple[str, ...]:
@@ -543,19 +551,17 @@ def _select_fields(opt_ins: set[str]) -> tuple[str, ...]:
     Preserves the canonical order from ``ALL_FIELDS`` so output schema is
     deterministic regardless of which flags the caller passes.
     """
-    return tuple(
-        f for f in ALL_FIELDS if f not in OPT_IN_FIELDS or f in opt_ins
-    )
+    return tuple(f for f in ALL_FIELDS if f not in OPT_IN_FIELDS or f in opt_ins)
 
 
 def _xml_escape(text: str) -> str:
     """Escape the five characters that may not appear raw inside XML text."""
     return (
         text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace('"', "&quot;")
-            .replace("'", "&apos;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&apos;")
     )
 
 
@@ -597,10 +603,7 @@ def format_markdown(entries: Sequence[SkillEntry], fields: Sequence[str]) -> str
     rows = [header, divider]
     for entry in entries:
         record = entry.as_record()
-        cells = [
-            record[f].replace("|", "\\|").replace("\n", " ")
-            for f in fields
-        ]
+        cells = [record[f].replace("|", "\\|").replace("\n", " ") for f in fields]
         # Wrap the name in backticks for readability.
         if "name" in fields:
             cells[fields.index("name")] = f"`{record['name']}`"
@@ -713,7 +716,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     for field, help_text in OPT_IN_FIELDS.items():
         parser.add_argument(
-            _opt_in_flag(field), action="store_true", help=help_text,
+            _opt_in_flag(field),
+            action="store_true",
+            help=help_text,
         )
     parser.add_argument(
         "--quiet",

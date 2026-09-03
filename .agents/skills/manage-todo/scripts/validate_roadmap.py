@@ -51,12 +51,14 @@ def validate(path: str) -> list[str]:
         # The project convention targets ~90 chars with a hard limit of 96.
         # Lines containing inline code (backtick-wrapped identifiers and
         # commands) are exempt because breaking them harms copy-paste.
-        if (line and not line.startswith("#") and not line.startswith("```")
-                and len(line) > 96):
+        if (
+            line
+            and not line.startswith("#")
+            and not line.startswith("```")
+            and len(line) > 96
+        ):
             if "`" not in line:
-                errors.append(
-                    f"Line {i}: Exceeds 96 characters ({len(line)})"
-                )
+                errors.append(f"Line {i}: Exceeds 96 characters ({len(line)})")
 
         # Milestone heading
         m = milestone_re.match(line)
@@ -97,9 +99,7 @@ def validate(path: str) -> list[str]:
 
             # Milestone match
             if current_milestone is None:
-                errors.append(
-                    f"Line {i}: Task {task_id} appears before any milestone"
-                )
+                errors.append(f"Line {i}: Task {task_id} appears before any milestone")
             elif milestone_num != current_milestone:
                 errors.append(
                     f"Line {i}: Task {task_id} has milestone prefix "
@@ -150,14 +150,10 @@ def validate(path: str) -> list[str]:
 
     # Final task verify check
     if not task_has_verify and last_task_line > 0:
-        errors.append(
-            f"Line {last_task_line}: Task missing **Verify:** section"
-        )
+        errors.append(f"Line {last_task_line}: Task missing **Verify:** section")
 
     if not errors:
-        completed = sum(
-            1 for line in lines if task_re.match(line) and "[x]" in line
-        )
+        completed = sum(1 for line in lines if task_re.match(line) and "[x]" in line)
         status = (
             f"OK: {milestone_count} milestones, {task_count} tasks "
             f"({completed} completed, {task_count - completed} remaining)"

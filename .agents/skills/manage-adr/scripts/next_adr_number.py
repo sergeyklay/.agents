@@ -28,9 +28,7 @@ import sys
 from pathlib import Path
 
 # scripts/ → manage-adr/ → skills/ → .claude/ → <project root>/docs/decisions
-DEFAULT_DECISIONS_DIR = (
-    Path(__file__).resolve().parents[4] / "docs" / "decisions"
-)
+DEFAULT_DECISIONS_DIR = Path(__file__).resolve().parents[4] / "docs" / "decisions"
 
 ADR_FILENAME_PATTERN = re.compile(r"^(\d{4})-.+\.md$")
 
@@ -53,9 +51,7 @@ def highest_existing_number(decisions_dir: Path) -> int:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="next_adr_number.py",
-        description=(
-            "Output the next available ADR number(s) in docs/decisions/."
-        ),
+        description=("Output the next available ADR number(s) in docs/decisions/."),
     )
     parser.add_argument(
         "--count",

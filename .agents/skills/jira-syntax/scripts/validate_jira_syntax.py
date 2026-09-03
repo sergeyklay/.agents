@@ -30,10 +30,10 @@ import enum
 import os
 import re
 import sys
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
-
+from typing import Callable
 
 # --- Issue model ---------------------------------------------------------------
 
@@ -338,9 +338,7 @@ def _resolve_color(flag: bool | None) -> bool:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="validate_jira_syntax.py",
-        description=(
-            "Validate Jira wiki markup syntax and flag Markdown mistakes."
-        ),
+        description=("Validate Jira wiki markup syntax and flag Markdown mistakes."),
     )
     parser.add_argument(
         "files",

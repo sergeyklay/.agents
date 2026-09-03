@@ -26,10 +26,10 @@ import argparse
 import enum
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
-
+from typing import Any
 
 # --- Public limits and patterns ------------------------------------------------
 
@@ -121,7 +121,7 @@ def split_frontmatter(text: str) -> tuple[str, str]:
     cursor = fm_start
     for line in lines[1:]:
         if line.rstrip("\r\n") == _DELIMITER:
-            return text[fm_start:cursor], text[cursor + len(line):]
+            return text[fm_start:cursor], text[cursor + len(line) :]
         cursor += len(line)
 
     raise FrontmatterError("frontmatter is missing closing '---' delimiter")
@@ -157,9 +157,7 @@ class _Parser:
         head = self._peek()
         if head is not None:
             line_no, _, body = head
-            raise FrontmatterError(
-                f"line {line_no}: unexpected content {body!r}"
-            )
+            raise FrontmatterError(f"line {line_no}: unexpected content {body!r}")
 
     # --- Cursor helpers -------------------------------------------------------
 
@@ -204,17 +202,13 @@ class _Parser:
             value = self._parse_value(after_colon, indent, line_no)
 
             if key in result:
-                raise FrontmatterError(
-                    f"line {line_no}: duplicate key {key!r}"
-                )
+                raise FrontmatterError(f"line {line_no}: duplicate key {key!r}")
             result[key] = value
         return result
 
     # --- Value dispatch -------------------------------------------------------
 
-    def _parse_value(
-        self, value_text: str, parent_indent: int, line_no: int
-    ) -> Any:
+    def _parse_value(self, value_text: str, parent_indent: int, line_no: int) -> Any:
         if BLOCK_SCALAR_HEADER.match(value_text):
             return self._parse_block_scalar(value_text, parent_indent, line_no)
 
@@ -275,9 +269,7 @@ class _Parser:
             elif cleaned.startswith("'"):
                 items.append(_decode_single_quoted(cleaned, line_no))
             elif cleaned[0] in ("[", "{"):
-                raise FrontmatterError(
-                    f"line {line_no}: flow style is not supported"
-                )
+                raise FrontmatterError(f"line {line_no}: flow style is not supported")
             else:
                 items.append(cleaned)
         return items
@@ -320,9 +312,7 @@ class _Parser:
             return "\n" * trailing_blanks if chomp == "+" else ""
 
         joined = (
-            "\n".join(block_lines)
-            if style == "|"
-            else _fold_block_lines(block_lines)
+            "\n".join(block_lines) if style == "|" else _fold_block_lines(block_lines)
         )
 
         if chomp == "-":  # strip
@@ -341,18 +331,14 @@ def _is_sequence_item(body: str) -> bool:
 
 def _split_key(body: str, line_no: int) -> tuple[str, str]:
     if body.startswith(("'", '"')):
-        raise FrontmatterError(
-            f"line {line_no}: quoted keys are not supported"
-        )
+        raise FrontmatterError(f"line {line_no}: quoted keys are not supported")
     colon = body.find(":")
     if colon == -1:
-        raise FrontmatterError(
-            f"line {line_no}: expected 'key: value' (no ':' found)"
-        )
+        raise FrontmatterError(f"line {line_no}: expected 'key: value' (no ':' found)")
     key = body[:colon].rstrip()
     if not key:
         raise FrontmatterError(f"line {line_no}: empty key")
-    rest = body[colon + 1:]
+    rest = body[colon + 1 :]
     if rest and not rest.startswith(" "):
         raise FrontmatterError(
             f"line {line_no}: expected space after ':' for key {key!r}"
@@ -422,16 +408,20 @@ def _strip_trailing_comment(text: str) -> str:
         elif ch == '"' and not in_single:
             if i == 0 or text[i - 1] != "\\":
                 in_double = not in_double
-        elif ch == "#" and not in_single and not in_double and i > 0 and text[i - 1] == " ":
+        elif (
+            ch == "#"
+            and not in_single
+            and not in_double
+            and i > 0
+            and text[i - 1] == " "
+        ):
             return text[:i].rstrip()
     return text
 
 
 def _decode_double_quoted(text: str, line_no: int) -> str:
     if len(text) < 2 or not text.endswith('"'):
-        raise FrontmatterError(
-            f"line {line_no}: unterminated double-quoted string"
-        )
+        raise FrontmatterError(f"line {line_no}: unterminated double-quoted string")
     inner = text[1:-1]
     out: list[str] = []
     escapes = {
@@ -460,9 +450,7 @@ def _decode_double_quoted(text: str, line_no: int) -> str:
 
 def _decode_single_quoted(text: str, line_no: int) -> str:
     if len(text) < 2 or not text.endswith("'"):
-        raise FrontmatterError(
-            f"line {line_no}: unterminated single-quoted string"
-        )
+        raise FrontmatterError(f"line {line_no}: unterminated single-quoted string")
     return text[1:-1].replace("''", "'")
 
 
@@ -585,8 +573,7 @@ def _check_compatibility(fm: dict[str, Any]) -> Iterable[Issue]:
     if len(text) > MAX_COMPATIBILITY_LENGTH:
         yield Issue(
             Severity.ERROR,
-            f"compatibility exceeds {MAX_COMPATIBILITY_LENGTH} chars "
-            f"({len(text)})",
+            f"compatibility exceeds {MAX_COMPATIBILITY_LENGTH} chars ({len(text)})",
         )
 
 
@@ -628,8 +615,7 @@ def _check_reference_depth(skill_dir: Path, body: str) -> Iterable[Issue]:
         nested = [
             target
             for _, target in MARKDOWN_LINK_PATTERN.findall(ref_text)
-            if target.endswith(".md")
-            and not target.startswith(("http://", "https://"))
+            if target.endswith(".md") and not target.startswith(("http://", "https://"))
         ]
         if nested:
             yield Issue(

@@ -59,7 +59,9 @@ FILENAME_PATTERN = re.compile(r"^Spec-[\w.\-]+\.md$")
 COMPLIANCE_HEADER = re.compile(r"^##\s+Compliance check\s*$", re.MULTILINE)
 RISK_HEADER = re.compile(r"^##\s+4\.\s+Risk assessment\s*$", re.MULTILINE)
 QUESTIONS_HEADER = re.compile(r"^##\s+5\.\s+Open questions\s*$", re.MULTILINE)
-FILE_SUMMARY_HEADER = re.compile(r"^##\s+6\.\s+File structure summary\s*$", re.MULTILINE)
+FILE_SUMMARY_HEADER = re.compile(
+    r"^##\s+6\.\s+File structure summary\s*$", re.MULTILINE
+)
 NEXT_SECTION = re.compile(r"^##\s+", re.MULTILINE)
 TABLE_ROW = re.compile(r"^\|(?P<cells>.+)\|\s*$", re.MULTILINE)
 SEPARATOR_ROW = re.compile(r"^\|\s*[:\- ]+\s*\|")
@@ -194,12 +196,16 @@ def validate(
     for m in EM_OR_EN_DASH.finditer(content):
         line_no = content.count("\n", 0, m.start()) + 1
         char_name = "em-dash" if m.group() == "—" else "en-dash"
-        errors.append(f"Line {line_no}: contains {char_name}; replace with comma, period, parenthesis, semicolon, or colon")
+        errors.append(
+            f"Line {line_no}: contains {char_name}; replace with comma, period, parenthesis, semicolon, or colon"
+        )
 
     # Backslash paths inside inline code spans.
     for m in BACKSLASH_PATH.finditer(content):
         line_no = content.count("\n", 0, m.start()) + 1
-        warnings.append(f"Line {line_no}: backslash path in code span: {m.group()!r}; use forward slashes")
+        warnings.append(
+            f"Line {line_no}: backslash path in code span: {m.group()!r}; use forward slashes"
+        )
 
     # Oversized fenced code blocks (heuristic for implementation rather than signature).
     for m in FENCED_BLOCK.finditer(content):
@@ -216,7 +222,9 @@ def validate(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate a writing-specs specification.")
+    parser = argparse.ArgumentParser(
+        description="Validate a writing-specs specification."
+    )
     parser.add_argument("spec_path", help="Path to the specification markdown file.")
     parser.add_argument(
         "--code-block-limit",
