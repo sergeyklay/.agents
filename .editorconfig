@@ -1,5 +1,6 @@
 root = true
 
-[scripts/*.sh]
-indent_style = tab
+[*.sh]
+indent_style = space
+indent_size = 2
 shell_variant = posix
