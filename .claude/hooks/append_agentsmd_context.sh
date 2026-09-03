@@ -1,10 +1,10 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 # Find all AGENTS.md files in current directory and subdirectories
 # This is a temporary solution for the case where Claude Code is not satisfied with the AGENTS.md usage.
 # See: https://github.com/anthropics/claude-code/issues/6235
 
-set -euo pipefail
+set -eu
 
 # Exit silently if not running in Claude Code environment (e.g., VS Code with Copilot)
 if [ -z "${CLAUDE_PROJECT_DIR:-}" ]; then

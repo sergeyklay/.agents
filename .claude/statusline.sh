@@ -1,10 +1,11 @@
-#!/bin/bash
+#!/bin/sh
 input=$(cat)
 
 DETAIL=cached
 
-IFS=$'\t' read -r MODEL SIZE TOTAL PCT FRESH CREAD CWRITE F5 F5R D7 D7R <<< "$(
-  echo "$input" | jq -r '
+tab=$(printf '\t')
+IFS=$tab read -r MODEL SIZE TOTAL PCT FRESH CREAD CWRITE F5 F5R D7 D7R <<EOF
+$(printf '%s\n' "$input" | jq -r '
     [ (.model.display_name // "?"),
       (.context_window.context_window_size // 200000),
       (.context_window.total_input_tokens // 0),
@@ -16,13 +17,14 @@ IFS=$'\t' read -r MODEL SIZE TOTAL PCT FRESH CREAD CWRITE F5 F5R D7 D7R <<< "$(
       (.rate_limits.five_hour.resets_at // "x"),
       (.rate_limits.seven_day.used_percentage // "x"),
       (.rate_limits.seven_day.resets_at // "x")
-    ] | @tsv')"
+    ] | @tsv')
+EOF
 
 G='\033[32m'; Y='\033[33m'; R='\033[31m'; D='\033[90m'; C='\033[36m'; N='\033[0m'
-VS=$'\uFE0E'
+VS=$(printf '\357\270\216')
 
 fmt() {
-  local n=${1:-0}
+  n=${1:-0}
   if   [ "$n" -ge 1000000 ]; then printf '%d.%01dM' $((n/1000000)) $((n%1000000/100000))
   elif [ "$n" -ge 1000 ];    then printf '%d.%01dk' $((n/1000))    $((n%1000/100))
   else printf '%d' "$n"; fi
@@ -36,19 +38,35 @@ color() {
 
 countdown() {
   [ "$1" = "x" ] && return
-  local diff=$(( $1 - $(date +%s) ))
+  reset_at=$1
+  now=$(date +%s)
+  diff=$((reset_at - now))
   [ "$diff" -lt 0 ] && diff=0
-  local d=$((diff/86400)) h=$((diff%86400/3600)) m=$((diff%3600/60))
+  d=$((diff/86400))
+  h=$((diff%86400/3600))
+  m=$((diff%3600/60))
   if   [ "$d" -gt 0 ]; then printf '%dd%dh' "$d" "$h"
   elif [ "$h" -gt 0 ]; then printf '%dh%dm' "$h" "$m"
   else printf '%dm' "$m"; fi
 }
 
+make_bar() {
+  filled=$1
+  empty=$2
+  while [ "$filled" -gt 0 ]; do
+    printf '%s' '▓'
+    filled=$((filled - 1))
+  done
+  while [ "$empty" -gt 0 ]; do
+    printf '%s' '░'
+    empty=$((empty - 1))
+  done
+}
+
 FILLED=$((PCT/10))
 [ "$PCT" -ge 95 ] && FILLED=10
 EMPTY=$((10-FILLED))
-printf -v A "%${FILLED}s"; printf -v B "%${EMPTY}s"
-BAR="${A// /▓}${B// /░}"
+BAR=$(make_bar "$FILLED" "$EMPTY")
 CC=$(color "$PCT")
 
 LEFT="${C}[$MODEL]${N} ${CC}${BAR} ${PCT}%${N}  $(fmt "$TOTAL")${D}/$(fmt "$SIZE")${N}"

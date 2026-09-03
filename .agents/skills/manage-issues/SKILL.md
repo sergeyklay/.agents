@@ -22,7 +22,7 @@ Script paths in this document (e.g. `scripts/`) are resolved relative to **this*
 Before any create, edit, or triage operation, fetch the live taxonomy for the active repo:
 
 ```bash
-bash scripts/get_taxonomy.sh --cached
+sh scripts/get_taxonomy.sh --cached
 ```
 
 The output declares seven sections: `CACHED_AT`, `REPO`, `ISSUES_ENABLED`, `ISSUE_TYPES`, `LABEL_PREFIXES`, `LABELS`, `MILESTONES`, `PROJECT_BOARDS`. Use the values verbatim; never memorize or guess label names, milestone titles, type `node_id`s, or project names.
