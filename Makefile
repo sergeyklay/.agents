@@ -12,7 +12,7 @@ include default.mk
 .PHONY: validate
 validate: ## Validate every tracked Agent Skill
 	@tmp=$$(mktemp "$${TMPDIR:-/tmp}/skills.XXXXXX") || exit 1; \
-	trap 'rm -f "$$tmp"' EXIT; \
+	trap 'rm -f "$$tmp"' 0; \
 	git ls-files -- '.agents/skills/*/SKILL.md' > "$$tmp"; \
 	if [ ! -s "$$tmp" ]; then \
 		printf '$(RED)No tracked Agent Skills found$(RESET)\n' >&2; \
