@@ -6,7 +6,22 @@
   "permission": {
     "skill": {
       "scan-security": "deny"
-    }
+    },
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow",
+      "*.env.sample": "allow",
+      "*.env.template": "allow",
+      "*.env.dist": "allow"
+    },
+    "external_directory": {
+      "*": "deny",
+      "~/work/**": "allow",
+      "/tmp/opencode/**": "allow"
+    },
+    "doom_loop": "deny"
   },
   "mcp": {
     "atlassian": {
