@@ -11,17 +11,19 @@ include default.mk
 
 .PHONY: validate
 validate: ## Validate every tracked Agent Skill
-	@skills=$$(git ls-files -- '.agents/skills/*/SKILL.md'); \
-	if [ -z "$$skills" ]; then \
+	@tmp=$$(mktemp "$${TMPDIR:-/tmp}/skills.XXXXXX") || exit 1; \
+	trap 'rm -f "$$tmp"' EXIT; \
+	git ls-files -- '.agents/skills/*/SKILL.md' > "$$tmp"; \
+	if [ ! -s "$$tmp" ]; then \
 		printf '$(RED)No tracked Agent Skills found$(RESET)\n' >&2; \
 		exit 1; \
 	fi; \
 	failed=0; \
-	for skill in $$skills; do \
+	while IFS= read -r skill; do \
 		printf '$(BOLD)%s$(RESET)\n' "$$skill"; \
 		$(UV) run --no-project python $(SKILL_VALIDATOR) \
-			--warnings-as-errors $$(dirname "$$skill") || failed=1; \
-	done; \
+			--warnings-as-errors "$$(dirname "$$skill")" || failed=1; \
+	done < "$$tmp"; \
 	exit $$failed
 
 .PHONY: typecheck
@@ -44,8 +46,10 @@ lint: ## Ruff check + format check on every tracked Python script
 	@scripts=$$(git ls-files -- '*.py'); \
 	if [ -z "$$scripts" ]; then exit 0; fi; \
 	$(UVX) ruff@$(RUFF_VERSION) --version; \
-	git ls-files -z -- '*.py' | xargs -0 $(UVX) ruff@$(RUFF_VERSION) check -- && \
-	git ls-files -z -- '*.py' | xargs -0 $(UVX) ruff@$(RUFF_VERSION) format --check --
+	git ls-files -z -- '*.py' | xargs -0 \
+		$(UVX) ruff@$(RUFF_VERSION) check --output-format=$(RUFF_OUTPUT_FORMAT) -- && \
+	git ls-files -z -- '*.py' | xargs -0 \
+		$(UVX) ruff@$(RUFF_VERSION) format --check --output-format=$(RUFF_OUTPUT_FORMAT) --
 
 .PHONY: fmt
 fmt: ## Rewrite Python formatting with ruff (companion to "make lint")
@@ -66,7 +70,7 @@ fmt-shell: ## Fail if any tracked shell script needs shfmt reformatting
 	@scripts=$$(git ls-files -- '*.sh'); \
 	if [ -z "$$scripts" ]; then exit 0; fi; \
 	$(SHFMT) --version; \
-	git ls-files -z -- '*.sh' | xargs -0 $(SHFMT) -d
+	git ls-files -z -- '*.sh' | xargs -0 $(SHFMT) -d --
 
 # ── Gates ──────────────────────────────────────────────────────────────────────
 
@@ -108,6 +112,7 @@ endif
 	@printf '\n$(BOLD)Variables$(RESET)\n'
 	@printf '  $(CYAN)%-24s$(RESET) %s\n' \
 		'RUFF_VERSION'         ' ruff version uvx resolves (default: latest)' \
+		'RUFF_OUTPUT_FORMAT'   ' ruff --output-format (github under CI, full locally)' \
 		'BASEDPYRIGHT_VERSION' ' basedpyright version uvx resolves (default: 1.39.10)' \
 		'UV / UVX'              ' uv wrappers used for every Python tool' \
 		'SHELLCHECK'           ' shellcheck binary for lint-shell' \
