@@ -31,8 +31,11 @@ USE_CACHE=0
 
 for arg in "$@"; do
   case "$arg" in
-    --cached) USE_CACHE=1 ;;
-    *) echo "ERROR: unknown flag: $arg" >&2; exit 2 ;;
+  --cached) USE_CACHE=1 ;;
+  *)
+    echo "ERROR: unknown flag: $arg" >&2
+    exit 2
+    ;;
   esac
 done
 
@@ -56,7 +59,7 @@ mkdir -p "$CACHE_DIR"
 CACHE_FILE="$CACHE_DIR/$(echo "$REPO" | tr '/' '_').txt"
 
 if [ "$USE_CACHE" -eq 1 ] && [ -f "$CACHE_FILE" ]; then
-  AGE=$(( $(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || stat -f %m "$CACHE_FILE") ))
+  AGE=$(($(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || stat -f %m "$CACHE_FILE")))
   if [ "$AGE" -lt "$TTL_SECS" ]; then
     cat "$CACHE_FILE"
     exit 0
@@ -145,7 +148,7 @@ trap 'rm -f "$TMP_OUT"' 0
       echo "  (none found; if you expected projects, run: gh auth refresh -s project,read:project)"
     fi
   fi
-} > "$TMP_OUT"
+} >"$TMP_OUT"
 
 cp "$TMP_OUT" "$CACHE_FILE"
 cat "$CACHE_FILE"

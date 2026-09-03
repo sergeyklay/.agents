@@ -9,54 +9,54 @@ TEST_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/install-test.XXXXXX")
 trap 'rm -rf -- "$TEST_ROOT"' 0 HUP INT TERM
 
 new_home() {
-	home="$TEST_ROOT/$1"
-	mkdir -p "$home/.claude" "$home/.codex" "$home/.copilot" \
-		"$home/.gemini" "$home/.config/opencode"
-	printf '%s\n' "$home"
+  home="$TEST_ROOT/$1"
+  mkdir -p "$home/.claude" "$home/.codex" "$home/.copilot" \
+    "$home/.gemini" "$home/.config/opencode"
+  printf '%s\n' "$home"
 }
 
 run_install() {
-	home=$1
-	shift
-	HOME="$home" sh "$INSTALLER" "$@" >/dev/null
+  home=$1
+  shift
+  HOME="$home" sh "$INSTALLER" "$@" >/dev/null
 }
 
 assert_file() {
-	[ -f "$1" ] || {
-		printf 'expected file: %s\n' "$1" >&2
-		exit 1
-	}
+  [ -f "$1" ] || {
+    printf 'expected file: %s\n' "$1" >&2
+    exit 1
+  }
 }
 
 assert_absent() {
-	[ ! -e "$1" ] || {
-		printf 'expected absent: %s\n' "$1" >&2
-		exit 1
-	}
+  [ ! -e "$1" ] || {
+    printf 'expected absent: %s\n' "$1" >&2
+    exit 1
+  }
 }
 
 assert_same() {
-	cmp -s -- "$1" "$2" || {
-		printf 'expected identical files: %s %s\n' "$1" "$2" >&2
-		exit 1
-	}
+  cmp -s -- "$1" "$2" || {
+    printf 'expected identical files: %s %s\n' "$1" "$2" >&2
+    exit 1
+  }
 }
 
 assert_contains() {
-	case $1 in
-	*"$2"*) return 0 ;;
-	esac
-	printf 'expected output to contain: %s\n' "$2" >&2
-	exit 1
+  case $1 in
+  *"$2"*) return 0 ;;
+  esac
+  printf 'expected output to contain: %s\n' "$2" >&2
+  exit 1
 }
 
 assert_not_contains() {
-	case $1 in
-	*"$2"*)
-		printf 'expected output not to contain: %s\n' "$2" >&2
-		exit 1
-		;;
-	esac
+  case $1 in
+  *"$2"*)
+    printf 'expected output not to contain: %s\n' "$2" >&2
+    exit 1
+    ;;
+  esac
 }
 
 escape=$(printf '\033')
@@ -155,7 +155,7 @@ assert_absent "$home/.config/opencode/skills"
 
 home=$(new_home stale-rules)
 mkdir -p "$home/.claude/rules" "$home/.copilot/instructions" \
-	"$home/.config/opencode/rules"
+  "$home/.config/opencode/rules"
 cp -- "$CONTEXT" "$home/.claude/rules/working-agreement.md"
 cp -- "$CONTEXT" "$home/.copilot/instructions/working-agreement.instructions.md"
 cp -- "$CONTEXT" "$home/.config/opencode/rules/working-agreement.md"

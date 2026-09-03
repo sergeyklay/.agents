@@ -11,7 +11,10 @@ if [ -z "${CLAUDE_PROJECT_DIR:-}" ]; then
   exit 0
 fi
 
-cd "$CLAUDE_PROJECT_DIR" || { echo "Error: Failed to change directory to $CLAUDE_PROJECT_DIR" >&2; exit 1; }
+cd "$CLAUDE_PROJECT_DIR" || {
+  echo "Error: Failed to change directory to $CLAUDE_PROJECT_DIR" >&2
+  exit 1
+}
 
 # Check project wide AGENTS.md files.
 # Sort by path length (ascending) - from general to specific.
@@ -23,7 +26,6 @@ AGENTSMD_FILES=$(find "${CLAUDE_PROJECT_DIR}" \
   ! -path "*/.venv/*" \
   -name "AGENTS.md" \
   -type f 2>/dev/null | awk '{ print length, $0 }' | sort -n | cut -d' ' -f2-) || true
-
 
 if [ -f "$HOME/AGENTS.md" ]; then
   if [ -n "$AGENTSMD_FILES" ]; then
@@ -85,7 +87,7 @@ end_context
 
 # Load global AGENTS.md first (lowest precedence)
 if [ -f "$HOME/AGENTS.md" ]; then
-cat <<end_global_context
+  cat <<end_global_context
 
 The content of ~/AGENTS.md is as follows:
 
@@ -97,7 +99,7 @@ fi
 
 # If there is a root AGENTS.md, load it now (higher precedence than global)
 if [ -f "./AGENTS.md" ]; then
-cat <<end_root_context
+  cat <<end_root_context
 
 The content of ./AGENTS.md is as follows:
 
