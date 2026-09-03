@@ -1,12 +1,12 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # get_taxonomy.sh - Fetch live issue taxonomy for the current GitHub repository.
 #
 # Project-agnostic: emits only what the repo actually has. Sections with no
 # data are reported as "(none)" so the agent can branch on absence.
 #
 # Usage:
-#   bash scripts/get_taxonomy.sh             Force a fresh fetch (overwrites cache).
-#   bash scripts/get_taxonomy.sh --cached    Use the 24h file cache if fresh.
+#   sh scripts/get_taxonomy.sh             Force a fresh fetch (overwrites cache).
+#   sh scripts/get_taxonomy.sh --cached    Use the 24h file cache if fresh.
 #
 # Output sections (always in this order):
 #   CACHED_AT          ISO-8601 UTC timestamp of this fetch
@@ -23,7 +23,7 @@
 #   1  gh missing, not authenticated, or CWD is not a GitHub repository
 #   2  unknown flag
 
-set -euo pipefail
+set -eu
 
 CACHE_DIR="${TMPDIR:-/tmp}/manage-issues-cache"
 TTL_SECS=$((24 * 3600))
@@ -47,7 +47,7 @@ if ! gh auth status >/dev/null 2>&1; then
 fi
 
 REPO=$(gh repo view --json nameWithOwner -q '.nameWithOwner' 2>/dev/null || true)
-if [[ -z "$REPO" ]]; then
+if [ -z "$REPO" ]; then
   echo "ERROR: not inside a GitHub repository" >&2
   exit 1
 fi
@@ -55,9 +55,9 @@ fi
 mkdir -p "$CACHE_DIR"
 CACHE_FILE="$CACHE_DIR/$(echo "$REPO" | tr '/' '_').txt"
 
-if [[ $USE_CACHE -eq 1 && -f "$CACHE_FILE" ]]; then
+if [ "$USE_CACHE" -eq 1 ] && [ -f "$CACHE_FILE" ]; then
   AGE=$(( $(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || stat -f %m "$CACHE_FILE") ))
-  if (( AGE < TTL_SECS )); then
+  if [ "$AGE" -lt "$TTL_SECS" ]; then
     cat "$CACHE_FILE"
     exit 0
   fi
@@ -65,7 +65,7 @@ fi
 
 OWNER="${REPO%%/*}"
 TMP_OUT=$(mktemp)
-trap 'rm -f "$TMP_OUT"' EXIT
+trap 'rm -f "$TMP_OUT"' 0
 
 {
   echo "CACHED_AT: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -74,7 +74,7 @@ trap 'rm -f "$TMP_OUT"' EXIT
   HAS_ISSUES=$(gh repo view --json hasIssuesEnabled -q '.hasIssuesEnabled' 2>/dev/null || echo "false")
   echo "ISSUES_ENABLED: $HAS_ISSUES"
 
-  if [[ "$HAS_ISSUES" != "true" ]]; then
+  if [ "$HAS_ISSUES" != "true" ]; then
     echo ""
     echo "(Issues are disabled for this repository. Stop and inform the user.)"
   else
@@ -82,7 +82,7 @@ trap 'rm -f "$TMP_OUT"' EXIT
     echo "--- ISSUE_TYPES ---"
     if issue_types=$(gh api "/orgs/${OWNER}/issue-types" \
       --jq '.[] | "\(.name)\t\(.node_id)\t\(.description // "")"' 2>/dev/null); then
-      if [[ -z "$issue_types" ]]; then
+      if [ -z "$issue_types" ]; then
         echo "(none)"
       else
         echo "$issue_types" | sort | awk -F'\t' '{ printf "  %-14s  node_id=%-38s  %s\n", $1, $2, $3 }'
@@ -100,11 +100,11 @@ trap 'rm -f "$TMP_OUT"' EXIT
     fi
 
     echo "--- LABEL_PREFIXES ---"
-    if [[ -z "$labels_raw" ]]; then
+    if [ -z "$labels_raw" ]; then
       echo "(none)"
     else
       prefixes=$(echo "$labels_raw" | awk -F'\t' '{print $1}' | awk -F':' 'NF>1 {print $1}' | sort -u | tr '\n' ' ' | sed 's/ $//')
-      if [[ -z "$prefixes" ]]; then
+      if [ -z "$prefixes" ]; then
         echo "(none; repo uses flat labels)"
       else
         echo "  $prefixes"
@@ -113,7 +113,7 @@ trap 'rm -f "$TMP_OUT"' EXIT
     echo ""
 
     echo "--- LABELS ---"
-    if [[ -z "$labels_raw" ]]; then
+    if [ -z "$labels_raw" ]; then
       echo "  (none)"
     else
       echo "$labels_raw" | sort | awk -F'\t' '{ printf "  %-32s  %s\n", $1, $2 }'
@@ -123,7 +123,7 @@ trap 'rm -f "$TMP_OUT"' EXIT
     echo "--- MILESTONES (open) ---"
     if miles=$(gh api "repos/${REPO}/milestones?state=open" --paginate \
       -q '.[] | "\(.title)\t[open=\(.open_issues), closed=\(.closed_issues)]"' 2>/dev/null); then
-      if [[ -z "$miles" ]]; then
+      if [ -z "$miles" ]; then
         echo "  (none open)"
       else
         echo "$miles" | sort | awk -F'\t' '{ printf "  %-40s  %s\n", $1, $2 }'
@@ -136,7 +136,7 @@ trap 'rm -f "$TMP_OUT"' EXIT
     echo "--- PROJECT_BOARDS ---"
     if projs=$(gh project list --owner "${OWNER}" --limit 10 --format json \
       --jq '.projects[]? | "  \(.title) (#\(.number))"' 2>/dev/null); then
-      if [[ -z "$projs" ]]; then
+      if [ -z "$projs" ]; then
         echo "  (none found)"
       else
         echo "$projs"
