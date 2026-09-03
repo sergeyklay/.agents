@@ -111,7 +111,11 @@ def docker_names(base: Path) -> tuple[list[str], str | None]:
             image = tokens[0]
             if len(tokens) >= 3 and tokens[1].lower() == "as":
                 stages.add(tokens[2].lower())
-            images.add(image.split("@")[0].rsplit(":", 1)[0] if ":" in image else image.split("@")[0])
+            images.add(
+                image.split("@")[0].rsplit(":", 1)[0]
+                if ":" in image
+                else image.split("@")[0]
+            )
     return sorted(images - stages), None
 
 
@@ -169,7 +173,9 @@ def scope(group: dict) -> tuple[str, frozenset[str]]:
     return applies, frozenset(types) if types else frozenset({"*"})
 
 
-def scopes_overlap(a: tuple[str, frozenset[str]], b: tuple[str, frozenset[str]]) -> bool:
+def scopes_overlap(
+    a: tuple[str, frozenset[str]], b: tuple[str, frozenset[str]]
+) -> bool:
     if a[0] != b[0]:
         return False
     if "*" in a[1] or "*" in b[1]:
@@ -201,20 +207,29 @@ def audit_directory(
 
     base = root / directory.lstrip("/")
     if not base.is_dir():
-        return [("missing-directory", f"{label}: directory does not exist in the repo")], True
+        return [
+            ("missing-directory", f"{label}: directory does not exist in the repo")
+        ], True
 
     resolver = RESOLVERS.get(ecosystem)
     if resolver is None:
-        print(f"  {label}: skipped semantic audit, no resolver for ecosystem '{ecosystem}'")
+        print(
+            f"  {label}: skipped semantic audit, no resolver for ecosystem '{ecosystem}'"
+        )
         return [], False
 
     names, missing = resolver(base)
     if missing:
-        return [("missing-manifest", f"{label}: expected manifest not found at {missing}")], True
+        return [
+            ("missing-manifest", f"{label}: expected manifest not found at {missing}")
+        ], True
     print(f"  {label}: resolved {len(names)} declared dependencies")
     if not names:
         findings.append(
-            ("missing-manifest", f"{label}: manifest present but declares no dependencies")
+            (
+                "missing-manifest",
+                f"{label}: manifest present but declares no dependencies",
+            )
         )
 
     groups: dict = entry.get("groups") or {}
@@ -223,7 +238,10 @@ def audit_directory(
         for pattern in patterns:
             if not any(matches(n, pattern) for n in names):
                 findings.append(
-                    ("dead-pattern", f"{label}: group '{gname}' pattern '{pattern}' matches nothing")
+                    (
+                        "dead-pattern",
+                        f"{label}: group '{gname}' pattern '{pattern}' matches nothing",
+                    )
                 )
         matched = [n for n in names if any(matches(n, p) for p in patterns)]
         for exclude in group.get("exclude-patterns") or []:
@@ -250,13 +268,18 @@ def audit_directory(
                         )
                     )
         if not owners and show_ungrouped:
-            findings.append(("ungrouped", f"{label}: '{name}' is in no group (individual PRs)"))
+            findings.append(
+                ("ungrouped", f"{label}: '{name}' is in no group (individual PRs)")
+            )
 
     for ignored in entry.get("ignore") or []:
         target = ignored.get("dependency-name")
         if target and not any(matches(n, target) for n in names):
             findings.append(
-                ("dead-ignore", f"{label}: ignore entry '{target}' matches no declared dependency")
+                (
+                    "dead-ignore",
+                    f"{label}: ignore entry '{target}' matches no declared dependency",
+                )
             )
 
     return findings, True
@@ -313,7 +336,10 @@ def main() -> int:
             skipped += 0 if was_audited else 1
 
     if audited == 0:
-        print("\nno update entry could be audited - every ecosystem was skipped", file=sys.stderr)
+        print(
+            "\nno update entry could be audited - every ecosystem was skipped",
+            file=sys.stderr,
+        )
         return 2
 
     failing = [f for f in findings if f[0] != "ungrouped"]
@@ -321,11 +347,17 @@ def main() -> int:
         print()
         for kind, message in findings:
             print(f"{kind}: {message}")
-        print(f"\n{len(failing)} finding(s), {len(findings) - len(failing)} informational")
+        print(
+            f"\n{len(failing)} finding(s), {len(findings) - len(failing)} informational"
+        )
     else:
-        print("\nclean: every pattern, exclude-pattern and ignore entry resolves; no double claims")
+        print(
+            "\nclean: every pattern, exclude-pattern and ignore entry resolves; no double claims"
+        )
     if skipped:
-        print(f"note: {skipped} update entry/entries skipped for lack of an ecosystem resolver")
+        print(
+            f"note: {skipped} update entry/entries skipped for lack of an ecosystem resolver"
+        )
     return 1 if failing else 0
 
 

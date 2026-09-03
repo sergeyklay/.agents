@@ -11,8 +11,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  ruff:
+    name: Ruff
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version-file: .tool-versions
+          enable-cache: false
+
+      - name: Check Python scripts
+        shell: bash
+        run: |
+          mapfile -d '' scripts < <(git ls-files -z -- '*.py')
+          ((${#scripts[@]} > 0)) || exit 0
+          uvx ruff@latest --version
+          uvx ruff@latest check --output-format=github -- "${scripts[@]}"
+          uvx ruff@latest format --check -- "${scripts[@]}"
+
   shellcheck:
-    name: ShellCheck (POSIX)
+    name: ShellCheck
     runs-on: ubuntu-latest
     timeout-minutes: 5
 

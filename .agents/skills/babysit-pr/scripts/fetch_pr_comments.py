@@ -80,16 +80,13 @@ def _resolve_pr() -> int | None:
 def _gh_repo() -> str:
     """Return the current repo as 'owner/name'."""
     result = subprocess.run(
-        ["gh", "repo", "view",
-         "--json", "nameWithOwner",
-         "--jq", ".nameWithOwner"],
+        ["gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"],
         capture_output=True,
         text=True,
     )
     if result.returncode != 0:
         raise RuntimeError(
-            f"`gh repo view` failed: "
-            f"{result.stderr.strip() or 'unknown error'}"
+            f"`gh repo view` failed: {result.stderr.strip() or 'unknown error'}"
         )
     name = result.stdout.strip()
     if not name:
@@ -144,9 +141,7 @@ def _gh_api_paginated(endpoint: str, label: str) -> list[Any]:
 def _gh_pr_issue_comments(pr: int) -> list[Any]:
     """Fetch issue-level conversation comments for a PR via `gh pr view`."""
     result = subprocess.run(
-        ["gh", "pr", "view", str(pr),
-         "--json", "comments",
-         "--jq", ".comments"],
+        ["gh", "pr", "view", str(pr), "--json", "comments", "--jq", ".comments"],
         capture_output=True,
         text=True,
     )
@@ -202,8 +197,7 @@ def main() -> int:
         pr = _resolve_pr()
         if pr is None:
             print(
-                "Error: no PR on current branch. "
-                "Pass PR_NUMBER explicitly.",
+                "Error: no PR on current branch. Pass PR_NUMBER explicitly.",
                 file=sys.stderr,
             )
             return 2
@@ -213,9 +207,7 @@ def main() -> int:
         inline = _gh_api_paginated(
             f"repos/{repo}/pulls/{pr}/comments", "inline comments"
         )
-        reviews = _gh_api_paginated(
-            f"repos/{repo}/pulls/{pr}/reviews", "review bodies"
-        )
+        reviews = _gh_api_paginated(f"repos/{repo}/pulls/{pr}/reviews", "review bodies")
         issue = _gh_pr_issue_comments(pr)
     except RuntimeError as exc:
         print(f"Error: {exc}", file=sys.stderr)

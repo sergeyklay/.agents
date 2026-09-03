@@ -48,9 +48,7 @@ STACK_PATTERNS = [
 
 # Phrases that indicate framework documentation the agent already knows
 FRAMEWORK_DOC_PATTERNS = [
-    re.compile(
-        r"use\s+(functional\s+)?components\s+with\s+hooks", re.IGNORECASE
-    ),
+    re.compile(r"use\s+(functional\s+)?components\s+with\s+hooks", re.IGNORECASE),
     re.compile(r"prefer\s+`?useState`?\s+for\s+local\s+state", re.IGNORECASE),
     re.compile(r"use\s+`?useEffect`?\s+for\s+side\s+effects", re.IGNORECASE),
     re.compile(r"follow\s+RESTful\s+conventions", re.IGNORECASE),
@@ -145,8 +143,7 @@ def validate(file_path: str, project_dir: str | None = None) -> list[dict]:
         for pattern in STACK_PATTERNS:
             if pattern.search(line):
                 error(
-                    "Tech stack summary detected. "
-                    "The agent reads config files.",
+                    "Tech stack summary detected. The agent reads config files.",
                     i,
                 )
                 break
@@ -172,8 +169,7 @@ def validate(file_path: str, project_dir: str | None = None) -> list[dict]:
         for pattern in OVERVIEW_PATTERNS:
             if pattern.search(line):
                 warn(
-                    "Codebase overview detected. "
-                    "This likely duplicates the README.",
+                    "Codebase overview detected. This likely duplicates the README.",
                     i,
                 )
                 break
@@ -243,9 +239,7 @@ def validate(file_path: str, project_dir: str | None = None) -> list[dict]:
                 if ref.startswith("http") or ref.startswith("@") or " " in ref:
                     continue
                 ref_path = proj / ref
-                if not ref_path.exists() and not any(
-                    proj.glob(f"**/{Path(ref).name}")
-                ):
+                if not ref_path.exists() and not any(proj.glob(f"**/{Path(ref).name}")):
                     warn(f"Referenced file may not exist: `{ref}`", i)
 
     # --- Summary ---
