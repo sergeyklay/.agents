@@ -30,17 +30,7 @@ jobs:
 
       - name: Validate Agent Skills
         shell: bash
-        run: |
-          mapfile -d '' skill_files < <(git ls-files -z -- '.agents/skills/*/SKILL.md')
-          ((${#skill_files[@]} > 0)) || { echo "No tracked Agent Skills found" >&2; exit 1; }
-          failed=0
-          for skill_file in "${skill_files[@]}"; do
-            if ! uv run --no-project python .agents/skills/make-skill/scripts/validate_skill.py \
-              --warnings-as-errors "$(dirname "$skill_file")"; then
-              failed=1
-            fi
-          done
-          exit "$failed"
+        run: make validate
 
   basedpyright:
     name: Typecheck
@@ -61,11 +51,7 @@ jobs:
 
       - name: Type-check Python scripts
         shell: bash
-        run: |
-          mapfile -d '' scripts < <(git ls-files -z -- '*.py')
-          ((${#scripts[@]} > 0)) || { echo "No tracked Python scripts found" >&2; exit 1; }
-          uvx basedpyright@1.39.10 --version
-          uvx basedpyright@1.39.10 --stats "${scripts[@]}"
+        run: make typecheck
 
   ruff:
     name: Lint
@@ -86,12 +72,7 @@ jobs:
 
       - name: Check Python scripts
         shell: bash
-        run: |
-          mapfile -d '' scripts < <(git ls-files -z -- '*.py')
-          ((${#scripts[@]} > 0)) || exit 0
-          uvx ruff@latest --version
-          uvx ruff@latest check --output-format=github -- "${scripts[@]}"
-          uvx ruff@latest format --check -- "${scripts[@]}"
+        run: make lint
 
   shellcheck:
     name: Portability
@@ -106,6 +87,29 @@ jobs:
 
       - name: Check shell scripts
         shell: bash
+        run: make lint-shell
+
+  shfmt:
+    name: Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install shfmt (version from .tool-versions)
+        shell: bash
         run: |
-          mapfile -d '' scripts < <(git ls-files -z -- '*.sh')
-          ((${#scripts[@]} == 0)) || shellcheck --shell=sh --external-sources -- "${scripts[@]}"
+          version="$(awk '$1 == "shfmt" {print $2}' .tool-versions)"
+          mkdir -p "${HOME}/.local/bin"
+          curl -fsSL "https://github.com/mvdan/sh/releases/download/v${version}/shfmt_v${version}_linux_amd64" \
+            -o "${HOME}/.local/bin/shfmt"
+          chmod +x "${HOME}/.local/bin/shfmt"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
+      - name: Check shell script formatting
+        shell: bash
+        run: make fmt-shell
