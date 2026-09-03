@@ -69,7 +69,7 @@ When a team uses multiple platforms, maintain one canonical file (`AGENTS.md`) a
 | Platform       | Bridge mechanism                                                                  |
 | -------------- | --------------------------------------------------------------------------------- |
 | Claude Code    | `CLAUDE.md` containing `@AGENTS.md`                                               |
-| GitHub Copilot | `.github/copilot-instructions.md` containing ``Refer to [AGENTS.MD](../AGENTS.md)`` |
+| GitHub Copilot | `.github/copilot-instructions.md` containing `Refer to [AGENTS.MD](../AGENTS.md)` |
 | Gemini CLI     | `.gemini/settings.json` with `"context": { "fileName": ["CLAUDE.md", "AGENTS.md", "GEMINI.md"] }` |
 | Cursor         | Native support, no bridge needed                                                  |
 | Codex          | Native support, no bridge needed                                                  |
