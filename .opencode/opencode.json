@@ -9,12 +9,18 @@
     },
     "read": {
       "*": "allow",
+      ".env": "deny",
       "*.env": "deny",
       "*.env.*": "deny",
+      ".env.*": "deny",
       "*.env.example": "allow",
       "*.env.sample": "allow",
       "*.env.template": "allow",
-      "*.env.dist": "allow"
+      "*.env.dist": "allow",
+      ".env.example": "allow",
+      ".env.sample": "allow",
+      ".env.template": "allow",
+      ".env.dist": "allow"
     },
     "external_directory": {
       "*": "deny",
