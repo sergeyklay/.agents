@@ -104,9 +104,18 @@ jobs:
         shell: bash
         run: |
           version="$(awk '$1 == "shfmt" {print $2}' .tool-versions)"
+          if [ -z "$version" ]; then
+            echo "No shfmt entry found in .tool-versions" >&2
+            exit 1
+          fi
           mkdir -p "${HOME}/.local/bin"
           curl -fsSL "https://github.com/mvdan/sh/releases/download/v${version}/shfmt_v${version}_linux_amd64" \
             -o "${HOME}/.local/bin/shfmt"
+          # SHA256 of the release binary for the version above; update both
+          # together when bumping shfmt in .tool-versions (the release ships
+          # no checksum asset to verify against).
+          echo "fe42021c7272ef2d67ea36cbc3031683c625d0badec733ef3a57b567246a0b66  ${HOME}/.local/bin/shfmt" \
+            | sha256sum --check -
           chmod +x "${HOME}/.local/bin/shfmt"
           echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
 
