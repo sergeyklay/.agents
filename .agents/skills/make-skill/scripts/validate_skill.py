@@ -648,15 +648,32 @@ def _without_code_examples(text: str) -> str:
     return INLINE_CODE_SPAN_PATTERN.sub("", _without_fenced_code_blocks(text))
 
 
+def _resolve_within(base: Path, relative: str) -> Path | None:
+    """Resolve a Markdown link target under ``base``, or None if it escapes.
+
+    ``Path.__truediv__`` discards the left operand for an absolute right
+    operand, and ".." segments can walk out of ``base``. Resolve first, then
+    require containment, so a SKILL.md cannot point the validator at files
+    outside the validated skill directory.
+    """
+    candidate = (base / relative).resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError:
+        return None
+    return candidate
+
+
 def _check_reference_depth(skill_dir: Path, body: str) -> Iterable[Issue]:
+    skill_root = skill_dir.resolve()
     for _, href in MARKDOWN_LINK_PATTERN.findall(_without_code_examples(body)):
         if href.startswith(("http://", "https://", "#")):
             continue
         href_path = href.split("#", 1)[0].split("?", 1)[0]
         if not href_path.endswith(".md"):
             continue
-        ref_path = skill_dir / href_path
-        if not ref_path.is_file():
+        ref_path = _resolve_within(skill_root, href_path)
+        if ref_path is None or not ref_path.is_file():
             yield Issue(Severity.WARN, f"Missing local reference: {href_path}.")
             continue
         try:
@@ -672,8 +689,8 @@ def _check_reference_depth(skill_dir: Path, body: str) -> Iterable[Issue]:
             target_path = target.split("#", 1)[0].split("?", 1)[0]
             if not target_path.endswith(".md"):
                 continue
-            candidate = ref_path.parent / target_path
-            if not candidate.is_file():
+            candidate = _resolve_within(ref_path.parent, target_path)
+            if candidate is None or not candidate.is_file():
                 yield Issue(
                     Severity.WARN,
                     f"Missing local reference: {href} links to {target_path}.",
