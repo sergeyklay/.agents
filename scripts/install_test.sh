@@ -111,6 +111,11 @@ assert_file "$home/.claude/rules/commit-messages.md"
 assert_file "$home/.claude/settings.json"
 assert_file "$home/.claude/skills/context-files/SKILL.md"
 assert_same "$CONTEXT" "$home/.claude/CLAUDE.md"
+jq -e '
+  .permissions.defaultMode == "dontAsk" and
+  (.permissions.deny | index("Read(**/.env)") != null) and
+  (.permissions.deny | index("Read(**/.env.*)") == null)
+' "$home/.claude/settings.json" >/dev/null
 assert_absent "$home/.codex/skills"
 assert_absent "$home/.copilot/agents"
 assert_absent "$home/.gemini/agents"
