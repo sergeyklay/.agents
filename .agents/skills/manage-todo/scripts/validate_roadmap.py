@@ -14,6 +14,7 @@ Exit:   0 = valid, 1 = violations found, 2 = file not found / read error
 import re
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 def validate(path: str) -> list[str]:
@@ -36,7 +37,7 @@ def validate(path: str) -> list[str]:
     verify_re = re.compile(r"^ {6}\*\*Verify:\*\*")
     continuation_re = re.compile(r"^ {6}\S")
 
-    current_milestone: int | None = None
+    current_milestone: Optional[int] = None
     expected_milestone = 0
     last_task_seq = 0
     task_ids: set[str] = set()

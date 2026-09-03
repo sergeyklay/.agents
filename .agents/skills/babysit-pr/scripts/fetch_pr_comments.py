@@ -42,7 +42,7 @@ import json
 import shutil
 import subprocess
 import sys
-from typing import Any
+from typing import cast
 
 
 def _have_gh() -> bool:
@@ -94,7 +94,7 @@ def _gh_repo() -> str:
     return name
 
 
-def _gh_api_paginated(endpoint: str, label: str) -> list[Any]:
+def _gh_api_paginated(endpoint: str, label: str) -> list[object]:
     """Fetch a paginated `gh api` endpoint and concatenate the pages.
 
     `gh api --paginate` for array-returning endpoints emits successive
@@ -115,7 +115,7 @@ def _gh_api_paginated(endpoint: str, label: str) -> list[Any]:
 
     text = result.stdout
     decoder = json.JSONDecoder()
-    items: list[Any] = []
+    items: list[object] = []
     pos = 0
     n = len(text)
     while pos < n:
@@ -125,20 +125,21 @@ def _gh_api_paginated(endpoint: str, label: str) -> list[Any]:
         if pos >= n:
             break
         try:
-            value, end = decoder.raw_decode(text, pos)
+            decoded: tuple[object, int] = decoder.raw_decode(text, pos)
         except json.JSONDecodeError as exc:
             raise RuntimeError(
                 f"failed to parse {label} response near offset {pos}: {exc}"
             ) from exc
+        value, end = decoded
         if isinstance(value, list):
-            items.extend(value)
+            items.extend(cast(list[object], value))
         else:
             items.append(value)
         pos = end
     return items
 
 
-def _gh_pr_issue_comments(pr: int) -> list[Any]:
+def _gh_pr_issue_comments(pr: int) -> list[object]:
     """Fetch issue-level conversation comments for a PR via `gh pr view`."""
     result = subprocess.run(
         ["gh", "pr", "view", str(pr), "--json", "comments", "--jq", ".comments"],
@@ -154,7 +155,7 @@ def _gh_pr_issue_comments(pr: int) -> list[Any]:
     if not out:
         return []
     try:
-        parsed = json.loads(out)
+        parsed: object = json.loads(out)
     except json.JSONDecodeError as exc:
         raise RuntimeError(
             f"failed to parse issue-level comments for PR #{pr}: {exc}"
@@ -164,7 +165,7 @@ def _gh_pr_issue_comments(pr: int) -> list[Any]:
             f"expected a JSON array of comments for PR #{pr}, "
             f"got {type(parsed).__name__}"
         )
-    return parsed
+    return cast(list[object], parsed)
 
 
 def main() -> int:

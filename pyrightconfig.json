@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DetachHead/basedpyright/main/packages/vscode-pyright/schemas/pyrightconfig.schema.json",
+  "include": ["."],
+  "exclude": ["**/.git", "**/.ruff_cache", "**/.venv", "**/__pycache__", "**/node_modules"],
+  "pythonVersion": "3.9",
+  "typeCheckingMode": "strict",
+  "failOnWarnings": true
+}
