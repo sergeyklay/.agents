@@ -1,5 +1,15 @@
 # Writing Explanation Documentation
 
+## Contents
+
+- [Core Principles](#core-principles)
+- [Structure Template](#structure-template)
+- [Voice and Tone](#voice-and-tone)
+- [Anti-Patterns](#anti-patterns)
+- [The Open-Endedness Challenge](#the-open-endedness-challenge)
+- [Boundary Discipline](#boundary-discipline)
+- [Why Explanation Matters](#why-explanation-matters)
+
 Explanation is the most undervalued and most intellectually demanding type of documentation. It is a discursive treatment of a subject that permits reflection. The reader is not at the keyboard solving a problem -- they are stepping back to *understand*. They might be on a commute, in a hammock, or between tasks. They are building the mental model that makes everything else -- tutorials, how-to guides, reference -- click into place.
 
 Think of Harold McGee's *On Food and Cooking*. It contains no recipes. It is not instructional. It is not reference material. It places its subject in the context of history, society, science, and technology. It explains *why we do what we do in the kitchen*. You do not read it while cooking. You read it between cooking sessions. And it fundamentally changes how you think about your craft.

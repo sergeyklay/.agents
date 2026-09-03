@@ -1,5 +1,14 @@
 # Writing How-to Guides
 
+## Contents
+
+- [Core Principles](#core-principles)
+- [Configure Authentication](#configure-authentication)
+- [Structure Template](#structure-template)
+- [Voice and Tone](#voice-and-tone)
+- [Anti-Patterns](#anti-patterns)
+- [Boundary Discipline](#boundary-discipline)
+
 A how-to guide is a set of directions that guide a competent reader through a real-world problem to a specific result. The reader already knows what they want to achieve. They are at work, not studying. They need a reliable path, not a lesson.
 
 Think of a recipe. It assumes you can chop, saut&eacute;, and measure. It tells you what to combine and in what order. It does not teach you knife skills or explain the Maillard reaction. A recipe that stops to explain basic technique is a bad recipe.

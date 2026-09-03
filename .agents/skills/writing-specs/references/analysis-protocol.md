@@ -1,13 +1,5 @@
 # Analysis Protocol
 
-Eight cross-cutting checks every specification MUST pass before the spec is written. Run them in order; each one produces a `GO`, `STOP`, or `FLAG` decision.
-
-- `GO`: no issue found; proceed.
-- `STOP`: a documented project rule, ADR, or boundary is violated. Halt. Surface the conflict to the user. Do not resume designing until the user resolves it.
-- `FLAG`: the design enters territory the project does not document, or extends an existing rule. Note it explicitly in the spec as a deliberate extension requiring review.
-
-Every check is project-aware: its concrete criteria come from the documents read in Phase 1, not from this protocol. If the project documents none of the concern, record that and treat any related design choice as a `FLAG`.
-
 ## Contents
 
 - Check 1: Convention compliance
@@ -20,6 +12,14 @@ Every check is project-aware: its concrete criteria come from the documents read
 - Check 8: Requirements source
 - Check 9: Prerequisites
 - Recording findings
+
+Eight cross-cutting checks every specification MUST pass before the spec is written. Run them in order; each one produces a `GO`, `STOP`, or `FLAG` decision.
+
+- `GO`: no issue found; proceed.
+- `STOP`: a documented project rule, ADR, or boundary is violated. Halt. Surface the conflict to the user. Do not resume designing until the user resolves it.
+- `FLAG`: the design enters territory the project does not document, or extends an existing rule. Note it explicitly in the spec as a deliberate extension requiring review.
+
+Every check is project-aware: its concrete criteria come from the documents read in Phase 1, not from this protocol. If the project documents none of the concern, record that and treat any related design choice as a `FLAG`.
 
 ## Check 1: Convention compliance
 

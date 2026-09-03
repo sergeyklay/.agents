@@ -1,5 +1,14 @@
 # Writing Reference Documentation
 
+## Contents
+
+- [Core Principles](#core-principles)
+- [Structure Patterns](#structure-patterns)
+- [Voice and Tone](#voice-and-tone)
+- [Anti-Patterns](#anti-patterns)
+- [Boundary Discipline](#boundary-discipline)
+- [The Completeness Standard](#the-completeness-standard)
+
 Reference documentation is the austere, authoritative description of the machinery. Users consult it -- they do not read it. They arrive mid-task, needing one precise fact: a function signature, a parameter's allowed values, a configuration key's default. They need truth and certainty, firm ground on which to stand while they work.
 
 Think of a nutritional label on food packaging. Standard format. Reliable facts. Consistent structure. No recipes, no opinions, no marketing. Information so serious it should be governed by law.

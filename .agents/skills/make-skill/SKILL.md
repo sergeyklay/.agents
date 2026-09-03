@@ -3,7 +3,7 @@ name: make-skill
 description: "Use when creating, improving, comparing, evaluating, reviewing or packaging Agent Skills following the agentskills.io specification. Also use when deciding whether a skill is the right solution vs MCP servers, Claude Rules Files, CLAUDE.md or AGENTS.md. Handles SKILL.md authoring, frontmatter optimization, description writing, progressive disclosure, platform targeting, invocation control, vendor-specific extensions, and distribution."
 metadata:
   author: Serghei Iakovlev
-  version: "2.2"
+  version: "2.3"
   category: meta
 ---
 
@@ -171,6 +171,8 @@ python3 scripts/validate_skill.py <path-to-skill>
 ```
 
 The validator is invocation-aware: it skips trigger-keyword warnings when `disable-model-invocation: true` is set, and warns if a user-invoked-only description still contains `Use when ...` triggers.
+
+Use `--warnings-as-errors` in CI to require every checked skill to be convention-clean. Keep warnings non-blocking during drafting when they help identify work still in progress.
 
 **Fallback.** Manual check:
 

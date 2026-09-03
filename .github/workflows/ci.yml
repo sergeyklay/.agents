@@ -11,6 +11,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version-file: .tool-versions
+          enable-cache: false
+
+      - name: Validate Agent Skills
+        shell: bash
+        run: |
+          mapfile -d '' skill_files < <(git ls-files -z -- '.agents/skills/*/SKILL.md')
+          ((${#skill_files[@]} > 0)) || { echo "No tracked Agent Skills found" >&2; exit 1; }
+          failed=0
+          for skill_file in "${skill_files[@]}"; do
+            if ! uv run --no-project python .agents/skills/make-skill/scripts/validate_skill.py \
+              --warnings-as-errors "$(dirname "$skill_file")"; then
+              failed=1
+            fi
+          done
+          exit "$failed"
+
   basedpyright:
     name: Typecheck
     runs-on: ubuntu-latest

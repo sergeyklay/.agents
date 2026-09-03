@@ -5,11 +5,11 @@
 Validate an Agent Skill directory against the agentskills.io specification.
 
 Usage:
-    validate_skill.py <path-to-skill-directory>
+    validate_skill.py [--warnings-as-errors] <path-to-skill-directory>
 
 Exit codes:
-    0  validation passed (no errors; warnings are allowed)
-    1  validation failed (one or more errors)
+    0  validation passed (warnings are allowed unless --warnings-as-errors is set)
+    1  validation failed (one or more errors, or warnings with --warnings-as-errors)
     2  usage error or unreadable input
 
 The script has zero runtime dependencies and works on Python 3.9+. The
@@ -46,11 +46,12 @@ YamlValue = Union[
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 XML_TAG_PATTERN = re.compile(r"<[^>]+>")
 MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
-# Drive letters (C:\, D:\) or "\" + path char that is not a common escape.
+FENCED_CODE_BLOCK_START_PATTERN = re.compile(r"^( {0,3})(`{3,}|~{3,})")
+INLINE_CODE_SPAN_PATTERN = re.compile(r"`+[^`\n]*`+")
+# Drive-letter paths or rooted paths with at least two backslash-separated
+# components. This avoids misclassifying shell escapes and regex backreferences.
 WINDOWS_PATH_PATTERN = re.compile(
-    r"[A-Za-z]:\\"
-    r"|"
-    r"\\(?![ntrfvb\"'\\])[A-Za-z0-9_]"
+    r"[A-Za-z]:\\|\\[A-Za-z][A-Za-z0-9_.-]*(?:\\[A-Za-z0-9_.-]+)+"
 )
 BLOCK_SCALAR_HEADER = re.compile(r"^[>|][+\-1-9]*\s*(#.*)?$")
 
@@ -613,22 +614,72 @@ def _check_body(body: str) -> Iterable[Issue]:
         )
 
 
+def _without_fenced_code_blocks(text: str) -> str:
+    """Return Markdown text without fenced code blocks, including indented fences."""
+    kept: list[str] = []
+    fence_char = ""
+    fence_length = 0
+    for line in text.splitlines():
+        content = line.lstrip(" ")
+        indent = len(line) - len(content)
+        if fence_char:
+            run_length = len(content) - len(content.lstrip(fence_char))
+            if (
+                indent <= 3
+                and run_length >= fence_length
+                and not content[run_length:].strip()
+            ):
+                fence_char = ""
+                fence_length = 0
+            continue
+
+        match = FENCED_CODE_BLOCK_START_PATTERN.match(line)
+        if match:
+            fence = match.group(2)
+            fence_char = fence[0]
+            fence_length = len(fence)
+            continue
+        kept.append(line)
+    return "\n".join(kept)
+
+
+def _without_code_examples(text: str) -> str:
+    """Return prose without inline or fenced code that may show example links."""
+    return INLINE_CODE_SPAN_PATTERN.sub("", _without_fenced_code_blocks(text))
+
+
 def _check_reference_depth(skill_dir: Path, body: str) -> Iterable[Issue]:
-    for _, href in MARKDOWN_LINK_PATTERN.findall(body):
+    for _, href in MARKDOWN_LINK_PATTERN.findall(_without_code_examples(body)):
         if href.startswith(("http://", "https://", "#")):
             continue
-        ref_path = skill_dir / href
-        if not (ref_path.exists() and ref_path.suffix == ".md"):
+        href_path = href.split("#", 1)[0].split("?", 1)[0]
+        if not href_path.endswith(".md"):
+            continue
+        ref_path = skill_dir / href_path
+        if not ref_path.is_file():
+            yield Issue(Severity.WARN, f"Missing local reference: {href_path}.")
             continue
         try:
             ref_text = ref_path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        nested = [
-            target
-            for _, target in MARKDOWN_LINK_PATTERN.findall(ref_text)
-            if target.endswith(".md") and not target.startswith(("http://", "https://"))
-        ]
+        nested: list[str] = []
+        for _, target in MARKDOWN_LINK_PATTERN.findall(
+            _without_code_examples(ref_text)
+        ):
+            if target.startswith(("http://", "https://", "#")):
+                continue
+            target_path = target.split("#", 1)[0].split("?", 1)[0]
+            if not target_path.endswith(".md"):
+                continue
+            candidate = ref_path.parent / target_path
+            if not candidate.is_file():
+                yield Issue(
+                    Severity.WARN,
+                    f"Missing local reference: {href} links to {target_path}.",
+                )
+            else:
+                nested.append(target)
         if nested:
             yield Issue(
                 Severity.WARN,
@@ -671,7 +722,7 @@ def _check_reference_files(skill_dir: Path) -> Iterable[Issue]:
 # --- Orchestrator --------------------------------------------------------------
 
 
-def validate(skill_dir: Path) -> list[Issue]:
+def validate(skill_dir: Path, warnings_as_errors: bool = False) -> list[Issue]:
     """Run every check and return all issues, ending with a summary INFO line."""
     if not skill_dir.is_dir():
         return [Issue(Severity.ERROR, f"Not a directory: {skill_dir}")]
@@ -702,14 +753,14 @@ def validate(skill_dir: Path) -> list[Issue]:
     issues.extend(_check_reference_depth(skill_dir, body))
     issues.extend(_check_directory_structure(skill_dir))
     issues.extend(_check_reference_files(skill_dir))
-    issues.append(_summary(issues))
+    issues.append(_summary(issues, warnings_as_errors))
     return issues
 
 
-def _summary(issues: Iterable[Issue]) -> Issue:
+def _summary(issues: Iterable[Issue], warnings_as_errors: bool) -> Issue:
     errors = sum(1 for i in issues if i.severity is Severity.ERROR)
     warns = sum(1 for i in issues if i.severity is Severity.WARN)
-    word = "passed" if errors == 0 else "failed"
+    word = "failed" if errors or (warnings_as_errors and warns) else "passed"
     return Issue(
         Severity.INFO,
         f"Validation {word}: "
@@ -731,15 +782,31 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Path to the skill directory to validate.",
     )
+    parser.add_argument(
+        "--warnings-as-errors",
+        action="store_true",
+        help="Exit non-zero when validation emits warnings.",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
-    issues = validate(args.skill_dir.expanduser().resolve())
+    issues = validate(
+        args.skill_dir.expanduser().resolve(),
+        warnings_as_errors=args.warnings_as_errors,
+    )
     for issue in issues:
         print(issue)
-    return 1 if any(i.severity is Severity.ERROR for i in issues) else 0
+    return (
+        1
+        if any(
+            i.severity is Severity.ERROR
+            or (args.warnings_as_errors and i.severity is Severity.WARN)
+            for i in issues
+        )
+        else 0
+    )
 
 
 if __name__ == "__main__":
