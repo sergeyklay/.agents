@@ -68,7 +68,7 @@
       "Bash(shutdown:*)",
       "Bash(reboot:*)"
     ],
-    "defaultMode": "dontAsk"
+    "defaultMode": "bypassPermissions"
   },
   "hooks": {
     "SessionStart": [
