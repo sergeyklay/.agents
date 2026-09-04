@@ -108,6 +108,9 @@ These rules are the core of the plan protocol. A plan that violates any of them 
 10. **Tests are separate steps assigned to the tester agent.** Do not bundle "and add tests" into an implementation step. The plan names test additions (test names, intent, coverage area) without writing the test bodies.
 11. **No banned patterns.** Where the project's agent-instruction files or ADRs list banned libraries, banned patterns, or deprecated APIs, do not propose them. If a banned pattern appears to be the only feasible solution, halt and ask for clarification.
 12. **No em-dashes.** Use commas, parentheses, periods, semicolons, or colons.
+13. **The reader is a machine.** The coder and tester agents open this file, execute the steps they own, and close it. No orienting prose, no recap of a previous phase, no closing summary. A step is File, Change, Symbols, Signature, Logic, Verify; prose that fits none of those fields is either a Decision or it does not belong in the plan.
+14. **Point at the spec, do not restate it.** The header names the source spec. Do not re-derive its business rationale, re-list its risks, or re-explain its data shapes. What the plan adds is what the spec does not carry: order, atomicity, file targets, and verify gates. A step that restates a spec section instead of acting on it is the most common way a plan doubles in size without gaining executable content.
+15. **"none" is a complete answer.** Under Decisions, Plan extensions, and Further considerations, write the word and stop. Do not explain what you considered or why nothing qualified. Unlike a specification, this document keeps these sections when empty: an explicit "none" records that the planner looked, which a deleted heading cannot distinguish from a planner that forgot.
 13. **One term per concept.** Pick one name; use it everywhere; do not alternate synonyms.
 
 See [references/output-style-rules.md](references/output-style-rules.md) for each rule expanded with Good/Bad examples.
@@ -163,6 +166,8 @@ Every plan follows this top-level structure (see [assets/plan-template.md](asset
 8. **Further considerations** - open questions with named alternatives and the planner's recommendation
 
 The philosophy checklist is the planner's internal pre-delivery self-check (Phase 5 of the workflow). It runs in the planner's reasoning trace; it does NOT belong in the artifact. The artifact is read by the coder and tester agents, neither of which extracts value from the checklist content; the structural conditions the checklist verifies are independently enforced by `scripts/validate_plan.py`.
+
+This rule went unenforced long enough to leak: in a measured corpus of 153 plans, 30 shipped a `## Philosophy Checklist` section. `scripts/validate_plan.py` now treats that heading as a structural error, so the rule can fail rather than merely being stated.
 
 After writing, report the absolute plan-file path to the caller.
 

@@ -46,11 +46,13 @@ Scan the drafted spec for each of these patterns. Each one is a class of dispute
 
 Run this list against the drafted spec.
 
-- [ ] Every section from `assets/spec-template.md` is present, or has a note explaining why it cannot be filled and what information is needed.
-- [ ] Risk-assessment table has at least one data row. Severity is one of the values the project documents (typically: Critical, High, Medium, Low; or Critical, Major, Minor). Every Critical and High row has a concrete mitigation, not "TBD".
-- [ ] File-structure summary lists every new file and every modified file. Each entry is annotated with its role (using the project's own taxonomy).
-- [ ] Open-questions section is present. If the spec genuinely has no open questions, state that explicitly; an empty section is suspicious.
-- [ ] Acceptance-criteria section maps every criterion from the tracker reference (if any) to the section of the spec that addresses it.
+- [ ] Every structural section from `assets/spec-template.md` is present: Compliance check, 1, 3, 4, 6, 7. Deletable sections (2, 3.1 to 3.6, 5) are either filled or removed outright; none carries "N/A", "None", or a note standing in for content.
+- [ ] Risk-assessment table has at least one data row and is inside its eight-row budget. Severity is one of the values the project documents (typically: Critical, High, Medium, Low; or Critical, Major, Minor). Every Critical and High row has a concrete mitigation, not "TBD". Every row names an observable failure; a row asserting an absence of change ("no budget impact") is dropped.
+- [ ] File-structure summary lists every new file and every modified file. Each entry is annotated with its role (using the project's own taxonomy). It is the only file listing in the spec; no tree is repeated inside the technical-architecture section.
+- [ ] Open-questions section holds at most five questions, each blocking a design decision. Questions resolved with a recommendation are decisions and live in the technical-architecture section instead. If the spec genuinely has no open questions, state that explicitly; an empty section is suspicious.
+- [ ] Acceptance-criteria section maps every criterion from the tracker reference (if any) to the section of the spec that addresses it. Each mapping is a pointer (`AC-3 -> section 3.3`), not a restatement of the section it points at.
+- [ ] No fact appears in two sections. File paths live in section 6, not also in section 3; design rationale lives in section 3, not also in sections 6 and 7.
+- [ ] The document carries no orienting prose, no recap of earlier sections, and no closing summary. The reader is an agent that consumes the document once.
 
 ## Citation discipline
 

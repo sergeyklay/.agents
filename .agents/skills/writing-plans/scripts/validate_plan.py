@@ -1,43 +1,14 @@
 #!/usr/bin/env python3
-"""
-Validate an implementation plan produced by the writing-plans skill.
-
-Universal, stack-agnostic checks only. The script is a feedback-loop helper
-to be run during Phase 5 of the workflow; it is not a substitute for the
-manual philosophy checklist at references/philosophy-checklist.md.
+"""Validate an implementation plan produced by the writing-plans skill.
 
 Usage:
     validate_plan.py <path-to-plan.md>
 
-Checks (each maps to a class of defect the agent or a reviewer would catch
-by hand):
+Errors are structural (missing section, phase ordering, missing verify gate,
+leaked philosophy checklist, banned character) and exit 1. Budgets are warnings
+and never fail the run. See --help for the budget flags.
 
-    - File exists, has the .md extension, lives under .plans/
-      with a Plan-{slug}.md filename.
-    - Required sections present and non-empty:
-        Title heading, Summary, Phase coverage,
-        at least one Phase, Files Affected,
-        Decisions, Plan extensions, Further considerations.
-    - Phase headings number in strictly ascending order.
-    - The terminal phase contains a verification keyword
-      (Verification, Verify, Cleanup).
-    - Every productive phase (a phase with at least one checkbox step)
-      contains a Verify: line.
-    - Every productive phase ends with a Constraint Check bullet
-      that is not "TBD" or a single word.
-    - Implementation steps use the - [ ] checkbox format.
-    - No fenced code blocks tagged with a language identifier
-      (go, ts, tsx, python, sql, rust, java, etc.).
-    - No em-dashes or en-dashes anywhere in the file.
-    - No backslash paths inside inline code spans.
-    - No oversized fenced code blocks (heuristic for implementation
-      rather than signature). Default threshold is 50 lines; pass
-      --code-block-limit to override.
-
-Exit codes:
-    0   no errors (warnings may be present)
-    1   at least one error
-    2   usage error
+Exit codes: 0 no structural errors, 1 structural errors, 2 usage error.
 """
 
 from __future__ import annotations
@@ -121,6 +92,9 @@ CONSTRAINT_CHECK = re.compile(
 FENCED_BLOCK = re.compile(r"^```([^\n]*)\n(.*?)^```", re.MULTILINE | re.DOTALL)
 BACKSLASH_PATH = re.compile(r"`[^`\n]*\\[A-Za-z][^`\n]*`")
 NEXT_H2 = re.compile(r"^##\s+", re.MULTILINE)
+# The philosophy checklist is the planner's own gate and must not ship in the
+# artifact. Nothing enforced that, and it leaked into 20% of a measured corpus.
+LEAKED_CHECKLIST = re.compile(r"(?im)^#{2,4}\s+.*\bphilosophy\b.*\bchecklist\b")
 
 
 def section_body(content: str, header_re: re.Pattern[str]) -> str:
@@ -153,13 +127,16 @@ def phase_bodies(content: str) -> list[tuple[int, str, str, str]]:
     return phases
 
 
-def validate(path: Path, code_block_limit: int) -> tuple[list[str], list[str]]:
+def validate(
+    path: Path, code_block_limit: int, document_word_limit: int
+) -> tuple[list[str], list[str], dict[str, int]]:
     errors: list[str] = []
     warnings: list[str] = []
+    metrics: dict[str, int] = {}
 
     if not path.exists():
         errors.append(f"File not found: {path}")
-        return errors, warnings
+        return errors, warnings, metrics
 
     if path.suffix != ".md":
         warnings.append(f"Expected .md extension, got {path.suffix!r}")
@@ -175,6 +152,14 @@ def validate(path: Path, code_block_limit: int) -> tuple[list[str], list[str]]:
         )
 
     content = path.read_text(encoding="utf-8")
+
+    document_words = len(content.split())
+    metrics["document_words"] = document_words
+    if document_words > document_word_limit:
+        warnings.append(
+            f"Plan is {document_words} words (budget {document_word_limit}); "
+            "check for steps that restate the spec instead of acting on it"
+        )
 
     # Title heading
     if not re.search(r"^#\s+Plan:\s+", content, re.MULTILINE):
@@ -304,7 +289,15 @@ def validate(path: Path, code_block_limit: int) -> tuple[list[str], list[str]]:
             "use the format '- [ ] **N.M** <step title>'."
         )
 
-    return errors, warnings
+    for m in LEAKED_CHECKLIST.finditer(content):
+        line_no = content.count("\n", 0, m.start()) + 1
+        errors.append(
+            f"Line {line_no}: the philosophy checklist is the planner's own "
+            "pre-delivery gate and MUST NOT ship in the plan. Remove the section; "
+            "the coder and tester extract nothing from it."
+        )
+
+    return errors, warnings, metrics
 
 
 def main() -> int:
@@ -316,13 +309,22 @@ def main() -> int:
         default=50,
         help="Maximum lines per fenced code block before warning (default 50).",
     )
+    parser.add_argument(
+        "--document-word-limit",
+        type=int,
+        default=7000,
+        help="Word budget for the whole plan (default 7000).",
+    )
     args = parser.parse_args()
 
     path = Path(args.plan_path).resolve()
-    print(f"Validating: {path}")
-    print()
 
-    errors, warnings = validate(path, args.code_block_limit)
+    errors, warnings, metrics = validate(
+        path, args.code_block_limit, args.document_word_limit
+    )
+
+    if metrics:
+        print("  [i] " + ", ".join(f"{k}={v}" for k, v in sorted(metrics.items())))
 
     for w in warnings:
         print(f"  [!] {w}")
@@ -331,9 +333,9 @@ def main() -> int:
 
     print()
     if errors:
-        print(f"FAIL: {len(errors)} error(s), {len(warnings)} warning(s)")
+        print(f"Validation failed: {len(errors)} error(s), {len(warnings)} warning(s)")
         return 1
-    print(f"PASS: 0 error(s), {len(warnings)} warning(s)")
+    print(f"Validation passed ({len(warnings)} warning(s))")
     return 0
 
 

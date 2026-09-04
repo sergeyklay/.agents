@@ -1,26 +1,33 @@
 # Spec-{SLUG}
 
-**Created at:** {ISO timestamp} \
 **Tracker ref:** {ID or URL, or "N/A"} \
 **Feature:** {One-sentence summary of the feature or change.}
 
+**Status:** working document, not a deliverable. Gitignored, local to one machine, discarded days after the work lands. It is a prompt for the planner, coder, and tester agents; nobody publishes it, commits it, or reads it afterwards.
+
+**Authority:** binding on scope and design, so do not improvise past it and do not add behavior it does not ask for. Not authoritative on fact: an agent wrote it and it can be wrong about the codebase. Where the two disagree the codebase wins, and the drift gets reported rather than implemented.
+
+<!--
+How to use this template.
+
+The reader is an agent, not a person. It does not skim, re-read, or infer what you meant; it consumes the document once and acts on it. Two consequences:
+
+1. DELETE any section this feature does not need. Do not write "N/A", "None", or "Not applicable" under a heading to keep the shape intact. An empty section costs the reader attention and returns nothing. Sections 2, 3.1 to 3.6 and 5 are all deletable when the feature does not reach them; sections 1, 3, 4, 6 and 7 and the Compliance check are structural and stay.
+2. WRITE ONCE. Every fact belongs in exactly one section. When a later section needs it, name it rather than restating it. The validator reports the size of this document on every run; if it is over budget, the fix is almost never compression, it is splitting a spec that covers two shippable goals.
+
+Delete this comment when filling the template.
+-->
+
 ## Compliance check
 
-Findings from the analysis protocol (Phase 2). Fill one row per check using the verdicts from the agent's reasoning trace. `GO` means no issue; `FLAG` means a documented extension that this spec carries; `STOP` MUST NOT appear in a delivered spec (a `STOP` halts drafting until the user resolves it).
+Report the analysis protocol (Phase 2) by exception. The agent's reasoning trace holds the full nine verdicts; the spec records only what a downstream agent needs: the flagged extensions and the prerequisites verdict. Do not write a nine-row table of GO verdicts; nobody consumes them, and they double the document's opening.
 
-| Check | Verdict | Notes (cite source) |
-|-------|---------|---------------------|
-| 1. Convention compliance | GO / FLAG | ... |
-| 2. Architectural layer | GO / FLAG | ... |
-| 3. Interface boundary | GO / FLAG | ... |
-| 4. Security and trust boundary | GO / FLAG | ... |
-| 5. Resource budget | GO / FLAG | ... |
-| 6. Data model | GO / FLAG | ... |
-| 7. Runtime model | GO / FLAG | ... |
-| 8. Requirements source | GO / FLAG | ... |
-| 9. Prerequisites | GO / FLAG | ... |
+Format:
 
-A row with `GO - N/A` is acceptable when the check does not apply to this feature.
+- One line: `All nine checks: GO.` when no check produced FLAG or STOP.
+- One bullet per check that produced FLAG: `FLAG - {check name}: {what the extension is, and why it is required despite the absence of a source}`. Cite the source or name the decision needing ratification.
+- One bullet for Check 9 (Prerequisites) when it names a pending dependency: `Prerequisites: {what must complete first, and the milestone or ticket}`.
+- A `STOP` MUST NOT appear in a delivered spec (a `STOP` halts drafting until the user resolves it).
 
 ## 1. Business goal and value
 
@@ -108,28 +115,13 @@ List every external system the feature touches (databases, message queues, third
 - Failure mode and retry policy.
 - Quota or rate-limit assumption.
 
-### 3.5 Component or module tree
-
-Hierarchical listing of new or modified components or modules. Use the project's actual file layout and annotate each entry with its role. Use whichever role markers the project documents; the example below is illustrative.
-
-```
-src/
-  feature-name/
-    index.{ext}             [public]
-    handler.{ext}           [request handling]
-    service.{ext}           [business logic]
-    repository.{ext}        [data access]
-  schema/
-    feature.{ext}           [schema]
-```
-
-### 3.6 State and concurrency
+### 3.5 State and concurrency
 
 For features with non-trivial state: name what state lives where (client, server, cache, database, external store), who owns it, how it is mutated, and how concurrent mutations are coordinated.
 
 For features that introduce concurrency: name the primitive (channel, queue, lock, transaction, scheduler) and the project's documented usage pattern for it.
 
-### 3.7 Error and failure model
+### 3.6 Error and failure model
 
 Define typed errors or error variants following the project's error-handling conventions. For each error:
 
@@ -139,17 +131,19 @@ Define typed errors or error variants following the project's error-handling con
 
 For features behind a request boundary, distinguish between client errors (caller fault) and server errors (system fault) using the project's conventions.
 
+State verification as properties, not as a roster of named test cases. A property ("the matcher is called at most once per dispatcher pass") is a contract any reader can check; a test roster ("unit test 7: missing amount skips with one warn") duplicates the implementation plan's test steps and drifts from them. The plan owns the enumeration of test steps.
+
 ## 4. Risk assessment
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
 | ... | Critical/Major/Minor | ... |
 
-Cover at minimum: security risk, resource-budget impact, external-quota impact, data-migration risk, user-facing degradation if the feature fails open.
+Budgeted at eight rows. Every row names an observable failure (data loss, leak, wrong write, user-visible degradation), never an absence of change ("no budget impact" is not a risk). Every mitigation is phrased as a requirement on the implementation, because downstream verification treats each mitigation as a MUST.
 
 ## 5. Open questions
 
-Every question that blocked a design decision in Phase 2. For each:
+Every question that blocked a design decision in Phase 2, up to a maximum of five. Questions that were resolved with a recommendation are decisions, not open questions; record them in the body of Section 3, not here. For each:
 
 - The question.
 - Why it matters (which design decision depends on it).
@@ -162,7 +156,7 @@ A spec with no open questions is suspicious in any non-trivial feature. Either t
 
 ## 6. File structure summary
 
-Tree view of every new or modified file, or an equivalent table. Annotate each entry with its role, inside the listing. Use whichever role markers the project documents; the example below is illustrative.
+Tree view of every new or modified file, or an equivalent table. This is the only file listing in the spec: Section 3 names modules in prose and MUST NOT repeat a tree here. Annotate each entry with its role, inside the listing. Use whichever role markers the project documents; the example below is illustrative.
 
 Prose around the listing is budgeted at 80 words and enforced by `scripts/validate_spec.py`. Everything a reader needs about *why* a file changes is already in section 3; repeating it per file doubles the document and adds nothing.
 
@@ -181,3 +175,5 @@ schema/
 If a tracker reference was provided, list every acceptance criterion from it here verbatim and map each criterion to the section of this spec that addresses it. If no tracker reference was provided, derive acceptance criteria from the user prompt and the architecture document; state that explicitly.
 
 Each criterion MUST be testable: a reviewer reading the criterion and the implementation MUST be able to decide whether the criterion is met.
+
+The mapping is a pointer, not a summary. Write `AC-3 -> section 3.3` and stop; do not restate what section 3.3 says. The reader can open the section, and a restatement here is a second copy that drifts from the first. A criterion with no section to point at is the finding: either the design is incomplete or the criterion is out of scope, and both belong in section 5 rather than in a paraphrase.
