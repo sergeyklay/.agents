@@ -12,6 +12,7 @@ import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
+from typing import cast
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL_ROOT / "scripts"))
@@ -721,6 +722,68 @@ class ClaudeCodeAuditTest(unittest.TestCase):
     def test_missing_root_transcript_raises(self) -> None:
         with self.assertRaisesRegex(audit_claude_code.AuditError, "not found"):
             audit_claude_code.audit(self.root, with_counters=False)
+
+    def test_keeps_a_record_carrying_a_unicode_line_separator(self) -> None:
+        records = self._message(0, 500)
+        message = cast("dict[str, object]", records[0]["message"])
+        message["note"] = "first\u2028second"
+        self.root.parent.mkdir(parents=True, exist_ok=True)
+        # ensure_ascii=False puts a raw U+2028 in the file, which is what the
+        # runner writes. str.splitlines() would tear this one record in two.
+        self.root.write_text(
+            "".join(
+                json.dumps(record, ensure_ascii=False) + "\n" for record in records
+            ),
+            encoding="utf-8",
+        )
+        self.assertIn("\u2028", self.root.read_text(encoding="utf-8"))
+
+        report, code = audit_claude_code.audit(self.root, with_counters=False)
+
+        self.assertEqual(report["reconciliation"]["unparsable_lines"], 0)
+        self.assertEqual(report["agents"][0]["messages"], 1)
+        self.assertEqual(code, 0)
+
+    def test_counts_malformed_lines_instead_of_dropping_them_silently(self) -> None:
+        good = self._message(0, 500)
+        self.root.parent.mkdir(parents=True, exist_ok=True)
+        self.root.write_text(
+            json.dumps(good[0]) + "\n" + '{"message":\n' + json.dumps(good[1]) + "\n",
+            encoding="utf-8",
+        )
+
+        report, code = audit_claude_code.audit(self.root, with_counters=False)
+
+        self.assertEqual(report["reconciliation"]["unparsable_lines"], 1)
+        self.assertEqual(code, 1)
+
+    def test_reports_an_unreadable_meta_sidecar_and_withholds_delegation(self) -> None:
+        self._write(self.root, self._message(0, 500))
+        subagents = self.root.parent / self.root.stem / "subagents"
+        self._write(subagents / "agent-ccc.jsonl", self._message(1, 500))
+        (subagents / "agent-ccc.meta.json").write_text("{not json", encoding="utf-8")
+
+        report, code = audit_claude_code.audit(self.root, with_counters=False)
+
+        modes = {node["agent_id"]: node["delegation"] for node in report["agents"]}
+        self.assertEqual(modes["agent-ccc"], "unknown")
+        self.assertEqual(
+            len(report["reconciliation"]["unreadable_meta_sidecars"]),
+            1,
+        )
+        self.assertEqual(code, 1)
+
+    def test_absent_meta_sidecar_still_reads_as_a_fork(self) -> None:
+        self._write(self.root, self._message(0, 500))
+        subagents = self.root.parent / self.root.stem / "subagents"
+        self._write(subagents / "agent-ddd.jsonl", self._message(1, 500))
+
+        report, code = audit_claude_code.audit(self.root, with_counters=False)
+
+        modes = {node["agent_id"]: node["delegation"] for node in report["agents"]}
+        self.assertEqual(modes["agent-ddd"], "fork")
+        self.assertEqual(report["reconciliation"]["unreadable_meta_sidecars"], [])
+        self.assertEqual(code, 0)
 
 
 if __name__ == "__main__":
