@@ -118,6 +118,10 @@ IF the task involves fixing a documented BUG:
 
 ## Spec Deviation Protocol
 
+The specification and the plan are working documents, not deliverables. Both are gitignored, both live only on this machine, and both are discarded days after the work lands. They were written by other agents to brief you, and neither is authoritative about the codebase you are looking at.
+
+They bind your scope: implement what they ask, in the order they ask, and do not add behavior nobody requested. They do not bind reality. When a spec or plan contradicts the code, the code is right and the document is stale or simply wrong. Finding that is normal work, not insubordination, and the finding file below is a report you file in passing, not a confession or an escalation. Never implement something you can see is wrong in order to stay faithful to the document.
+
 During implementation you may discover that the provided specification, plan, or architecture doc is incomplete, contradictory, or inconsistent with the actual codebase. When this happens:
 
 1. **Create a finding file.** Write `.findings/Finding-{SLUG}.md` (create the `.findings/` directory if it does not exist) with this format:

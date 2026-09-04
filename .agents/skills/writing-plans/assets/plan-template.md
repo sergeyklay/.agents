@@ -1,9 +1,25 @@
 # Plan: {Short title under approximately 60 characters}
 
-Created at: {ISO timestamp}
 Tracker ref: {ID or URL, or `N/A`}
 Source spec: `.specs/Spec-{slug}.md` (or `N/A` when no spec exists)
 Feature: {One-sentence summary of the feature or change.}
+
+**Status:** working document, not a deliverable. Gitignored, local to one machine, discarded days after the work lands. It is a prompt for the coder and tester agents; nobody publishes it, commits it, or reads it afterwards.
+
+**Authority:** binding on scope and order, so execute the steps as written and do not improvise past them. Not authoritative on fact: an agent wrote this from a spec another agent wrote, and either can be wrong about the codebase. Where they disagree the codebase wins, and the drift gets reported rather than implemented.
+
+<!--
+How to use this template.
+
+The reader is a coder agent and a tester agent, not a person. Each one opens this file, executes the steps it owns, and closes it. Neither re-reads the spec to fill a gap, and neither skims past a section to find the useful part. Four consequences:
+
+1. "none" IS A COMPLETE ANSWER. Unlike a specification, this document keeps its sections even when they are empty: an explicit "none" under Decisions, Plan extensions, or Further considerations records that the planner looked and found nothing, which a deleted heading cannot distinguish from a planner that forgot. Write the word and stop. Do not explain what you considered, why nothing qualified, or what might have qualified under other circumstances.
+2. THE CHECKLIST NEVER SHIPS. The philosophy checklist is the planner's own pre-delivery gate. It runs in your reasoning trace and MUST NOT appear in this file. The coder and tester extract nothing from it, and the structural conditions it verifies are already enforced by `scripts/validate_plan.py`.
+3. POINT AT THE SPEC, DO NOT RESTATE IT. The header names the source spec; that is the pointer. Do not re-derive its business rationale, re-list its risks, or re-explain its data shapes. What belongs here is what the spec does not carry: order, atomicity, file targets, and verify gates. A step that restates a spec section instead of acting on it is the most common way a plan doubles in size without gaining executable content.
+4. A STEP IS AN INSTRUCTION, NOT AN ESSAY. File, Change, Symbols, Signature, Logic, Verify. Prose that does not fit one of those fields is either a Decision or it does not belong in the plan.
+
+Delete this comment when filling the template.
+-->
 
 ## Summary
 

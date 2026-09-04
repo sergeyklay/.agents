@@ -41,8 +41,13 @@ Your prompt to the architect must include:
 4. The instruction to ground the spec in project context before drafting, in this reading order: (a) agent-instruction files the project ships (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) for boundary rules; (b) if `docs/` exists, the documentation index (`docs/README.md`, or the closest equivalent: `docs/index.md`, `docs/SUMMARY.md`, `docs/DIGEST.md`) for orientation; (c) architecture or product documents the index references (e.g. `docs/architecture.md`, `docs/PRD.md`) only for the sections the feature actually touches; (d) decision records (`docs/decisions/`, `docs/adr/`, `adr/`, `ADR/`) when the feature touches a previously decided area; (e) language and style rules under `.agents/rules/`, `.github/instructions/`, `.copilot/instructions/`, `.claude/rules/`. Skip tiers the project does not ship; do not load files that do not exist.
 5. The output path: `.specs/Spec-{slug}.md` (or the project's documented spec directory if the agent-instruction files name a different one)
 6. The instruction to **report the exact file path** of the created spec in its Specification Summary
+7. The instruction: _"Run the `writing-specs` skill's structural validator (`scripts/validate_spec.py`) on the finished spec with `python3`, fix every `[x]` error, and re-run until it exits zero. In your Specification Summary, paste the validator's final run verbatim: its `[i]` metrics line, every remaining `[!]` warning, and its last line. Do not summarize, renumber, or translate that output."_
 
-After the architect subagent returns, parse the reported file path from its Specification Summary. Confirm the file exists by reading its frontmatter through delegation. Record the file path for subsequent phases.
+After the architect subagent returns, parse from its Specification Summary: the spec file path, the pasted validator output, and the metrics line. Confirm the file exists by reading it through delegation. Record the file path for subsequent phases.
+
+**Validator gate.** You cannot run the validator yourself, so gate on the evidence rather than on a self-reported number. The summary MUST contain the literal string `Validation passed`. Treat the gate as failed when that string is absent, when the summary reports a count of errors, or when it paraphrases the result instead of pasting it ("the validator was clean", "exit code 0" with no output). On failure, delegate once more to the `architect` with: _"Your Specification Summary did not carry the validator's verbatim final run. Run `scripts/validate_spec.py` from the `writing-specs` skill on `{spec_path}`, fix every `[x]` error, re-run until the last line reads `Validation passed`, and paste that run in full, including the `[i]` metrics line."_ If the second return still does not carry it, STOP EXECUTION and report what the architect did return. A spec that fails its own structural gate must not proceed to review.
+
+**Size is not a gate.** `[!]` warnings never block the pipeline; they are measurements. Carry the `[i]` metrics line into your own final report so the operator sees what the run produced. One warning does change your next action: when the document is over its word budget, instruct the architect in Phase 5 (or the user, if no revision cycle runs) to state whether the spec covers more than one independently shippable goal. If it does, the correct fix is to split the spec and respecify the narrowed scope, not to compress it.
 
 ### Phase 3: Review Specification
 
@@ -80,7 +85,10 @@ Every revision delegation to `architect` must include:
 2. The latest review file path
 3. The instruction: _"Read the review and revise the spec to address all Critical Issues and Significant Concerns. Preserve the overall spec structure; make surgical revisions, do not rewrite sections that received no findings."_
 4. The instruction to report what was changed, section by section
-5. The instruction: _"Honor the `writing-specs` skill's exit gates. If the skill bundles a structural validation script (e.g. `scripts/validate_spec.py`) and `python3` is available, run it after the revision and fix any errors before returning. Report the validator exit code in your summary."_
+5. The instruction: _"Honor the `writing-specs` skill's exit gates. If the skill bundles a structural validation script (e.g. `scripts/validate_spec.py`) and `python3` is available, run it after the revision, fix every `[x]` error, and paste the validator's final run verbatim in your summary, including its `[i]` metrics line and its last line."_
+6. The instruction, when the Phase 2 metrics line reported the document over its word budget: _"State whether this spec covers more than one independently shippable goal, meaning two or more deliverables that could each be reviewed, tested, and merged without the other. If it does, name the split you recommend instead of compressing the prose."_
+
+Apply the Phase 2 Validator gate after every revision: the summary MUST carry the literal string `Validation passed`, pasted rather than paraphrased. One corrective delegation, then STOP.
 
 #### Critical Resolution Loop
 

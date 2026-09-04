@@ -202,7 +202,7 @@ If the project does not organize work in milestones or phases, skip the mileston
 
 After completing all nine checks, write a one-line verdict for each check before proceeding to Phase 3. The verdicts make the analysis traceable in the spec and prevent the agent from silently skipping a check.
 
-Copy this template into the reasoning trace and into the spec's opening "Compliance check" table:
+Copy this template into the reasoning trace, in full:
 
 ```
 Analysis findings:
@@ -216,6 +216,8 @@ Analysis findings:
 8. Requirements source: [GO | STOP | FLAG] - [tracker fetched: yes/no/N/A]
 9. Prerequisites: [GO | STOP | FLAG] - [prerequisites complete: yes/no]
 ```
+
+The full verdict list lives in the reasoning trace only. The spec's opening "Compliance check" section records the exceptions: one bullet per FLAG naming the extension, and the Check 9 verdict when it names a pending dependency. GO verdicts are not written into the spec.
 
 A check answered "GO - N/A" is acceptable when the concern does not apply to the feature (for example, a docs-only feature is `GO - N/A` for Check 6). A check the agent did not run is not acceptable; either run it or state explicitly why it was skipped.
 

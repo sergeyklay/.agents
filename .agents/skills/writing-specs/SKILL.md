@@ -9,7 +9,11 @@ metadata:
 
 # Writing Specifications
 
-Transform a feature request into a specification rigorous enough to implement without further clarification. Every section is a binding contract between architect and implementer. Ambiguity in a spec causes real engineering delay; design errors caught here are orders of magnitude cheaper than design errors caught in code review.
+Transform a feature request into a specification rigorous enough to implement without further clarification. Ambiguity in a spec causes real engineering delay; design errors caught here are orders of magnitude cheaper than design errors caught in code review.
+
+The spec binds the implementer's scope and design: it is what stops the coder improvising a second feature or inventing behavior nobody asked for. It does not bind reality. You are an agent writing for other agents, and you can be wrong about the codebase; where the spec and the code disagree, the code is right. Write with that in mind: a spec whose errors are cheap to spot and report beats one whose confident tone makes an implementer follow it off a cliff.
+
+The artifact is disposable. It is gitignored, it lives on one machine, and it is discarded days after the work lands. Nobody publishes it, commits it, or reads it later. Do not polish it for an audience, do not write a preamble for a human reviewer, and do not spend words defending a decision to a reader who does not exist.
 
 This skill is stack-agnostic and project-agnostic. Concrete rules (allowed libraries, forbidden patterns, budget thresholds, schema location, layering, naming) come from the project documents, not from this skill. Read those documents first; then design within them; then flag every deviation explicitly.
 
@@ -80,7 +84,7 @@ Summary of the nine checks:
 8. **Requirements source**: has the tracker reference (if any) been fetched and incorporated? Are acceptance criteria captured?
 9. **Prerequisites**: does the design depend on work that is not done? Is the feature scoped to a single implementation unit?
 
-After running all nine checks, record one verdict per check using the template at the end of `references/analysis-protocol.md`. Copy the verdicts into both the agent's reasoning trace and the spec's opening "Compliance check" table. A check the agent did not run is not acceptable; either run it or state explicitly why it does not apply.
+After running all nine checks, record one verdict per check using the template at the end of `references/analysis-protocol.md`. Keep the full verdict list in the agent's reasoning trace. Copy only the exceptions into the spec's opening "Compliance check" section: a `GO` verdict is not recorded in the spec, because no downstream agent consumes it; every `FLAG` becomes one bullet naming the extension, and Check 9 (Prerequisites) is recorded when it names a pending dependency. A check the agent did not run is not acceptable; either run it or state explicitly why it does not apply.
 
 If any check produces a `STOP`, surface the conflict and halt. Do not proceed until the user resolves it. If any check produces a `FLAG`, document it explicitly in the spec as a deliberate extension requiring review. A specification that silently violates an accepted decision is worse than no specification.
 
@@ -114,6 +118,11 @@ These rules are non-negotiable. Every rule reflects a class of defect that delay
 6. **No banned patterns.** Where the project lists banned libraries, banned patterns, or deprecated APIs (in agent-instruction files, ADRs, or rules), do not specify them. If a banned pattern is the only feasible solution, that is a `STOP` from Phase 2 and the spec does not get written until resolved.
 7. **No em-dashes.** Use commas, parentheses, periods, semicolons, or colons. Em-dashes are a strong LLM-generated-text signal and many projects ban them outright; assume they are banned unless the project explicitly permits them.
 8. **Active voice; one term per concept.** Choose one name per concept, use it everywhere, do not alternate synonyms. Write in active voice unless the actor is irrelevant.
+9. **One file listing.** The complete listing of new or modified files appears exactly once, in the File structure summary section. Section 3 names modules in prose and does not repeat a tree.
+10. **Verification properties, not test rosters.** State what MUST hold ("the matcher is called at most once per dispatcher pass"); do not enumerate named test cases. The implementation plan owns the enumeration of test steps; a roster in the spec duplicates the plan and drifts from it.
+11. **The reader is a machine.** No orienting prose ("in this section we will"), no recap of what an earlier section already established, no hedging ("it may be worth considering"), no encouragement, no closing summary. An agent consumes the document once and acts on it; it does not need to be eased into a section or reminded where it has been. Prefer a table to a paragraph whenever the content has more than two dimensions, and cite a project standard by name instead of re-teaching it.
+12. **Delete what does not apply.** A section the feature does not reach is removed, not filled with "N/A" or "None". Sections 2, 3.1 to 3.6 and 5 are deletable; sections 1, 3, 4, 6, 7 and the Compliance check are structural and stay. A heading with nothing under it spends the reader's attention and returns nothing.
+13. **Write once, then point.** Every fact belongs in exactly one section. When a later section needs it, name the section rather than restating its content: `AC-3 -> section 3.3`, not a paraphrase of 3.3. A restatement is a second copy that drifts from the first, and the drift is invisible until an implementer follows the wrong one.
 
 ### Phase 4: Validate the specification
 
@@ -121,9 +130,18 @@ Load [references/quality-checklist.md](references/quality-checklist.md) and run 
 
 Apply the "two engineers test" to every numbered requirement: can two engineers read the requirement and reach the same implementation? If not, rewrite with concrete values, explicit types, or a worked example.
 
-If `scripts/validate_spec.py` is bundled with this skill and `python3` is available, run it for mechanical structural checks (filename pattern, required sections present, risk-table data rows, no em-dashes, forward-slash paths). Treat its output as a complement to the manual checklist, not a replacement.
+If `scripts/validate_spec.py` is bundled with this skill and `python3` is available, run it. Treat its output as a complement to the manual checklist, not a replacement.
 
-If validation fails, fix the issues and re-run the checklist. Do not report the spec complete until every item passes.
+The script separates two classes of finding, and the difference decides what you do next:
+
+- **`[x]` errors are structural**: a missing section, an undelivered STOP verdict, a banned character. They exit non-zero. Fix every one; a spec that fails here is not delivered.
+- **`[!]` warnings are budgets**: document length, risk rows, section 5 and 6 size, code-block length. They never fail the run. Read them as measurements and act on them with judgment.
+
+The `[i]` line reports the counts on every run, including passing ones. Use it.
+
+When the document is over its word budget, compressing prose is the wrong first move. Ask first whether the spec covers more than one independently shippable goal, meaning two or more deliverables that could each be reviewed, tested, and merged without the other. If it does, that is the finding: say so in your Specification Summary and propose the split, rather than trimming a document that is long because it is doing two jobs. Only when the spec is genuinely single-goal is the remaining length a writing problem, and then rules 11 to 13 above are where it is solved.
+
+If validation reports errors, fix them and re-run the checklist. Do not report the spec complete until the script exits zero and every checklist item passes.
 
 ## Writing standards
 

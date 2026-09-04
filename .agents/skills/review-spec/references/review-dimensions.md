@@ -69,6 +69,8 @@ Use this reference at Phase 4 of `review-spec` whenever evaluating a spec along 
 - Identify quantifiers the spec uses without defining: "usually", "typically", "should", "may". These almost always become defects.
 - Identify cross-references to "other systems" or "existing infrastructure" without naming the specific component.
 
+**A missing section is not automatically a gap.** The `writing-specs` template instructs the author to DELETE any section the feature does not reach rather than fill it with "N/A", so a spec that jumps from 3.3 to 3.5 is following its template, not losing content. Sections 2, 3.1 through 3.6, and 5 are deletable by design; only the Compliance check and sections 1, 3, 4, 6 and 7 are structural. Do not report an absent section as a finding on its own. Report it only when you can name a requirement, acceptance criterion, risk row, or interface elsewhere in the spec that needed it and now has nowhere to live, and cite that dependency as the evidence. Numbering gaps carry no information and are not defects.
+
 **Severity mapping.**
 
 - **Critical** — a core behavior is left undefined; two implementers would build incompatible systems from the same spec.

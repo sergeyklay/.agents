@@ -1,41 +1,15 @@
 #!/usr/bin/env python3
-"""
-Validate a technical specification produced by the writing-specs skill.
-
-Universal, stack-agnostic checks only. The script is a feedback-loop helper,
-not a substitute for the manual quality checklist at
-references/quality-checklist.md.
+"""Validate a technical specification produced by the writing-specs skill.
 
 Usage:
     validate_spec.py <path-to-spec.md>
 
-Checks (each maps to a class of defect the agent or a reviewer would catch
-by hand):
-    - File exists and has the .md extension.
-    - Filename matches Spec-{slug}.md.
-    - All required sections present and non-empty:
-        Compliance check, 1. Business goal and value,
-        3. Technical architecture, 4. Risk assessment,
-        6. File structure summary, 7. Acceptance criteria.
-    - Compliance-check table has nine data rows (one per analysis check).
-    - Compliance-check table contains no STOP verdicts (a STOP halts
-      drafting and MUST NOT appear in a delivered spec).
-    - Risk-assessment table has at least one data row.
-    - No em-dashes or en-dashes anywhere in the document.
-    - No backslash paths inside backtick code spans.
-    - No oversized fenced code blocks (heuristic for runnable code rather
-      than signature). Default threshold is 80 lines; pass --code-block-limit
-      to override.
-    - Section 5, Open questions, stays inside its word budget. Default 400;
-      pass --questions-word-limit to override.
-    - Section 6, File structure summary, carries little prose around its file
-      listing, whether that listing is a fenced tree or a table. Default 80
-      words; pass --file-summary-prose-limit to override.
+Errors are structural (missing section, undelivered STOP, banned character) and
+exit 1. Budgets are warnings and never fail the run: gating on size halts specs
+that are correct but long, and teaches the agent to rename headings rather than
+write less. Every budget has a --flag; see --help.
 
-Exit codes:
-    0   no errors (warnings may be present)
-    1   at least one error
-    2   usage error
+Exit codes: 0 no structural errors, 1 structural errors, 2 usage error.
 """
 
 from __future__ import annotations
@@ -67,6 +41,20 @@ TABLE_ROW = re.compile(r"^\|(?P<cells>.+)\|\s*$", re.MULTILINE)
 SEPARATOR_ROW = re.compile(r"^\|\s*[:\- ]+\s*\|")
 FENCED_BLOCK = re.compile(r"^```[^\n]*\n(.*?)^```", re.MULTILINE | re.DOTALL)
 BACKSLASH_PATH = re.compile(r"`[^`\n]*\\[A-Za-z][^`\n]*`")
+# Freehand prose: match the claim, not one phrasing.
+COMPLIANCE_ALL_GO = re.compile(
+    r"all\s+(?:nine\s+|9\s+)?checks?\b[^.\n]*\b(?:GO|passed|pass|clear)\b"
+    r"|no\s+checks?\s+produced\s+(?:a\s+)?(?:FLAG|STOP)",
+    re.IGNORECASE,
+)
+COMPLIANCE_FLAG_LINE = re.compile(r"(?m)^\s*(?:[-*]\s*)?(?:\*\*)?FLAG\b")
+COMPLIANCE_STOP_LINE = re.compile(r"(?m)^\s*(?:[-*]\s*)?(?:\*\*)?STOP\b")
+# Bold marker is optional; a mandatory asterisk made the heading and bullet
+# branches unreachable and missed the dominant "OQ-N" convention.
+QUESTION_LABEL = re.compile(
+    r"(?im)^\s*(?:#{2,4}\s+|[-*]\s+)?(?:\*\*|__)?"
+    r"(?:O?Q[-.\s]?\d+|(?:open\s+)?questions?\s+\d+)\b"
+)
 
 
 def section_body(content: str, header_re: re.Pattern[str]) -> str:
@@ -87,6 +75,8 @@ def table_data_rows(section: str) -> list[list[str]]:
     for line in section.splitlines():
         stripped = line.strip()
         if not stripped.startswith("|"):
+            # Reset: without it a second table's header counts as data.
+            saw_separator = False
             continue
         if SEPARATOR_ROW.match(stripped):
             saw_separator = True
@@ -100,12 +90,7 @@ def table_data_rows(section: str) -> list[list[str]]:
 
 
 def words_outside_listing(section: str) -> int:
-    """Count a section's prose, ignoring fenced blocks and table rows.
-
-    Section 6 may present its file set as a fenced tree or as a table; both are
-    listings and neither is padding. What this counts is the prose around them,
-    which is where a restatement of section 3 accumulates.
-    """
+    """Count prose outside fenced blocks and table rows; both are listings."""
     stripped = FENCED_BLOCK.sub(" ", section)
     lines = [ln for ln in stripped.splitlines() if not ln.strip().startswith("|")]
     return len("\n".join(lines).split())
@@ -116,13 +101,17 @@ def validate(
     code_block_limit: int,
     questions_word_limit: int,
     file_summary_prose_limit: int,
-) -> tuple[list[str], list[str]]:
+    questions_max: int,
+    risk_max_rows: int,
+    document_word_limit: int,
+) -> tuple[list[str], list[str], dict[str, int]]:
     errors: list[str] = []
     warnings: list[str] = []
+    metrics: dict[str, int] = {}
 
     if not path.exists():
         errors.append(f"File not found: {path}")
-        return errors, warnings
+        return errors, warnings, metrics
 
     if path.suffix != ".md":
         warnings.append(f"Expected .md extension, got {path.suffix!r}")
@@ -134,6 +123,15 @@ def validate(
 
     content = path.read_text(encoding="utf-8")
 
+    document_words = len(content.split())
+    metrics["document_words"] = document_words
+    if document_words > document_word_limit:
+        warnings.append(
+            f"Document is {document_words} words (budget {document_word_limit}); "
+            "if it covers more than one independently shippable goal, split it "
+            "and respecify the narrowed scope rather than compressing prose"
+        )
+
     # Required sections
     for pattern, label in REQUIRED_SECTIONS:
         header_re = re.compile(pattern, re.MULTILINE)
@@ -143,52 +141,78 @@ def validate(
         if not header_re.search(content):
             errors.append(f"Missing section: {label}")
         elif len(cleaned) < 20:
-            errors.append(f"Empty or minimal section: {label}")
+            warnings.append(f"Section is empty or minimal: {label}")
 
-    # Compliance-check table: nine data rows, no STOP verdicts.
+    # Exception format, or the legacy nine-row table for older specs.
     compliance_body = section_body(content, COMPLIANCE_HEADER)
     if compliance_body:
         rows = table_data_rows(compliance_body)
-        if len(rows) < 9:
-            errors.append(
-                f"Compliance-check table has {len(rows)} data rows; expected 9 (one per analysis check)"
-            )
-        for idx, row in enumerate(rows, start=1):
-            verdict_cell = row[1] if len(row) >= 2 else ""
-            if "STOP" in verdict_cell.upper().split():
+        if rows:
+            if len(rows) < 9:
                 errors.append(
-                    f"Compliance-check row {idx} carries a STOP verdict; STOP halts drafting and must be resolved before delivery"
+                    f"Compliance-check table has {len(rows)} data rows; expected 9 "
+                    "(one per analysis check) or use the exception format instead"
                 )
+            for idx, row in enumerate(rows, start=1):
+                verdict_cell = row[1] if len(row) >= 2 else ""
+                if "STOP" in verdict_cell.upper().split():
+                    errors.append(
+                        f"Compliance-check row {idx} carries a STOP verdict; STOP halts "
+                        "drafting and must be resolved before delivery"
+                    )
+        else:
+            if not (
+                COMPLIANCE_ALL_GO.search(compliance_body)
+                or COMPLIANCE_FLAG_LINE.search(compliance_body)
+            ):
+                errors.append(
+                    "Compliance check does not record the analysis verdict: add "
+                    '"All nine checks: GO." or one FLAG bullet per flagged check'
+                )
+        if COMPLIANCE_STOP_LINE.search(compliance_body):
+            errors.append(
+                "Compliance check carries a STOP verdict; STOP halts drafting "
+                "and must be resolved before delivery"
+            )
 
-    # Risk-assessment table: at least one data row.
     risk_body = section_body(content, RISK_HEADER)
     if risk_body:
         rows = table_data_rows(risk_body)
+        metrics["risk_rows"] = len(rows)
         if not rows:
             errors.append("Risk-assessment table has no data rows")
+        elif len(rows) > risk_max_rows:
+            warnings.append(
+                f"Risk-assessment table has {len(rows)} data rows (budget "
+                f"{risk_max_rows}); keep the risks that name an observable failure "
+                "and move design consequences into section 3"
+            )
 
-    # Section 5 budget. The template asks for four bullets per question. Anything
-    # past that is deliberation the reader did not ask for: one measured spec spent
-    # 869 words here where two others answering the same issue spent 103 and 65.
     questions_body = section_body(content, QUESTIONS_HEADER)
     if questions_body:
         count = len(questions_body.split())
+        metrics["questions_words"] = count
         if count > questions_word_limit:
-            errors.append(
-                f"Section 5 is {count} words (limit {questions_word_limit}); keep each question "
-                "to the template's four bullets and drop option catalogues"
+            warnings.append(
+                f"Section 5 is {count} words (budget {questions_word_limit}); keep each "
+                "question to the template's four bullets and drop option catalogues"
+            )
+        labeled = len(QUESTION_LABEL.findall(questions_body))
+        metrics["questions"] = labeled
+        if labeled > questions_max:
+            warnings.append(
+                f"Section 5 lists {labeled} questions (budget {questions_max}); a question "
+                "resolved with a recommendation is a decision and belongs in section 3"
             )
 
-    # Section 6 budget. The section is a file tree whose annotations belong inside
-    # the tree, so the budget counts only prose outside the fence and stays correct
-    # however many files the change touches. Prose here restates section 3.
     summary_body = section_body(content, FILE_SUMMARY_HEADER)
     if summary_body:
         prose = words_outside_listing(summary_body)
+        metrics["file_summary_prose_words"] = prose
         if prose > file_summary_prose_limit:
-            errors.append(
+            warnings.append(
                 f"Section 6 carries {prose} words of prose around the file listing "
-                f"(limit {file_summary_prose_limit}); annotate entries inside the tree "
+                f"(budget {file_summary_prose_limit}); annotate entries inside the tree "
                 "rather than restating section 3"
             )
 
@@ -218,7 +242,7 @@ def validate(
                 "verify the block is signature, schema, or pseudo-code, not implementation"
             )
 
-    return errors, warnings
+    return errors, warnings, metrics
 
 
 def main() -> int:
@@ -244,16 +268,40 @@ def main() -> int:
         default=80,
         help="Maximum words of prose around the file listing in section 6 (default 80).",
     )
+    parser.add_argument(
+        "--questions-max",
+        type=int,
+        default=5,
+        help="Maximum labeled questions in section 5, Open questions (default 5).",
+    )
+    parser.add_argument(
+        "--risk-max-rows",
+        type=int,
+        default=8,
+        help="Maximum data rows in the risk-assessment table (default 8).",
+    )
+    parser.add_argument(
+        "--document-word-limit",
+        type=int,
+        default=7000,
+        help="Word budget for the whole specification (default 7000).",
+    )
     args = parser.parse_args()
 
     path = Path(args.spec_path).resolve()
-    errors, warnings = validate(
+    errors, warnings, metrics = validate(
         path,
         args.code_block_limit,
         args.questions_word_limit,
         args.file_summary_prose_limit,
+        args.questions_max,
+        args.risk_max_rows,
+        args.document_word_limit,
     )
 
+    if metrics:
+        measured = ", ".join(f"{k}={v}" for k, v in sorted(metrics.items()))
+        print(f"  [i] {measured}")
     for w in warnings:
         print(f"  [!] {w}")
     for e in errors:
