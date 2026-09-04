@@ -23,13 +23,15 @@ import math
 import sys
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TypedDict, cast
+from typing import TypedDict, Union, cast
 
 MAX_PROBE_DEPTH = 3
 MAX_PROBE_CANDIDATES = 10
 MAX_DISTINCT_TRACKED = 5000
 MAX_MISMATCH_EXAMPLES = 5
 MISSING = object()
+
+GroupKey = Union[str, tuple[str, str]]
 
 
 class IdCandidate(TypedDict):
@@ -129,6 +131,16 @@ def _same_json_scalar(value: object, expected: object) -> bool:
     if isinstance(value, (int, float)) and isinstance(expected, (int, float)):
         return value == expected
     return type(value) is type(expected) and value == expected
+
+
+def _group_key(raw_id: object) -> GroupKey:
+    if isinstance(raw_id, str):
+        return raw_id
+    return (type(raw_id).__name__, json.dumps(raw_id, default=str))
+
+
+def _key_display(key: GroupKey) -> str:
+    return key if isinstance(key, str) else f"{key[0]}:{key[1]}"
 
 
 def _numbers(
@@ -302,10 +314,10 @@ def aggregate(
     parsed_records = 0
 
     for path in paths:
-        maxima: dict[str, dict[str, float]] = {}
-        last_usage: dict[str, dict[str, float]] = {}
-        marker_values: dict[str, list[object]] = {}
-        counts: dict[str, int] = {}
+        maxima: dict[GroupKey, dict[str, float]] = {}
+        last_usage: dict[GroupKey, dict[str, float]] = {}
+        marker_values: dict[GroupKey, list[object]] = {}
+        counts: dict[GroupKey, int] = {}
         file_sum: dict[str, float] = {}
         usage_records = 0
 
@@ -325,7 +337,7 @@ def aggregate(
             raw_id = _dig(record, id_path)
             if raw_id is MISSING or raw_id is None:
                 raise LoadError(f"{path}: usage record has no id at {id_path}")
-            key = raw_id if isinstance(raw_id, str) else json.dumps(raw_id, default=str)
+            key = _group_key(raw_id)
             usage_records += 1
             counts[key] = counts.get(key, 0) + 1
             bucket = maxima.setdefault(key, {})
@@ -373,7 +385,7 @@ def aggregate(
                         examples.append(
                             {
                                 "file": str(path),
-                                "id": key,
+                                "id": _key_display(key),
                                 "issue": "terminal marker is not unique on the final usage record",
                             }
                         )
@@ -391,7 +403,7 @@ def aggregate(
                     examples.append(
                         {
                             "file": str(path),
-                            "id": key,
+                            "id": _key_display(key),
                             "field": field,
                             "max": _plain(number),
                             "terminal": None if got is None else _plain(got),
