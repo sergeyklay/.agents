@@ -570,22 +570,19 @@ sync_skills() {
   any_host_active claude codex copilot gemini opencode || return 0
   progress_section "Skills"
 
-  # Protect externally managed skills from rsync --delete.
-  keep_foreign='--exclude=discovery-engine-*'
-
-  for_host claude sync_to "$REPO_ROOT/.agents/skills" "$HOME/.claude/skills" "$keep_foreign"
+  for_host claude sync_to "$REPO_ROOT/.agents/skills" "$HOME/.claude/skills"
   for_host claude apply_skill_overlays ".claude" "$HOME/.claude/skills"
 
   # Codex preserves .system/ and other Codex-managed dot entries.
-  for_host codex sync_to "$REPO_ROOT/.agents/skills" "$HOME/.codex/skills" --exclude='.*' "$keep_foreign"
+  for_host codex sync_to "$REPO_ROOT/.agents/skills" "$HOME/.codex/skills" --exclude='.*'
 
-  for_host copilot sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills" "$keep_foreign"
+  for_host copilot sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills"
   for_host copilot apply_skill_overlays ".copilot" "$HOME/.copilot/skills"
 
-  for_host gemini sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills" "$keep_foreign"
+  for_host gemini sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills"
   for_host gemini apply_skill_overlays ".gemini" "$HOME/.gemini/skills"
 
-  for_host opencode sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills" "$keep_foreign"
+  for_host opencode sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills"
 }
 
 # Preserve destination-only settings; repository values win conflicts.
