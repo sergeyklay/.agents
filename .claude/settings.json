@@ -84,7 +84,9 @@
     ]
   },
   "enabledPlugins": {
-    "atlassian@claude-plugins-official": false
+    "atlassian@claude-plugins-official": false,
+    "playwright@claude-plugins-official": true,
+    "obsidian@obsidian-skills": true
   },
   "skipDangerousModePermissionPrompt": true,
   "model": "opus",
