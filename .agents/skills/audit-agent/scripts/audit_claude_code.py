@@ -28,17 +28,20 @@ import json
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Optional, TypedDict
+from typing import TypedDict, cast
 
-USAGE_FIELDS = (
+USAGE_FIELDS: tuple[str, ...] = (
     "input_tokens",
     "cache_creation_input_tokens",
     "cache_read_input_tokens",
     "output_tokens",
 )
+READ_TOOLS: tuple[str, ...] = ("Read", "NotebookRead")
+TARGET_PATH_KEYS: tuple[str, ...] = ("file_path", "notebook_path", "path")
+TARGET_TEXT_KEYS: tuple[str, ...] = ("command", "pattern", "skill", "url")
 FROZEN_SNAPSHOT_CEILING = 20
 FROZEN_SNAPSHOT_SHARE = 0.25
-READ_TOOLS = ("Read", "NotebookRead")
+MAX_TARGET_TEXT = 200
 
 
 class AgentNode(TypedDict):
@@ -47,8 +50,8 @@ class AgentNode(TypedDict):
     agent_id: str
     agent_type: str
     description: str
-    parent_agent_id: Optional[str]
-    spawn_depth: Optional[int]
+    parent_agent_id: str | None
+    spawn_depth: int | None
     delegation: str
     messages: int
     usage: dict[str, int]
@@ -56,6 +59,13 @@ class AgentNode(TypedDict):
     tools: dict[str, int]
     repeat_reads: int
     path: str
+
+
+class SharedRead(TypedDict):
+    """One target pulled into context by more than one agent role."""
+
+    target: str
+    agent_types: list[str]
 
 
 class CounterCheck(TypedDict):
@@ -87,39 +97,46 @@ class Report(TypedDict):
     agents: list[AgentNode]
     totals_by_agent_type: dict[str, dict[str, int]]
     totals_by_delegation: dict[str, dict[str, int]]
-    duplicate_reads_across_agents: list[dict[str, object]]
+    duplicate_reads_across_agents: list[SharedRead]
     reconciliation: Reconciliation
-    counters: Optional[CounterCheck]
+    counters: CounterCheck | None
 
 
 class AuditError(Exception):
     """Raised when the requested session cannot be audited."""
 
 
+def _zero_usage() -> dict[str, int]:
+    """Return a fresh zeroed usage bucket."""
+    return {field: 0 for field in USAGE_FIELDS}
+
+
 def _records(path: Path) -> list[dict[str, object]]:
     """Return every JSON object in a JSONL transcript, skipping bad lines."""
-    out: list[dict[str, object]] = []
     try:
         text = path.read_text(errors="replace")
     except OSError as exc:
         raise AuditError(f"cannot read {path}: {exc}") from exc
+
+    records: list[dict[str, object]] = []
     for line in text.splitlines():
-        line = line.strip()
-        if not line:
+        if not line.strip():
             continue
         try:
             parsed: object = json.loads(line)
-        except ValueError:
+        except json.JSONDecodeError:
             continue
         if isinstance(parsed, dict):
-            out.append(parsed)
-    return out
+            records.append(cast("dict[str, object]", parsed))
+    return records
 
 
-def _message(record: dict[str, object]) -> Optional[dict[str, object]]:
+def _message(record: dict[str, object]) -> dict[str, object] | None:
     """Return the message object of a record, when it carries one."""
     message = record.get("message")
-    return message if isinstance(message, dict) else None
+    if isinstance(message, dict):
+        return cast("dict[str, object]", message)
+    return None
 
 
 def _blocks(message: dict[str, object]) -> list[dict[str, object]]:
@@ -127,24 +144,43 @@ def _blocks(message: dict[str, object]) -> list[dict[str, object]]:
     content = message.get("content")
     if not isinstance(content, list):
         return []
-    return [block for block in content if isinstance(block, dict)]
+    blocks: list[dict[str, object]] = []
+    for block in cast("list[object]", content):
+        if isinstance(block, dict):
+            blocks.append(cast("dict[str, object]", block))
+    return blocks
+
+
+def _usage(message: dict[str, object]) -> dict[str, object] | None:
+    """Return the usage object of a message, when it carries one."""
+    usage = message.get("usage")
+    if isinstance(usage, dict):
+        return cast("dict[str, object]", usage)
+    return None
 
 
 def _int(value: object) -> int:
     """Coerce a JSON number to int, treating anything else as zero."""
-    return value if isinstance(value, int) and not isinstance(value, bool) else 0
+    if isinstance(value, bool):
+        return 0
+    return value if isinstance(value, int) else 0
 
 
-def _target(name: str, tool_input: dict[str, object]) -> str:
+def _text(value: object) -> str:
+    """Return a string value, or the empty string for anything else."""
+    return value if isinstance(value, str) else ""
+
+
+def _target(tool_input: dict[str, object]) -> str:
     """Return a stable identity for what a tool call acted on."""
-    for key in ("file_path", "notebook_path", "path"):
+    for key in TARGET_PATH_KEYS:
         value = tool_input.get(key)
         if isinstance(value, str):
             return value
-    for key in ("command", "pattern", "skill", "url"):
+    for key in TARGET_TEXT_KEYS:
         value = tool_input.get(key)
         if isinstance(value, str):
-            return value[:200]
+            return value[:MAX_TARGET_TEXT]
     return ""
 
 
@@ -155,11 +191,11 @@ def _usage_by_message(records: list[dict[str, object]]) -> dict[str, dict[str, i
         message = _message(record)
         if message is None:
             continue
-        usage = message.get("usage")
+        usage = _usage(message)
         message_id = message.get("id")
-        if not isinstance(usage, dict) or not isinstance(message_id, str):
+        if usage is None or not isinstance(message_id, str):
             continue
-        current = seen.setdefault(message_id, dict.fromkeys(USAGE_FIELDS, 0))
+        current = seen.setdefault(message_id, _zero_usage())
         for field in USAGE_FIELDS:
             current[field] = max(current[field], _int(usage.get(field)))
     return seen
@@ -175,17 +211,13 @@ def _tool_calls(records: list[dict[str, object]]) -> list[tuple[str, str]]:
         for block in _blocks(message):
             if block.get("type") != "tool_use":
                 continue
-            name = block.get("name")
             tool_input = block.get("input")
-            calls.append(
-                (
-                    name if isinstance(name, str) else "?",
-                    _target(
-                        name if isinstance(name, str) else "?",
-                        tool_input if isinstance(tool_input, dict) else {},
-                    ),
-                )
+            narrowed = (
+                cast("dict[str, object]", tool_input)
+                if isinstance(tool_input, dict)
+                else {}
             )
+            calls.append((_text(block.get("name")) or "?", _target(narrowed)))
     return calls
 
 
@@ -212,46 +244,48 @@ def _meta(transcript: Path) -> dict[str, object]:
         return {}
     try:
         parsed: object = json.loads(sidecar.read_text(errors="replace"))
-    except (OSError, ValueError):
+    except (OSError, json.JSONDecodeError):
         return {}
-    return parsed if isinstance(parsed, dict) else {}
+    if isinstance(parsed, dict):
+        return cast("dict[str, object]", parsed)
+    return {}
+
+
+def _delegation(meta: dict[str, object], is_root: bool) -> str:
+    """Classify how this transcript came to exist."""
+    if is_root:
+        return "root"
+    return "spawn" if "toolUseId" in meta else "fork"
 
 
 def _node(transcript: Path, meta: dict[str, object], is_root: bool) -> AgentNode:
     """Build one node of the delegation forest from a transcript."""
     records = _records(transcript)
     usage_by_message = _usage_by_message(records)
-    totals = dict.fromkeys(USAGE_FIELDS, 0)
+    totals = _zero_usage()
     for usage in usage_by_message.values():
         for field in USAGE_FIELDS:
             totals[field] += usage[field]
+
     calls = _tool_calls(records)
-    reads = Counter(
+    reads: Counter[str] = Counter(
         target for name, target in calls if name in READ_TOOLS and target
     )
-    agent_type = meta.get("agentType")
-    description = meta.get("description")
+    names: Counter[str] = Counter(name for name, _ in calls)
     parent = meta.get("parentAgentId")
     depth = meta.get("spawnDepth")
-    if is_root:
-        delegation = "root"
-    elif "toolUseId" in meta:
-        delegation = "spawn"
-    else:
-        delegation = "fork"
+    agent_type = _text(meta.get("agentType")) or "?"
     return AgentNode(
         agent_id=transcript.stem,
-        agent_type="ROOT" if is_root else (
-            agent_type if isinstance(agent_type, str) else "?"
-        ),
-        description=description if isinstance(description, str) else "",
+        agent_type="ROOT" if is_root else agent_type,
+        description=_text(meta.get("description")),
         parent_agent_id=parent if isinstance(parent, str) else None,
         spawn_depth=depth if isinstance(depth, int) else None,
-        delegation=delegation,
+        delegation=_delegation(meta, is_root),
         messages=len(usage_by_message),
         usage=totals,
         tool_calls=len(calls),
-        tools=dict(Counter(name for name, _ in calls).most_common()),
+        tools=dict(names.most_common()),
         repeat_reads=sum(count - 1 for count in reads.values() if count > 1),
         path=str(transcript),
     )
@@ -263,27 +297,24 @@ def _counters(transcripts: list[Path]) -> CounterCheck:
     suspicious = 0
     varying = 0
     for transcript in transcripts:
-        per_id: dict[str, tuple[set[int], bool]] = {}
+        outputs: dict[str, set[int]] = {}
+        tool_bearing: set[str] = set()
         for record in _records(transcript):
             message = _message(record)
             if message is None:
                 continue
-            usage = message.get("usage")
+            usage = _usage(message)
             message_id = message.get("id")
-            if not isinstance(usage, dict) or not isinstance(message_id, str):
+            if usage is None or not isinstance(message_id, str):
                 continue
-            outputs, has_tool = per_id.setdefault(message_id, (set(), False))
-            outputs.add(_int(usage.get("output_tokens")))
-            if not has_tool:
-                has_tool = any(
-                    block.get("type") == "tool_use" for block in _blocks(message)
-                )
-            per_id[message_id] = (outputs, has_tool)
-        for outputs, has_tool in per_id.values():
+            outputs.setdefault(message_id, set()).add(_int(usage.get("output_tokens")))
+            if any(block.get("type") == "tool_use" for block in _blocks(message)):
+                tool_bearing.add(message_id)
+        for message_id, values in outputs.items():
             messages += 1
-            if len(outputs) > 1:
+            if len(values) > 1:
                 varying += 1
-            if has_tool and max(outputs) <= FROZEN_SNAPSHOT_CEILING:
+            if message_id in tool_bearing and max(values) <= FROZEN_SNAPSHOT_CEILING:
                 suspicious += 1
     share = suspicious / messages if messages else 0.0
     return CounterCheck(
@@ -295,9 +326,7 @@ def _counters(transcripts: list[Path]) -> CounterCheck:
     )
 
 
-def _duplicate_reads(nodes: list[AgentNode], paths: list[Path]) -> list[
-    dict[str, object]
-]:
+def _duplicate_reads(nodes: list[AgentNode], paths: list[Path]) -> list[SharedRead]:
     """Report targets read by more than one agent role in the same run."""
     roles: dict[str, set[str]] = {}
     for node, transcript in zip(nodes, paths):
@@ -306,12 +335,21 @@ def _duplicate_reads(nodes: list[AgentNode], paths: list[Path]) -> list[
                 continue
             roles.setdefault(target, set()).add(node["agent_type"])
     shared = [
-        {"target": target, "agent_types": sorted(owners)}
+        SharedRead(target=target, agent_types=sorted(owners))
         for target, owners in roles.items()
         if len(owners) > 1
     ]
-    shared.sort(key=lambda item: -len(item["agent_types"]))
+    shared.sort(key=lambda item: (-len(item["agent_types"]), item["target"]))
     return shared
+
+
+def _accumulate(
+    bucket: dict[str, dict[str, int]], key: str, usage: dict[str, int]
+) -> None:
+    """Add one node's usage into a keyed total."""
+    totals = bucket.setdefault(key, _zero_usage())
+    for field in USAGE_FIELDS:
+        totals[field] += usage[field]
 
 
 def audit(root: Path, *, with_counters: bool) -> tuple[Report, int]:
@@ -326,11 +364,8 @@ def audit(root: Path, *, with_counters: bool) -> tuple[Report, int]:
     by_type: dict[str, dict[str, int]] = {}
     by_delegation: dict[str, dict[str, int]] = {}
     for node in nodes:
-        for bucket, key in ((by_type, node["agent_type"]),
-                            (by_delegation, node["delegation"])):
-            totals = bucket.setdefault(key, dict.fromkeys(USAGE_FIELDS, 0))
-            for field in USAGE_FIELDS:
-                totals[field] += node["usage"][field]
+        _accumulate(by_type, node["agent_type"], node["usage"])
+        _accumulate(by_delegation, node["delegation"], node["usage"])
 
     uses: set[str] = set()
     results: set[str] = set()
@@ -339,16 +374,18 @@ def audit(root: Path, *, with_counters: bool) -> tuple[Report, int]:
         records = _records(transcript)
         uses |= _block_ids(records, "tool_use", "id")
         results |= _block_ids(records, "tool_result", "tool_use_id")
-        if records and not _usage_by_message(records):
-            has_assistant = any(
-                (_message(record) or {}).get("role") == "assistant"
-                for record in records
-            )
-            if has_assistant:
+        if not records or _usage_by_message(records):
+            continue
+        for record in records:
+            message = _message(record)
+            if message is not None and message.get("role") == "assistant":
                 missing.append(str(transcript))
+                break
 
     counters = _counters(transcripts) if with_counters else None
-    disagrees = bool(missing) or bool(counters and counters["frozen_snapshot_suspected"])
+    disagrees = bool(missing) or (
+        counters is not None and counters["frozen_snapshot_suspected"]
+    )
     report = Report(
         status="snapshot" if uses - results else "closed",
         root_session_id=root.stem,
@@ -383,11 +420,13 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """Run the audit and print its JSON report."""
     args = _build_parser().parse_args(argv)
     try:
-        report, code = audit(args.transcript, with_counters=args.counters)
+        report, code = audit(
+            cast(Path, args.transcript), with_counters=cast(bool, args.counters)
+        )
     except AuditError as exc:
         print(f"audit_claude_code: {exc}", file=sys.stderr)
         return 2
