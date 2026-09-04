@@ -23,13 +23,80 @@ import math
 import sys
 from collections.abc import Iterator
 from pathlib import Path
-from typing import cast
+from typing import TypedDict, cast
 
 MAX_PROBE_DEPTH = 3
 MAX_PROBE_CANDIDATES = 10
 MAX_DISTINCT_TRACKED = 5000
 MAX_MISMATCH_EXAMPLES = 5
 MISSING = object()
+
+
+class IdCandidate(TypedDict):
+    path: str
+    records: int
+    distinct_values: int
+    records_per_value: float
+
+
+class UsageCandidate(TypedDict):
+    path: str
+    records: int
+    fields: list[str]
+    other_fields: list[str]
+
+
+class TerminalCandidate(TypedDict):
+    path: str
+    set_on: int
+    null_on: int
+    absent_on: int
+
+
+class ProbeReport(TypedDict):
+    mode: str
+    files: list[str]
+    records_sampled: int
+    id_candidates: list[IdCandidate]
+    usage_candidates: list[UsageCandidate]
+    terminal_marker_candidates: list[TerminalCandidate]
+    usable: bool
+
+
+class FileTotals(TypedDict):
+    file: str
+    records: int
+    usage_records: int
+    messages: int
+    max_records_per_message: int
+    by_message_max: dict[str, int | float]
+
+
+class AggregateTotals(TypedDict):
+    by_message_max: dict[str, int | float]
+    by_naive_record_sum: dict[str, int | float]
+    naive_inflation: dict[str, float]
+
+
+class TerminalCheck(TypedDict):
+    groups_checked: int
+    groups_without_terminal_record: int
+    groups_with_invalid_terminal_marker: int
+    mismatched_groups: int
+    examples: list[dict[str, object]]
+
+
+class AggregateReport(TypedDict):
+    mode: str
+    id_path: str
+    usage_path: str
+    usage_fields: list[str] | None
+    stop_path: str | None
+    stop_predicate: str | dict[str, object]
+    files: list[FileTotals]
+    totals: AggregateTotals
+    terminal_check: TerminalCheck | None
+    verified: bool
 
 
 class LoadError(Exception):
@@ -78,7 +145,9 @@ def _numbers(
         else:
             numbers[field] = number
     if invalid:
-        raise LoadError(f"{label} has missing or invalid numeric fields: {', '.join(invalid)}")
+        raise LoadError(
+            f"{label} has missing or invalid numeric fields: {', '.join(invalid)}"
+        )
     return numbers
 
 
@@ -135,7 +204,7 @@ def _walk(value: object, prefix: str, depth: int) -> Iterator[tuple[str, object]
         yield from _walk(item, path, depth + 1)
 
 
-def probe(paths: list[Path], limit: int) -> dict[str, object]:
+def probe(paths: list[Path], limit: int) -> ProbeReport:
     seen: dict[str, int] = {}
     distinct: dict[str, set[str]] = {}
     usage_hits: dict[str, int] = {}
@@ -169,42 +238,43 @@ def probe(paths: list[Path], limit: int) -> dict[str, object]:
     ids = sorted((-seen[k], k, len(distinct[k])) for k in distinct if seen[k] >= floor)
     usages = sorted((-count, k) for k, count in usage_hits.items())
     stops = sorted(
-        (count, key)
-        for key, count in non_nulls.items()
-        if 0 < count < sampled
+        (count, key) for key, count in non_nulls.items() if 0 < count < sampled
     )
 
+    id_candidates: list[IdCandidate] = [
+        IdCandidate(
+            path=key,
+            records=-neg_records,
+            distinct_values=values,
+            records_per_value=round(-neg_records / max(values, 1), 2),
+        )
+        for neg_records, key, values in ids[:MAX_PROBE_CANDIDATES]
+    ]
+    usage_candidates: list[UsageCandidate] = [
+        UsageCandidate(
+            path=key,
+            records=-neg_records,
+            fields=sorted(usage_fields[key]),
+            other_fields=sorted(usage_other_fields.get(key, set())),
+        )
+        for neg_records, key in usages[:MAX_PROBE_CANDIDATES]
+    ]
+    terminal_candidates: list[TerminalCandidate] = [
+        TerminalCandidate(
+            path=key,
+            set_on=set_on,
+            null_on=nulls.get(key, 0),
+            absent_on=sampled - seen[key],
+        )
+        for set_on, key in stops[:MAX_PROBE_CANDIDATES]
+    ]
     return {
         "mode": "probe",
         "files": [str(p) for p in paths],
         "records_sampled": sampled,
-        "id_candidates": [
-            {
-                "path": key,
-                "records": -neg_records,
-                "distinct_values": values,
-                "records_per_value": round(-neg_records / max(values, 1), 2),
-            }
-            for neg_records, key, values in ids[:MAX_PROBE_CANDIDATES]
-        ],
-        "usage_candidates": [
-            {
-                "path": key,
-                "records": -neg_records,
-                "fields": sorted(usage_fields[key]),
-                "other_fields": sorted(usage_other_fields.get(key, set())),
-            }
-            for neg_records, key in usages[:MAX_PROBE_CANDIDATES]
-        ],
-        "terminal_marker_candidates": [
-            {
-                "path": key,
-                "set_on": set_on,
-                "null_on": nulls.get(key, 0),
-                "absent_on": sampled - seen[key],
-            }
-            for set_on, key in stops[:MAX_PROBE_CANDIDATES]
-        ],
+        "id_candidates": id_candidates,
+        "usage_candidates": usage_candidates,
+        "terminal_marker_candidates": terminal_candidates,
         "usable": sampled > 0 and bool(ids) and bool(usages),
     }
 
@@ -216,9 +286,9 @@ def aggregate(
     stop_path: str | None,
     usage_fields: list[str] | None = None,
     stop_value: object = MISSING,
-) -> tuple[dict[str, object], bool]:
+) -> tuple[AggregateReport, bool]:
     """Reduce usage by maximum per (file, id) and cross-check the reduction."""
-    files: list[dict[str, object]] = []
+    files: list[FileTotals] = []
     grand_max: dict[str, float] = {}
     grand_sum: dict[str, float] = {}
     examples: list[dict[str, object]] = []
@@ -346,7 +416,7 @@ def aggregate(
         and invalid_terminal == 0
         and mismatched == 0
     )
-    report: dict[str, object] = {
+    report: AggregateReport = {
         "mode": "aggregate",
         "id_path": id_path,
         "usage_path": usage_path,
@@ -369,13 +439,13 @@ def aggregate(
         },
         "terminal_check": None
         if stop_path is None
-        else {
-            "groups_checked": checked,
-            "groups_without_terminal_record": without_terminal,
-            "groups_with_invalid_terminal_marker": invalid_terminal,
-            "mismatched_groups": mismatched,
-            "examples": examples,
-        },
+        else TerminalCheck(
+            groups_checked=checked,
+            groups_without_terminal_record=without_terminal,
+            groups_with_invalid_terminal_marker=invalid_terminal,
+            mismatched_groups=mismatched,
+            examples=examples,
+        ),
         "verified": verified,
     }
     return report, not verified
@@ -429,8 +499,8 @@ def main(argv: list[str] | None = None) -> int:
     files = cast(list[Path], args.files)
     try:
         if cast(bool, args.probe):
-            report: dict[str, object] = probe(files, cast(int, args.limit))
-            failed = not cast(bool, report["usable"])
+            report = probe(files, cast(int, args.limit))
+            failed = not report["usable"]
         else:
             id_path = cast("str | None", args.id_path)
             usage_path = cast("str | None", args.usage_path)
