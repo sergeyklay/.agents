@@ -41,10 +41,10 @@ TABLE_ROW = re.compile(r"^\|(?P<cells>.+)\|\s*$", re.MULTILINE)
 SEPARATOR_ROW = re.compile(r"^\|\s*[:\- ]+\s*\|")
 FENCED_BLOCK = re.compile(r"^```[^\n]*\n(.*?)^```", re.MULTILINE | re.DOTALL)
 BACKSLASH_PATH = re.compile(r"`[^`\n]*\\[A-Za-z][^`\n]*`")
+CODE_SPAN = re.compile(r"`[^`\n]*`")
 # Freehand prose: match the claim, not one phrasing.
 COMPLIANCE_ALL_GO = re.compile(
-    r"all\s+(?:nine\s+|9\s+)?checks?\b[^.\n]*\b(?:GO|passed|pass|clear)\b"
-    r"|no\s+checks?\s+produced\s+(?:a\s+)?(?:FLAG|STOP)",
+    r"all\s+(?:nine\s+|9\s+)?checks?\b[^.\n]*\b(?:GO|passed|pass|clear)\b",
     re.IGNORECASE,
 )
 COMPLIANCE_FLAG_LINE = re.compile(r"(?m)^\s*(?:[-*]\s*)?(?:\*\*)?FLAG\b")
@@ -140,7 +140,7 @@ def validate(
         cleaned = re.sub(r"<!--.*?-->", "", body, flags=re.DOTALL).strip()
         if not header_re.search(content):
             errors.append(f"Missing section: {label}")
-        elif len(cleaned) < 20:
+        elif len(cleaned) < 20 and label != "Compliance check":
             warnings.append(f"Section is empty or minimal: {label}")
 
     # Exception format, or the legacy nine-row table for older specs.
@@ -161,9 +161,13 @@ def validate(
                         "drafting and must be resolved before delivery"
                     )
         else:
+            # Strip code spans first: the template quotes the verdict as an
+            # example, a filled spec asserts it. Without this a spec that kept
+            # the template's instructions and recorded nothing still passes.
+            asserted = CODE_SPAN.sub(" ", compliance_body)
             if not (
-                COMPLIANCE_ALL_GO.search(compliance_body)
-                or COMPLIANCE_FLAG_LINE.search(compliance_body)
+                COMPLIANCE_ALL_GO.search(asserted)
+                or COMPLIANCE_FLAG_LINE.search(asserted)
             ):
                 errors.append(
                     "Compliance check does not record the analysis verdict: add "
