@@ -126,7 +126,11 @@ class OpenCodeAuditTest(unittest.TestCase):
         )
 
     def _insert_message(
-        self, connection: sqlite3.Connection, message_id: str, session_id: str, role: str
+        self,
+        connection: sqlite3.Connection,
+        message_id: str,
+        session_id: str,
+        role: str,
     ) -> None:
         connection.execute(
             "INSERT INTO message VALUES (?, ?, ?)",
@@ -206,15 +210,15 @@ class OpenCodeAuditTest(unittest.TestCase):
         )
 
         self.assertFalse(report["validation"]["all_usage_reconciled"])
-        root = report["sessions"][0]
+        sessions = report.get("sessions")
+        assert sessions is not None
+        root = sessions[0]
         self.assertEqual(
             root["reconciliation"]["mismatches"]["output"],
             {"session": 99, "detail": 5},
         )
         with redirect_stdout(StringIO()):
-            exit_code = audit_opencode.main(
-                ["root", "--db", str(self.database)]
-            )
+            exit_code = audit_opencode.main(["root", "--db", str(self.database)])
         self.assertEqual(exit_code, 1)
 
     def test_missing_spawned_child_blocks_exact_result(self) -> None:
@@ -288,9 +292,7 @@ class StreamUsageAuditTest(unittest.TestCase):
         )
 
     def test_fails_when_terminal_evidence_is_missing(self) -> None:
-        self._write(
-            [{"message": {"id": "m1", "usage": {"input": 10, "output": 1}}}]
-        )
+        self._write([{"message": {"id": "m1", "usage": {"input": 10, "output": 1}}}])
 
         report, failed = audit_usage.aggregate(
             [self.log], "message.id", "message.usage", "message.stop"
@@ -298,7 +300,9 @@ class StreamUsageAuditTest(unittest.TestCase):
 
         self.assertTrue(failed)
         self.assertFalse(report["verified"])
-        self.assertEqual(report["terminal_check"]["groups_without_terminal_record"], 1)
+        terminal_check = report["terminal_check"]
+        assert terminal_check is not None
+        self.assertEqual(terminal_check["groups_without_terminal_record"], 1)
 
     def test_rejects_false_as_an_implicit_terminal_marker(self) -> None:
         self._write(
@@ -394,9 +398,9 @@ class StreamUsageAuditTest(unittest.TestCase):
         )
 
         self.assertTrue(failed)
-        self.assertEqual(
-            report["terminal_check"]["groups_with_invalid_terminal_marker"], 1
-        )
+        terminal_check = report["terminal_check"]
+        assert terminal_check is not None
+        self.assertEqual(terminal_check["groups_with_invalid_terminal_marker"], 1)
 
     def test_probe_sees_terminal_fields_that_are_absent_until_the_end(self) -> None:
         self._write(
@@ -439,7 +443,9 @@ class StreamUsageAuditTest(unittest.TestCase):
 
         probe = audit_usage.probe([self.log], 400)
         usage = next(
-            item for item in probe["usage_candidates"] if item["path"] == "message.usage"
+            item
+            for item in probe["usage_candidates"]
+            if item["path"] == "message.usage"
         )
         self.assertEqual(usage["other_fields"], ["service_tier"])
         report, failed = audit_usage.aggregate(

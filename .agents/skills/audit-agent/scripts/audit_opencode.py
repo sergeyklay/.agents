@@ -23,7 +23,7 @@ import sys
 from collections import Counter, deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 from urllib.parse import quote
 
 SESSION_FIELDS = (
@@ -49,6 +49,147 @@ REQUIRED_COLUMNS = {
 }
 USAGE_FIELDS = ("input", "output", "reasoning", "cache_read", "cache_write", "cost")
 SUPPORTED_MAJOR_MINOR = {(1, 18)}
+
+
+class UsageReport(TypedDict):
+    input: int | float
+    output: int | float
+    reasoning: int | float
+    cache_read: int | float
+    cache_write: int | float
+    cost: int | float
+
+
+class SessionTime(TypedDict):
+    created_ms: int
+    updated_ms: int
+    created_utc: str
+    updated_utc: str
+    session_span_ms: int
+
+
+class SessionCounts(TypedDict):
+    messages: dict[str, int]
+    model_steps: int
+    tool_calls: int
+    tool_errors: int
+
+
+class SessionDetails(TypedDict):
+    parts: int
+    part_types: dict[str, int]
+    tool_names: dict[str, int]
+    tool_statuses: dict[str, int]
+
+
+class ReconciliationReport(TypedDict):
+    step_finish_records: int
+    matches_session_totals: bool
+    detail_usage: UsageReport
+    mismatches: dict[str, dict[str, int | float] | str]
+
+
+class SessionReportRequired(TypedDict):
+    depth: int
+    id: str
+    parent_id: str | None
+    directory: str
+    agent: str
+    model: object
+    recorded_version: str
+    time: SessionTime
+    usage: UsageReport
+    counts: SessionCounts
+    reconciliation: ReconciliationReport
+
+
+class SessionReport(SessionReportRequired, total=False):
+    details: SessionDetails
+
+
+class AgentBucket(TypedDict):
+    sessions: int
+    usage: dict[str, float]
+
+
+class AgentTotals(TypedDict):
+    sessions: int
+    usage: UsageReport
+
+
+class TreeSpan(TypedDict):
+    created_ms: int
+    updated_ms: int
+    elapsed_ms: int
+
+
+class TotalsReport(TypedDict):
+    sessions: int
+    descendants: int
+    usage: UsageReport
+    by_agent: dict[str, AgentTotals]
+    messages: dict[str, int]
+    model_steps: int
+    tool_calls: int
+    tool_errors: int
+    tool_names: dict[str, int]
+    tool_statuses: dict[str, int]
+    tree_span: TreeSpan
+
+
+class VersionsReport(TypedDict):
+    installed: str | None
+    recorded: list[str]
+    supported_major_minor: list[str]
+    installed_supported: bool
+    unsupported_recorded: list[str]
+    all_supported: bool
+
+
+class ScopeReport(TypedDict):
+    sessions: int
+    descendants: int
+    session_ids: list[str]
+
+
+class SchemaCheck(TypedDict):
+    columns_verified: int
+    required_columns: int
+
+
+class TreeReconciliation(TypedDict):
+    matches_spawn_records: bool
+    spawn_links_checked: int
+    missing_session_ids: list[str]
+    parent_mismatches: list[dict[str, str | None]]
+    unresolved_calls: list[dict[str, str]]
+
+
+class ValidationReport(TypedDict):
+    all_usage_reconciled: bool
+    usage_mismatch_session_ids: list[str]
+    tree_reconciliation: TreeReconciliation
+    versions_supported: bool
+    exact_ready: bool
+    sessions_checked: int
+    consistent_snapshot: bool
+
+
+class OpenCodeReportRequired(TypedDict):
+    mode: str
+    source: str
+    database: str
+    root_session_id: str
+    snapshot_utc: str
+    versions: VersionsReport
+    scope: ScopeReport
+    schema: dict[str, list[str]] | dict[str, SchemaCheck]
+    totals: TotalsReport
+    validation: ValidationReport
+
+
+class OpenCodeReport(OpenCodeReportRequired, total=False):
+    sessions: list[SessionReport]
 
 
 class AuditError(Exception):
@@ -102,17 +243,17 @@ def _add_usage(target: dict[str, float], source: dict[str, float]) -> None:
         target[field] += source[field]
 
 
-def _display_usage(usage: dict[str, float]) -> dict[str, int | float]:
-    return {field: _plain(usage[field]) for field in USAGE_FIELDS}
+def _display_usage(usage: dict[str, float]) -> UsageReport:
+    return cast(UsageReport, {field: _plain(usage[field]) for field in USAGE_FIELDS})
 
 
 def _utc(milliseconds: int) -> str:
     try:
-        return datetime.fromtimestamp(
-            milliseconds / 1000, tz=timezone.utc
-        ).isoformat()
+        return datetime.fromtimestamp(milliseconds / 1000, tz=timezone.utc).isoformat()
     except (OSError, OverflowError, ValueError) as exc:
-        raise AuditError(f"timestamp is outside the supported range: {milliseconds}") from exc
+        raise AuditError(
+            f"timestamp is outside the supported range: {milliseconds}"
+        ) from exc
 
 
 def _major_minor(version: str | None) -> tuple[int, int] | None:
@@ -150,7 +291,9 @@ def _resolve_database(explicit: Path | None) -> Path:
     try:
         return Path(lines[-1]).expanduser().resolve(strict=True)
     except OSError as exc:
-        raise AuditError(f"cannot resolve database reported by opencode: {exc}") from exc
+        raise AuditError(
+            f"cannot resolve database reported by opencode: {exc}"
+        ) from exc
 
 
 def _opencode_version() -> str | None:
@@ -206,8 +349,7 @@ def _session_tree(
         seen.add(session_id)
         result.append((depth, row))
         children = connection.execute(
-            _session_query()
-            + " WHERE parent_id = ? ORDER BY time_created ASC, id ASC",
+            _session_query() + " WHERE parent_id = ? ORDER BY time_created ASC, id ASC",
             (session_id,),
         ).fetchall()
         queue.extend((depth + 1, child) for child in children)
@@ -312,14 +454,18 @@ def _part_evidence(connection: sqlite3.Connection, session_id: str) -> dict[str,
                     f"part {row['id']} metadata.parentSessionId is not a string"
                 )
             call_value = part.get("callID")
-            call_id = call_value if isinstance(call_value, str) else cast(str, row["id"])
+            call_id = (
+                call_value if isinstance(call_value, str) else cast(str, row["id"])
+            )
             if tool_name == "task" and isinstance(child_value, str):
                 spawn_links.append(
                     {
                         "source_session_id": session_id,
                         "child_session_id": child_value,
                         "parent_session_id": (
-                            parent_value if isinstance(parent_value, str) else session_id
+                            parent_value
+                            if isinstance(parent_value, str)
+                            else session_id
                         ),
                         "tool": tool_name,
                         "status": status_name,
@@ -366,7 +512,7 @@ def _message_counts(connection: sqlite3.Connection, session_id: str) -> Counter[
 
 def _reconcile(
     session_usage: dict[str, float], detail_usage: dict[str, float], steps: int
-) -> dict[str, object]:
+) -> ReconciliationReport:
     if steps == 0:
         return {
             "step_finish_records": 0,
@@ -375,7 +521,7 @@ def _reconcile(
             "mismatches": {"detail": "no step-finish records"},
         }
 
-    mismatches: dict[str, dict[str, int | float]] = {}
+    mismatches: dict[str, dict[str, int | float] | str] = {}
     for field in USAGE_FIELDS:
         summary = session_usage[field]
         detail = detail_usage[field]
@@ -401,7 +547,7 @@ def audit_database(
     *,
     include_sessions: bool = False,
     details: bool = False,
-) -> dict[str, object]:
+) -> OpenCodeReport:
     uri = f"file:{quote(str(database), safe='/')}?mode=ro"
     try:
         connection = sqlite3.connect(uri, uri=True)
@@ -415,14 +561,14 @@ def audit_database(
         schema = _validate_schema(connection)
         tree = _session_tree(connection, root_session_id)
 
-        sessions: list[dict[str, object]] = []
+        sessions: list[SessionReport] = []
         total_usage = _zero_usage()
         total_messages: Counter[str] = Counter()
         total_tool_names: Counter[str] = Counter()
         total_tool_statuses: Counter[str] = Counter()
         total_model_steps = 0
         total_tool_errors = 0
-        by_agent: dict[str, dict[str, object]] = {}
+        by_agent: dict[str, AgentBucket] = {}
         created_values: list[int] = []
         updated_values: list[int] = []
         spawn_links: list[dict[str, str]] = []
@@ -456,10 +602,10 @@ def audit_database(
             agent_value = row["agent"]
             agent = agent_value if isinstance(agent_value, str) else "<unknown>"
             agent_bucket = by_agent.setdefault(
-                agent, {"sessions": 0, "usage": _zero_usage()}
+                agent, AgentBucket(sessions=0, usage=_zero_usage())
             )
-            agent_bucket["sessions"] = cast(int, agent_bucket["sessions"]) + 1
-            _add_usage(cast(dict[str, float], agent_bucket["usage"]), usage)
+            agent_bucket["sessions"] += 1
+            _add_usage(agent_bucket["usage"], usage)
 
             _add_usage(total_usage, usage)
             total_messages.update(roles)
@@ -474,11 +620,11 @@ def audit_database(
 
             if not details and reconciliation["matches_session_totals"]:
                 reconciliation.pop("detail_usage")
-            session_report: dict[str, object] = {
+            session_report: SessionReport = {
                 "depth": depth,
                 "id": session_id,
-                "parent_id": row["parent_id"],
-                "directory": row["directory"],
+                "parent_id": cast("str | None", row["parent_id"]),
+                "directory": cast(str, row["directory"]),
                 "agent": agent,
                 "model": _optional_json(row["model"]),
                 "recorded_version": recorded_version,
@@ -508,14 +654,13 @@ def audit_database(
             sessions.append(session_report)
 
         all_reconciled = all(
-            cast(bool, session["reconciliation"]["matches_session_totals"])
-            for session in sessions
+            session["reconciliation"]["matches_session_totals"] for session in sessions
         )
         parent_by_session = {
-            cast(str, session["id"]): session["parent_id"] for session in sessions
+            session["id"]: session["parent_id"] for session in sessions
         }
         missing_spawn_sessions: set[str] = set()
-        parent_mismatches: list[dict[str, object]] = []
+        parent_mismatches: list[dict[str, str | None]] = []
         for link in spawn_links:
             child_id = link["child_session_id"]
             child_row = connection.execute(
@@ -524,7 +669,7 @@ def audit_database(
             if child_row is None:
                 missing_spawn_sessions.add(child_id)
                 continue
-            actual_parent = child_row["parent_id"]
+            actual_parent = cast("str | None", child_row["parent_id"])
             expected_parent = link["parent_session_id"]
             if (
                 child_id not in parent_by_session
@@ -555,18 +700,25 @@ def audit_database(
         )
         exact_ready = all_reconciled and tree_reconciled and versions_supported
         usage_mismatches = [
-            cast(str, session["id"])
+            session["id"]
             for session in sessions
-            if not cast(bool, session["reconciliation"]["matches_session_totals"])
+            if not session["reconciliation"]["matches_session_totals"]
         ]
-        displayed_by_agent = {
-            agent: {
-                "sessions": bucket["sessions"],
-                "usage": _display_usage(cast(dict[str, float], bucket["usage"])),
-            }
+        displayed_by_agent: dict[str, AgentTotals] = {
+            agent: AgentTotals(
+                sessions=bucket["sessions"],
+                usage=_display_usage(bucket["usage"]),
+            )
             for agent, bucket in sorted(by_agent.items())
         }
-        report: dict[str, object] = {
+        compact_schema: dict[str, SchemaCheck] = {
+            table: SchemaCheck(
+                columns_verified=len(columns),
+                required_columns=len(REQUIRED_COLUMNS[table]),
+            )
+            for table, columns in schema.items()
+        }
+        report: OpenCodeReport = {
             "mode": "opencode",
             "source": "sqlite-read-transaction",
             "database": str(database),
@@ -576,8 +728,7 @@ def audit_database(
                 "installed": opencode_version,
                 "recorded": sorted(recorded_versions),
                 "supported_major_minor": [
-                    f"{major}.{minor}"
-                    for major, minor in sorted(SUPPORTED_MAJOR_MINOR)
+                    f"{major}.{minor}" for major, minor in sorted(SUPPORTED_MAJOR_MINOR)
                 ],
                 "installed_supported": installed_version_supported,
                 "unsupported_recorded": unsupported_recorded_versions,
@@ -588,15 +739,7 @@ def audit_database(
                 "descendants": len(sessions) - 1,
                 "session_ids": [session["id"] for session in sessions],
             },
-            "schema": schema
-            if details
-            else {
-                table: {
-                    "columns_verified": len(columns),
-                    "required_columns": len(REQUIRED_COLUMNS[table]),
-                }
-                for table, columns in schema.items()
-            },
+            "schema": schema if details else compact_schema,
             "totals": {
                 "sessions": len(sessions),
                 "descendants": len(sessions) - 1,
@@ -679,8 +822,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(json.dumps(report, indent=2, sort_keys=False))
-    validation = cast(dict[str, object], report["validation"])
-    return 0 if validation["exact_ready"] else 1
+    return 0 if report["validation"]["exact_ready"] else 1
 
 
 if __name__ == "__main__":
