@@ -3,4 +3,3 @@ argument-hint: Tracker reference, feature description, or path to an existing sp
 disable-model-invocation: true
 context: fork
 agent: composer
-background: false
