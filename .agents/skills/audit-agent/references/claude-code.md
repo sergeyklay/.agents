@@ -47,8 +47,26 @@ python3 scripts/audit_usage.py \
 
 The script exits `1` when terminal evidence is missing or disagrees. Without the script, group by `(file, message id)`, compare terminal values with per-field maxima, and sum only after they agree.
 
+That comparison validates the reduction, not the counter. The terminal record is the per-field maximum by construction here, so the check cannot fail and passing it says nothing about whether the terminal record holds the message's true final value. Validate `output_tokens` separately, from its distribution against the content it accompanies:
+
+```sh
+python3 scripts/audit_claude_code.py --counters <transcript.jsonl>
+```
+
+A healthy transcript spreads `output_tokens` over many values that track message length. When a large share of messages carry a small value while their content holds `tool_use` blocks or long text, the transcript froze an early streaming snapshot and the terminal total never landed. Observed on one host across 40 child transcripts: 1086 of 1772 messages contained at least one `tool_use` block yet recorded `output_tokens` of 20 or fewer, which no message emitting a tool call can be. Treat that transcript's output tokens as a floor, label the figure `estimate`, and lean on the prompt-side counters, which are fixed at request time and unaffected.
+
+Do not assume the repeated records are identical copies. On the same host `output_tokens` varied between records sharing one message id in 483 of 1772 groups, so the maximum is the correct reduction even though it does not rescue the counter.
+
 ## Rebuild delegation
 
-Prefer explicit child metadata such as parent id, agent type, spawn depth, and spawning tool-call id. Reconcile child records with spawn tool calls in the parent. A missing transcript leaves the child's usage unknown; it does not prove the child never ran.
+Prefer explicit child metadata such as parent id, agent type, spawn depth, and spawning tool-call id. One observed layout wrote `subagents/<agent-id>.meta.json` beside each child transcript carrying `agentType`, `description`, `toolUseId`, `parentAgentId`, and `spawnDepth`. Join `toolUseId` to the spawning `tool_use` record in the parent to place the child in the tree, and read `parentAgentId` for the edge; a child with no `parentAgentId` hangs off the root session. Within one transcript `parentUuid`, `uuid`, and `isSidechain` chain records of a single session and do not cross session boundaries, so do not use them to link a parent to its children.
 
-Keep root and child totals separate before summing them. Message ids are not assumed globally unique, so the source file remains part of every grouping key.
+Separate delegation modes before summing. A child spawned through the agent tool carries the spawning `toolUseId`; a child forked from a slash command that declares `context: fork` does not. Their cost profiles and their completion semantics differ, so report the two populations separately rather than as one subagent total. Confirm the mapping from the command's own frontmatter rather than from the agent name alone.
+
+A missing transcript leaves the child's usage unknown; it does not prove the child never ran. Keep root and child totals separate before summing them. Message ids are not assumed globally unique, so the source file remains part of every grouping key.
+
+## Find command-driven runs
+
+A command that declares `context: fork` leaves almost no trace in the root transcript: its `<command-name>` marker is written into the forked child, not the parent. Searching root transcripts for one is a near-total undercount. On one host, two such commands matched 3 root transcripts while 297 child `meta.json` files named the agents those commands bind to. Route command questions through the child metadata instead.
+
+Two controls before reporting a zero here. Grep an ordinary non-forking command to prove the marker is logged at all. And anchor the match to a real record field, because a bare `<command-name>` substring search also matches the transcript's own echoed tool-schema text, which documents the marker without being an invocation.

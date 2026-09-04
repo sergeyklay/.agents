@@ -16,6 +16,7 @@ from pathlib import Path
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL_ROOT / "scripts"))
 
+import audit_claude_code  # noqa: E402
 import audit_opencode  # noqa: E402
 import audit_usage  # noqa: E402
 
@@ -558,6 +559,168 @@ class StreamUsageAuditTest(unittest.TestCase):
 
         with self.assertRaisesRegex(audit_usage.LoadError, "record is not an object"):
             audit_usage.probe([self.log], 400)
+
+
+class ClaudeCodeAuditTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.root = Path(self.tempdir.name) / "session.jsonl"
+
+    def _message(
+        self,
+        index: int,
+        output_tokens: int,
+        *,
+        tool: bool = True,
+    ) -> list[dict[str, object]]:
+        content: list[dict[str, object]] = []
+        if tool:
+            content.append(
+                {
+                    "type": "tool_use",
+                    "id": f"t{index}",
+                    "name": "Read",
+                    "input": {"file_path": f"/repo/file{index % 2}.go"},
+                }
+            )
+        else:
+            content.append({"type": "text", "text": "done"})
+        records: list[dict[str, object]] = [
+            {
+                "type": "assistant",
+                "message": {
+                    "id": f"msg_{index}",
+                    "role": "assistant",
+                    "stop_reason": "tool_use" if tool else "end_turn",
+                    "usage": {
+                        "input_tokens": 2,
+                        "cache_creation_input_tokens": 10,
+                        "cache_read_input_tokens": 100 * index,
+                        "output_tokens": output_tokens,
+                    },
+                    "content": content,
+                },
+            }
+        ]
+        if tool:
+            records.append(
+                {
+                    "type": "user",
+                    "message": {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": f"t{index}",
+                                "content": "ok",
+                            }
+                        ],
+                    },
+                }
+            )
+        return records
+
+    def _write(self, path: Path, records: list[dict[str, object]]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            "".join(json.dumps(record) + "\n" for record in records),
+            encoding="utf-8",
+        )
+
+    def _child(self, name: str, meta: dict[str, object], outputs: int) -> None:
+        subagents = self.root.parent / self.root.stem / "subagents"
+        transcript = subagents / f"agent-{name}.jsonl"
+        records: list[dict[str, object]] = []
+        for index in range(3):
+            records.extend(self._message(index + outputs, 400 + index))
+        self._write(transcript, records)
+        (subagents / f"agent-{name}.meta.json").write_text(
+            json.dumps(meta), encoding="utf-8"
+        )
+
+    def test_splits_forked_children_from_spawned_children(self) -> None:
+        self._write(self.root, self._message(0, 500))
+        self._child("aaa", {"agentType": "composer"}, 10)
+        self._child(
+            "bbb",
+            {"agentType": "architect", "toolUseId": "toolu_1", "spawnDepth": 1},
+            20,
+        )
+
+        report, code = audit_claude_code.audit(self.root, with_counters=False)
+
+        modes = {node["agent_id"]: node["delegation"] for node in report["agents"]}
+        self.assertEqual(modes["agent-aaa"], "fork")
+        self.assertEqual(modes["agent-bbb"], "spawn")
+        self.assertEqual(modes[self.root.stem], "root")
+        self.assertIn("fork", report["totals_by_delegation"])
+        self.assertIn("spawn", report["totals_by_delegation"])
+        self.assertEqual(code, 0)
+
+    def test_counters_check_flags_a_frozen_output_snapshot(self) -> None:
+        records: list[dict[str, object]] = []
+        for index in range(10):
+            records.extend(self._message(index, 1))
+        self._write(self.root, records)
+
+        report, code = audit_claude_code.audit(self.root, with_counters=True)
+
+        counters = report["counters"]
+        assert counters is not None
+        self.assertTrue(counters["frozen_snapshot_suspected"])
+        self.assertEqual(counters["tool_call_messages_at_or_below_ceiling"], 10)
+        self.assertEqual(code, 1)
+
+    def test_counters_check_stays_silent_on_a_healthy_transcript(self) -> None:
+        records: list[dict[str, object]] = []
+        for index in range(10):
+            records.extend(self._message(index, 300 + index * 11))
+        self._write(self.root, records)
+
+        report, code = audit_claude_code.audit(self.root, with_counters=True)
+
+        counters = report["counters"]
+        assert counters is not None
+        self.assertFalse(counters["frozen_snapshot_suspected"])
+        self.assertEqual(counters["tool_call_messages_at_or_below_ceiling"], 0)
+        self.assertEqual(code, 0)
+
+    def test_reduces_repeated_records_of_one_message_by_maximum(self) -> None:
+        first = self._message(0, 5)
+        repeat = json.loads(json.dumps(first[0]))
+        message = repeat["message"]
+        message["usage"]["output_tokens"] = 900
+        self._write(self.root, [first[0], repeat, first[1]])
+
+        report, _ = audit_claude_code.audit(self.root, with_counters=False)
+
+        node = report["agents"][0]
+        self.assertEqual(node["messages"], 1)
+        self.assertEqual(node["usage"]["output_tokens"], 900)
+
+    def test_reports_unmatched_tool_use_as_a_snapshot(self) -> None:
+        record = self._message(0, 500)[0]
+        self._write(self.root, [record])
+
+        report, _ = audit_claude_code.audit(self.root, with_counters=False)
+
+        self.assertEqual(report["status"], "snapshot")
+        self.assertEqual(report["reconciliation"]["unmatched_tool_use"], 1)
+
+    def test_counts_repeat_reads_of_one_target(self) -> None:
+        records: list[dict[str, object]] = []
+        for index in range(4):
+            records.extend(self._message(index, 300 + index))
+        self._write(self.root, records)
+
+        report, _ = audit_claude_code.audit(self.root, with_counters=False)
+
+        self.assertEqual(report["agents"][0]["repeat_reads"], 2)
+
+    def test_missing_root_transcript_raises(self) -> None:
+        with self.assertRaisesRegex(audit_claude_code.AuditError, "not found"):
+            audit_claude_code.audit(self.root, with_counters=False)
 
 
 if __name__ == "__main__":
