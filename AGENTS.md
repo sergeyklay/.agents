@@ -4,6 +4,7 @@
 
 ## Commands
 
+- Before finishing any change: `make check` (runs every CI gate from ci.yml locally)
 - After changing `scripts/install.sh` or installer behavior: `sh scripts/install_test.sh`
 - Before finishing a shell-script change: `shfmt -d scripts`
 - Before finishing an installer change: `shellcheck scripts/install.sh scripts/install_test.sh`
@@ -24,7 +25,7 @@ These constraints protect canonical source files and installed host views.
 ### Always
 
 - Keep behavior shared by hosts in `.agents/`; add host-specific frontmatter or prompt fragments only in `templates/`.
-- Run the skill validator after changing a skill.
+- Run `make validate` after changing a skill.
 - Follow the surrounding style. Do not refactor adjacent legacy content without a separate task.
 
 ### Ask first
