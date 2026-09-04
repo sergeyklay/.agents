@@ -66,6 +66,17 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 A check that passed is evidence only if it could have failed. Before trusting a green result, confirm the setup it depends on actually took effect: an edit that matched nothing, a stale working copy, or a step that exits `0` with a warning all report success without exercising anything.
 
+## Read in Batches
+
+**A turn costs the whole conversation, not one tool call. Group independent reads into a single turn.**
+
+Every model call re-reads the whole conversation so far and is charged for it, so a task's cost is roughly its turn count multiplied by its average context size. Opening one file per turn is the expensive shape: the tenth file is charged against the nine results already sitting in context, and again on every turn that follows.
+
+- Decide what you need, then request it all at once. Targets you can already name do not depend on each other.
+- A read has to wait only when the result you are waiting for is what names its target. Listing a directory to learn a filename is a real dependency; opening four files that listing already named is not.
+- Prefer one request that returns the relevant lines of several files to several requests that each return one whole file.
+- Batch the reads; do not skip them. The evidence you gather is what makes an answer right, and the turns you spend gathering it are what make it expensive.
+
 ## Reporting
 
 The report is the deliverable, not the trace of producing it. Lead with what was asked for, in full, before anything else. Someone who reads only the first half must still have the answer, and a number that was measured belongs in the body of the report rather than in a file the reader has to go find.
