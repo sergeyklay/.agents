@@ -15,6 +15,12 @@ tool-call id and does not behave like a spawn. And --counters tests whether
 output_tokens is trustworthy at all, rather than assuming a passing
 maximum-versus-terminal comparison settled it.
 
+Transcripts are split on newlines only. str.splitlines() also breaks on
+U+2028, U+2029 and the C0 separators, which JSON string literals carry
+raw, so it tears single valid records into unparsable fragments. Lines
+that still fail to parse are counted and reported rather than dropped
+in silence, because a discarded record takes its usage numbers with it.
+
 Nothing is written and no session store is modified.
 
 Exit: 0 evidence reconciled, 1 evidence missing or disagreeing, 2 usage
@@ -42,6 +48,13 @@ TARGET_TEXT_KEYS: tuple[str, ...] = ("command", "pattern", "skill", "url")
 FROZEN_SNAPSHOT_CEILING = 20
 FROZEN_SNAPSHOT_SHARE = 0.25
 MAX_TARGET_TEXT = 200
+
+
+class Transcript(TypedDict):
+    """Records parsed from one file, plus what could not be parsed."""
+
+    records: list[dict[str, object]]
+    unparsable_lines: int
 
 
 class AgentNode(TypedDict):
@@ -85,6 +98,8 @@ class Reconciliation(TypedDict):
     tool_result_blocks: int
     unmatched_tool_use: int
     transcripts_without_usage: list[str]
+    unparsable_lines: int
+    unreadable_meta_sidecars: list[str]
 
 
 class Report(TypedDict):
@@ -111,24 +126,33 @@ def _zero_usage() -> dict[str, int]:
     return {field: 0 for field in USAGE_FIELDS}
 
 
-def _records(path: Path) -> list[dict[str, object]]:
-    """Return every JSON object in a JSONL transcript, skipping bad lines."""
+def _load(path: Path) -> Transcript:
+    """Parse a JSONL transcript, counting every line that does not parse."""
     try:
-        text = path.read_text(errors="replace")
+        text = path.read_text(encoding="utf-8", errors="replace")
     except OSError as exc:
         raise AuditError(f"cannot read {path}: {exc}") from exc
 
     records: list[dict[str, object]] = []
-    for line in text.splitlines():
+    unparsable = 0
+    for line in text.split("\n"):
         if not line.strip():
             continue
         try:
             parsed: object = json.loads(line)
         except json.JSONDecodeError:
+            unparsable += 1
             continue
         if isinstance(parsed, dict):
             records.append(cast("dict[str, object]", parsed))
-    return records
+        else:
+            unparsable += 1
+    return Transcript(records=records, unparsable_lines=unparsable)
+
+
+def _records(path: Path) -> list[dict[str, object]]:
+    """Return every JSON object in a JSONL transcript."""
+    return _load(path)["records"]
 
 
 def _message(record: dict[str, object]) -> dict[str, object] | None:
@@ -237,28 +261,42 @@ def _block_ids(records: list[dict[str, object]], kind: str, key: str) -> set[str
     return found
 
 
-def _meta(transcript: Path) -> dict[str, object]:
-    """Read the *.meta.json sibling of a child transcript."""
+def _meta(transcript: Path) -> tuple[dict[str, object], bool]:
+    """Read a child's *.meta.json sibling.
+
+    Returns the metadata and whether it was readable. A sidecar that is
+    absent is normal and reads as readable-and-empty; one that exists but
+    cannot be parsed is not, because delegation mode is derived from it
+    and a silent empty dict would score the child as a fork.
+    """
     sidecar = transcript.with_suffix(".meta.json")
     if not sidecar.exists():
-        return {}
+        return {}, True
     try:
-        parsed: object = json.loads(sidecar.read_text(errors="replace"))
-    except (OSError, json.JSONDecodeError):
-        return {}
+        parsed: object = json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return {}, False
     if isinstance(parsed, dict):
-        return cast("dict[str, object]", parsed)
-    return {}
+        return cast("dict[str, object]", parsed), True
+    return {}, False
 
 
-def _delegation(meta: dict[str, object], is_root: bool) -> str:
+def _delegation(meta: dict[str, object], is_root: bool, readable: bool) -> str:
     """Classify how this transcript came to exist."""
     if is_root:
         return "root"
+    if not readable:
+        return "unknown"
     return "spawn" if "toolUseId" in meta else "fork"
 
 
-def _node(transcript: Path, meta: dict[str, object], is_root: bool) -> AgentNode:
+def _node(
+    transcript: Path,
+    meta: dict[str, object],
+    is_root: bool,
+    *,
+    meta_readable: bool = True,
+) -> AgentNode:
     """Build one node of the delegation forest from a transcript."""
     records = _records(transcript)
     usage_by_message = _usage_by_message(records)
@@ -281,7 +319,7 @@ def _node(transcript: Path, meta: dict[str, object], is_root: bool) -> AgentNode
         description=_text(meta.get("description")),
         parent_agent_id=parent if isinstance(parent, str) else None,
         spawn_depth=depth if isinstance(depth, int) else None,
-        delegation=_delegation(meta, is_root),
+        delegation=_delegation(meta, is_root, meta_readable),
         messages=len(usage_by_message),
         usage=totals,
         tool_calls=len(calls),
@@ -359,7 +397,12 @@ def audit(root: Path, *, with_counters: bool) -> tuple[Report, int]:
     children = sorted((root.parent / root.stem / "subagents").glob("agent-*.jsonl"))
     transcripts = [root, *children]
     nodes = [_node(root, {}, True)]
-    nodes.extend(_node(child, _meta(child), False) for child in children)
+    unreadable_meta: list[str] = []
+    for child in children:
+        meta, readable = _meta(child)
+        if not readable:
+            unreadable_meta.append(str(child.with_suffix(".meta.json")))
+        nodes.append(_node(child, meta, False, meta_readable=readable))
 
     by_type: dict[str, dict[str, int]] = {}
     by_delegation: dict[str, dict[str, int]] = {}
@@ -370,8 +413,11 @@ def audit(root: Path, *, with_counters: bool) -> tuple[Report, int]:
     uses: set[str] = set()
     results: set[str] = set()
     missing: list[str] = []
+    unparsable = 0
     for transcript in transcripts:
-        records = _records(transcript)
+        loaded = _load(transcript)
+        records = loaded["records"]
+        unparsable += loaded["unparsable_lines"]
         uses |= _block_ids(records, "tool_use", "id")
         results |= _block_ids(records, "tool_result", "tool_use_id")
         if not records or _usage_by_message(records):
@@ -383,8 +429,11 @@ def audit(root: Path, *, with_counters: bool) -> tuple[Report, int]:
                 break
 
     counters = _counters(transcripts) if with_counters else None
-    disagrees = bool(missing) or (
-        counters is not None and counters["frozen_snapshot_suspected"]
+    disagrees = (
+        bool(missing)
+        or bool(unreadable_meta)
+        or unparsable > 0
+        or (counters is not None and counters["frozen_snapshot_suspected"])
     )
     report = Report(
         status="snapshot" if uses - results else "closed",
@@ -400,6 +449,8 @@ def audit(root: Path, *, with_counters: bool) -> tuple[Report, int]:
             tool_result_blocks=len(results),
             unmatched_tool_use=len(uses - results),
             transcripts_without_usage=missing,
+            unparsable_lines=unparsable,
+            unreadable_meta_sidecars=unreadable_meta,
         ),
         counters=counters,
     )
