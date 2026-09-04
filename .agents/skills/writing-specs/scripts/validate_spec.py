@@ -48,6 +48,7 @@ COMPLIANCE_ALL_GO = re.compile(
     re.IGNORECASE,
 )
 COMPLIANCE_FLAG_LINE = re.compile(r"(?m)^\s*(?:[-*]\s*)?(?:\*\*)?FLAG\b")
+COMPLIANCE_PREREQ_LINE = re.compile(r"(?m)^\s*(?:[-*]\s*)?(?:\*\*)?Prerequisites\b")
 COMPLIANCE_STOP_LINE = re.compile(r"(?m)^\s*(?:[-*]\s*)?(?:\*\*)?STOP\b")
 # Bold marker is optional; a mandatory asterisk made the heading and bullet
 # branches unreachable and missed the dominant "OQ-N" convention.
@@ -141,7 +142,7 @@ def validate(
         if not header_re.search(content):
             errors.append(f"Missing section: {label}")
         elif len(cleaned) < 20 and label != "Compliance check":
-            warnings.append(f"Section is empty or minimal: {label}")
+            errors.append(f"Empty or minimal section: {label}")
 
     # Exception format, or the legacy nine-row table for older specs.
     compliance_body = section_body(content, COMPLIANCE_HEADER)
@@ -168,10 +169,12 @@ def validate(
             if not (
                 COMPLIANCE_ALL_GO.search(asserted)
                 or COMPLIANCE_FLAG_LINE.search(asserted)
+                or COMPLIANCE_PREREQ_LINE.search(asserted)
             ):
                 errors.append(
                     "Compliance check does not record the analysis verdict: add "
-                    '"All nine checks: GO." or one FLAG bullet per flagged check'
+                    '"All nine checks: GO.", one FLAG bullet per flagged check, '
+                    "or the Prerequisites bullet"
                 )
         if COMPLIANCE_STOP_LINE.search(compliance_body):
             errors.append(
