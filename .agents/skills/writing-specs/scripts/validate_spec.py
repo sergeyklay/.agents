@@ -145,8 +145,11 @@ def validate(
             errors.append(f"Empty or minimal section: {label}")
 
     # Exception format, or the legacy nine-row table for older specs.
+    # Gate on the header, not on the body: the header pattern's trailing \s*
+    # consumes the newline, so a section holding only whitespace yields an
+    # empty body and would otherwise skip every verdict check below.
     compliance_body = section_body(content, COMPLIANCE_HEADER)
-    if compliance_body:
+    if COMPLIANCE_HEADER.search(content):
         rows = table_data_rows(compliance_body)
         if rows:
             if len(rows) < 9:
@@ -315,9 +318,11 @@ def main() -> int:
         print(f"  [x] {e}")
 
     if errors:
+        print("VALIDATION_RESULT=FAIL")
         print(f"Validation failed: {len(errors)} error(s), {len(warnings)} warning(s)")
         return 1
 
+    print("VALIDATION_RESULT=PASS")
     print(f"Validation passed ({len(warnings)} warning(s))")
     return 0
 
