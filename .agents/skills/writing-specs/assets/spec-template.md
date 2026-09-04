@@ -24,9 +24,8 @@ Report the analysis protocol (Phase 2) by exception. The agent's reasoning trace
 
 Format:
 
-- One line: `All nine checks: GO.` when no check produced FLAG or STOP.
-- One bullet per check that produced FLAG: `FLAG - {check name}: {what the extension is, and why it is required despite the absence of a source}`. Cite the source or name the decision needing ratification.
-- One bullet for Check 9 (Prerequisites) when it names a pending dependency: `Prerequisites: {what must complete first, and the milestone or ticket}`.
+- The verdict line, always: `All nine checks: GO.` when no check produced FLAG, or one bullet per flagged check in the form `FLAG - {check name}: {what the extension is, and why it is required despite the absence of a source}`. Cite the source or name the decision needing ratification. A reader must be able to tell from this section alone whether the analysis passed, so one of these two forms is present in every delivered spec.
+- Additionally, one bullet for Check 9 (Prerequisites) when it names a pending dependency: `Prerequisites: {what must complete first, and the milestone or ticket}`. This bullet supplements the verdict line; it does not replace it.
 - A `STOP` MUST NOT appear in a delivered spec (a `STOP` halts drafting until the user resolves it).
 
 ## 1. Business goal and value
