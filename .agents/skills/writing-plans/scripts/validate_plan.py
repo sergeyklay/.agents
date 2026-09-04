@@ -333,8 +333,10 @@ def main() -> int:
 
     print()
     if errors:
+        print("VALIDATION_RESULT=FAIL")
         print(f"Validation failed: {len(errors)} error(s), {len(warnings)} warning(s)")
         return 1
+    print("VALIDATION_RESULT=PASS")
     print(f"Validation passed ({len(warnings)} warning(s))")
     return 0
 
