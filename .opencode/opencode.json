@@ -23,7 +23,7 @@
       ".env.dist": "allow"
     },
     "external_directory": {
-      "*": "deny",
+      "*": "ask",
       "~/work/**": "allow",
       "/tmp/opencode/**": "allow"
     },

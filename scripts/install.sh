@@ -618,6 +618,7 @@ sync_settings() {
   for_host gemini merge_settings "$REPO_ROOT/.gemini/settings.user.json" "$HOME/.gemini/settings.json"
   for_host gemini sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
   for_host opencode sync_to "$REPO_ROOT/.opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
+  for_host opencode sync_to "$REPO_ROOT/.opencode/tui.json" "$HOME/.config/opencode/tui.json"
 }
 
 # Match the former rule, allowing its extra trailing newline.
