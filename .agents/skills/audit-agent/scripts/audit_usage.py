@@ -165,7 +165,10 @@ def _field_kinds(mapping: dict[str, object]) -> tuple[set[str], set[str]]:
 def _load(path: Path) -> list[dict[str, object]]:
     """Parse JSON-lines or a single JSON array."""
     try:
-        text = path.read_text(encoding="utf-8")
+        if str(path) == "-":
+            text = sys.stdin.read()
+        else:
+            text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
         raise LoadError(f"cannot read {path}: {exc}") from exc
 

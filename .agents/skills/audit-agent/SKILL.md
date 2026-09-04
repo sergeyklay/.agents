@@ -1,6 +1,6 @@
 ---
 name: audit-agent
-description: "Audits AI-agent runs and session snapshots for token usage, cache traffic, cost, duration, turns, tool calls, failures, retries, subagent attribution, duplicated reads, and artifact yield. Use when reporting or comparing an agent run from OpenCode session data, a runner export, or transcript logs. Do NOT use to monitor live CI, prove a check can fail, or sandbox a CLI."
+description: "Audits AI-agent runs and session snapshots for token usage, cache traffic, cost, duration, turns, tool calls, failures, retries, subagent attribution, duplicated reads, and artifact yield. Use when reporting or comparing an agent run from Gemini CLI, OpenCode, Claude Code, a runner export, or transcript logs. Do NOT use to monitor live CI, prove a check can fail, or sandbox a CLI."
 compatibility: "Requires filesystem access. Bundled auditors require Python 3.10+; shell examples use POSIX sh. Manual fallbacks are provided."
 metadata:
   author: Serghei Iakovlev
@@ -28,6 +28,7 @@ Identify the runner and installed version before reading records, then load only
 
 - OpenCode with `opencode db`: read [references/opencode.md](references/opencode.md). This is the preferred and tested route.
 - Claude Code JSONL: read [references/claude-code.md](references/claude-code.md).
+- Gemini CLI JSONL: read [references/gemini.md](references/gemini.md).
 - Another runner, an export with unknown schema, or raw logs: read [references/generic-logs.md](references/generic-logs.md).
 - Comparisons, duplicated reads, retries, or artifact yield: also read [references/analysis.md](references/analysis.md).
 
