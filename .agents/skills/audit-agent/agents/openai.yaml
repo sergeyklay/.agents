@@ -1,0 +1,3 @@
+interface:
+  display_name: "Audit Agent Run"
+  short_description: "Measure a Codex or other agent run from persisted records."
