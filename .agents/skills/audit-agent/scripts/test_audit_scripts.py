@@ -266,6 +266,34 @@ class StreamUsageAuditTest(unittest.TestCase):
             encoding="utf-8",
         )
 
+    def test_keeps_string_and_nonstring_ids_as_distinct_groups(self) -> None:
+        self._write(
+            [
+                {
+                    "message": {
+                        "id": "1",
+                        "usage": {"input": 10, "output": 1},
+                        "stop": "end",
+                    }
+                },
+                {
+                    "message": {
+                        "id": 1,
+                        "usage": {"input": 5, "output": 2},
+                        "stop": "end",
+                    }
+                },
+            ]
+        )
+
+        report, failed = audit_usage.aggregate(
+            [self.log], "message.id", "message.usage", "message.stop"
+        )
+
+        self.assertFalse(failed)
+        self.assertEqual(report["totals"]["by_message_max"]["input"], 15)
+        self.assertEqual(report["files"][0]["messages"], 2)
+
     def test_reduces_verified_cumulative_snapshots(self) -> None:
         self._write(
             [
