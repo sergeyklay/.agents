@@ -49,6 +49,7 @@ REQUIRED_COLUMNS = {
 }
 USAGE_FIELDS = ("input", "output", "reasoning", "cache_read", "cache_write", "cost")
 SUPPORTED_MAJOR_MINOR = {(1, 18)}
+MAX_BIND_PARAMETERS = 500
 
 
 class UsageReport(TypedDict):
@@ -661,15 +662,25 @@ def audit_database(
         }
         missing_spawn_sessions: set[str] = set()
         parent_mismatches: list[dict[str, str | None]] = []
+        child_ids = sorted({link["child_session_id"] for link in spawn_links})
+        child_parents: dict[str, str | None] = {}
+        for offset in range(0, len(child_ids), MAX_BIND_PARAMETERS):
+            chunk = child_ids[offset : offset + MAX_BIND_PARAMETERS]
+            placeholders = ",".join("?" * len(chunk))
+            rows = connection.execute(
+                f"SELECT id, parent_id FROM session WHERE id IN ({placeholders})",
+                chunk,
+            ).fetchall()
+            child_parents.update(
+                (cast(str, row["id"]), cast("str | None", row["parent_id"]))
+                for row in rows
+            )
         for link in spawn_links:
             child_id = link["child_session_id"]
-            child_row = connection.execute(
-                "SELECT parent_id FROM session WHERE id = ?", (child_id,)
-            ).fetchone()
-            if child_row is None:
+            if child_id not in child_parents:
                 missing_spawn_sessions.add(child_id)
                 continue
-            actual_parent = cast("str | None", child_row["parent_id"])
+            actual_parent = child_parents[child_id]
             expected_parent = link["parent_session_id"]
             if (
                 child_id not in parent_by_session
