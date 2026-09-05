@@ -117,3 +117,20 @@ jobs:
       - name: Check shell script formatting
         shell: bash
         run: make fmt-shell
+
+  install-test:
+    name: Install
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # jq and rsync come preinstalled on the ubuntu-latest image, like the
+      # shellcheck the Portability job relies on; neither needs a setup step.
+      - name: Exercise the installer
+        shell: bash
+        run: make install-test
