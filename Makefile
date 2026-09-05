@@ -77,7 +77,7 @@ fmt-shell: ## Fail if any tracked shell script needs shfmt reformatting
 ##@ Gates
 
 .PHONY: check
-check: validate typecheck lint lint-shell fmt-shell ## Run every CI gate from ci.yml locally
+check: validate typecheck lint lint-shell fmt-shell install-test ## Run every CI gate from ci.yml locally
 
 .PHONY: install-test
 install-test: ## Exercise scripts/install.sh against isolated fake homes
