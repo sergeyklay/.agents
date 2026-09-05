@@ -1,6 +1,6 @@
 name: TSTester
-argument-hint: Specify the source code file or module to test
 model: Claude Sonnet 4.6 (copilot)
+reasoning-effort: high
 tools:
   - execute/getTerminalOutput
   - execute/killTerminal

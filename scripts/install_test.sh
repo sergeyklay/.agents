@@ -180,6 +180,37 @@ for agent in composer conductor; do
   assert_no_frontmatter_key "$home/.config/opencode/agents/$agent.md" 'tools'
 done
 
+home=$(new_home copilot-reasoning-effort)
+run_install "$home" --agents --copilot
+# Claude pins an effort per agent and OpenCode pins the same levels, so a
+# Copilot view that pins none runs at whatever effort the parent session
+# happened to hold. The levels must therefore survive into the Copilot view.
+assert_frontmatter "$home/.copilot/agents/architect.agent.md" 'reasoning-effort: max'
+assert_frontmatter "$home/.copilot/agents/sleuth.agent.md" 'reasoning-effort: xhigh'
+for agent in arch-review composer conductor planner \
+  go-coder go-tester ts-coder ts-tester; do
+  assert_frontmatter "$home/.copilot/agents/$agent.agent.md" 'reasoning-effort: high'
+done
+# Copilot CLI 1.0.82 spells this key in kebab case, like its sibling
+# `mcp-servers`, and not the `reasoningEffort` its own documentation table
+# prints. The camel-case spelling is dropped as an unknown field, which costs
+# nothing visible and silently leaves the agent on the parent's effort, so the
+# two spellings are not interchangeable and the wrong one cannot be caught by
+# reading the installed file. Pin the accepted one on every view.
+for view in "$home"/.copilot/agents/*.agent.md; do
+  assert_no_frontmatter_key "$view" 'reasoningEffort'
+done
+# Every frontmatter key outside Copilot's agent schema costs one
+# "unknown field ignored" warning per file on every session start.
+# `argument-hint` is a prompt and skill key, which is why the prompt templates
+# still carry it, and `agents` describes IDE-side delegation that the CLI
+# expresses through the `agent` tool alias inside `tools`. Neither reaches the
+# agent loader, so neither may reappear here.
+for view in "$home"/.copilot/agents/*.agent.md; do
+  assert_no_frontmatter_key "$view" 'argument-hint'
+  assert_no_frontmatter_key "$view" 'agents'
+done
+
 home=$(new_home skills-authoring-parity)
 run_install "$home" --skills
 # The writing-specs authoring procedure is the control on edit churn, and it is
