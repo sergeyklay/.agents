@@ -142,7 +142,7 @@ done
 assert_frontmatter "$home/.claude/commands/specify.md" 'agent: composer'
 assert_frontmatter "$home/.claude/commands/implement.md" 'agent: conductor'
 jq -e '
-  .permissions.defaultMode == "dontAsk" and
+  .permissions.defaultMode == "bypassPermissions" and
   (.permissions.deny | index("Read(**/.env)") != null) and
   (.permissions.deny | index("Read(**/.env.*)") == null)
 ' "$home/.claude/settings.json" >/dev/null
