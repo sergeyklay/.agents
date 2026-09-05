@@ -2,6 +2,8 @@ argument-hint: Plan path, issue reference, or feature description
 tools:
   - agent
   - read/readFile
+  - search/fileSearch
+  - search/textSearch
   - todo
   - atlassian/getAccessibleAtlassianResources
   - atlassian/getConfluencePage
