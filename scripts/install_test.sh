@@ -316,6 +316,25 @@ if grep -q '^action[[:space:]]*=' "$home/.gemini/policies/safe-commands.toml"; t
   printf 'unexpected action key in installed policy\n' >&2
   exit 1
 fi
+# The repository's own `.gemini/settings.json` is the workspace scope for any
+# Gemini session started inside this repository, and workspace beats user. A
+# `false` for either key here disarms every agent and every skill the installer
+# just shipped, for the one directory whose whole subject is agents and skills.
+# Both keys default to `true`, so absence is the correct state and the guard is
+# against re-adding them, not against omitting them.
+jq -e '.experimental.enableAgents != false' \
+  "$SCRIPT_DIR/../.gemini/settings.json" >/dev/null
+jq -e '.skills.enabled != false' \
+  "$SCRIPT_DIR/../.gemini/settings.json" >/dev/null
+# The consolidation collapsed settings.user.json into settings.json, so the
+# installer's merge source is now the same file the workspace scope reads.
+# Assert a key that only the consolidated file carries, or a stale rename
+# would leave the merge silently reading nothing.
+jq -e '.advanced.ignoreLocalEnv == true' "$home/.gemini/settings.json" >/dev/null
+jq -e '.skills.disabled | index("scan-security") != null' \
+  "$home/.gemini/settings.json" >/dev/null
+# The dotenv policy rides the existing policies rsync, so assert it landed.
+assert_file_contains "$home/.gemini/policies/secrets.toml" 'decision = "deny"'
 
 # The prompt lands inside a TOML literal string that Gemini expands before it
 # runs: ''' closes the string early, !{...} executes a shell command at

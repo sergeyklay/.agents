@@ -712,7 +712,7 @@ sync_settings() {
 
   for_host claude merge_settings "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
   for_host claude sync_to "$REPO_ROOT/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
-  for_host gemini merge_settings "$REPO_ROOT/.gemini/settings.user.json" "$HOME/.gemini/settings.json"
+  for_host gemini merge_settings "$REPO_ROOT/.gemini/settings.json" "$HOME/.gemini/settings.json"
   for_host gemini sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
   for_host opencode sync_to "$REPO_ROOT/.opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
   for_host opencode sync_to "$REPO_ROOT/.opencode/tui.json" "$HOME/.config/opencode/tui.json"
