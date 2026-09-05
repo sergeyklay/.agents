@@ -28,6 +28,15 @@ REQUIRED_SECTIONS: list[tuple[str, str]] = [
     (r"^##\s+7\.\s+Acceptance criteria\s*$", "7. Acceptance criteria"),
 ]
 
+# Overrun at which the document budget stops reading as a writing problem.
+# Rules 11 to 13 of the skill (drop recap, point instead of restate, cut
+# hedging) trim a dense spec by a fraction of itself; they cannot recover a
+# third of the document. Past this ratio the length is structural, so the
+# question to ask is about scope rather than about prose. A ratio rather than
+# a fixed word margin, because --document-word-limit is configurable and
+# "significantly over" has to mean the same thing at every setting of it.
+SPLIT_GUIDANCE_RATIO = 1.3
+
 EM_OR_EN_DASH = re.compile(r"[–—]")
 FILENAME_PATTERN = re.compile(r"^Spec-[\w.\-]+\.md$")
 COMPLIANCE_HEADER = re.compile(r"^##\s+Compliance check\s*$", re.MULTILINE)
@@ -132,6 +141,15 @@ def validate(
             "if it covers more than one independently shippable goal, split it "
             "and respecify the narrowed scope rather than compressing prose"
         )
+        if document_words > document_word_limit * SPLIT_GUIDANCE_RATIO:
+            warnings.append(
+                f"Document is {document_words / document_word_limit:.1f}x the word "
+                "budget. A spec this far over usually covers more than one "
+                "independently shippable goal. Ask the user whether to split it "
+                "into two before this spec goes forward: one oversized task lowers "
+                "the quality of the generated code, costs more time and money, and "
+                "produces a diff too large to review carefully"
+            )
 
     # Required sections
     for pattern, label in REQUIRED_SECTIONS:
