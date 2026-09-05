@@ -1,6 +1,6 @@
 name: Architect
 model: GPT-5.5 (copilot)
-reasoning-effort: max
+reasoning-effort: xhigh
 tools:
   - execute/getTerminalOutput
   - execute/killTerminal
