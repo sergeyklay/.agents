@@ -9,6 +9,11 @@ REPO_ROOT=$(CDPATH="" cd -- "$SCRIPT_DIR/.." && pwd)
 ALL_ACTIONS='context agents commands hooks rules settings skills'
 ALL_HOSTS='claude codex copilot gemini opencode'
 
+# Gemini strips every agent-kind tool from a subagent's registry, so an
+# orchestrator installed as a Gemini agent cannot delegate and nothing warns.
+# Its protocol reaches Gemini through the top-level command instead.
+GEMINI_SKIPPED_AGENTS='composer conductor'
+
 setup_formatting() {
   if [ -t 1 ] && [ "${TERM-}" != "dumb" ] && [ -z "${NO_COLOR-}" ]; then
     ESC=$(printf '\033')
@@ -434,8 +439,36 @@ sync_view_md() {
   rm -f -- "$tmp"
 }
 
+# Read one scalar frontmatter value, unquoting a quoted form.
+frontmatter_value() {
+  awk -v key="$2" '
+        index($0, key ":") == 1 {
+            sub("^" key ":[[:space:]]*", "")
+            if (sub(/^"/, "")) sub(/"$/, "")
+            else if (sub(/^\047/, "")) sub(/\047$/, "")
+            print
+            exit
+        }
+    ' "$1"
+}
+
+# A Gemini command prompt is a TOML literal string the CLI expands before it
+# runs: ''' closes the string early, while !{...} executes a shell command and
+# @{...} reads a file, both at expansion time.
+assert_prompt_safe() {
+  guard_file=$1
+  guard_label=$2
+  for guard_sigil in "'''" '!{' '@{'; do
+    if grep -qF -- "$guard_sigil" "$guard_file"; then
+      die "refusing to inline $guard_label: contains $guard_sigil"
+    fi
+  done
+}
+
 # Prompt fragments are inserted into a TOML literal string and must not
-# contain '''.
+# contain '''. An "agent: <name>" template key inlines that canonical agent
+# body, because Gemini's TOML command schema has no agent binding and the
+# primary session is the only one that holds invoke_agent.
 sync_view_toml() {
   kind=$1
   src=$2
@@ -451,16 +484,20 @@ sync_view_toml() {
   frontmatter_overlay "$src" "$tmpl" "$merged"
   split_frontmatter "$merged" "$fm" "$body"
 
-  description=$(awk '
-        /^description:/ {
-            sub(/^description:[[:space:]]*/, "")
-            if (sub(/^"/, "")) sub(/"$/, "")
-            else if (sub(/^\047/, "")) sub(/\047$/, "")
-            print
-            exit
-        }
-    ' "$fm")
+  description=$(frontmatter_value "$fm" description)
   description_escaped=$(printf '%s' "$description" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
+  agent=$(frontmatter_value "$fm" agent)
+  agent_body=
+  if [ -n "$agent" ]; then
+    agent_src="$REPO_ROOT/.agents/agents/$agent.md"
+    [ -f "$agent_src" ] || die "agent source missing: $agent_src"
+    agent_body=$(mktemp) || die "mktemp failed"
+    agent_fm=$(mktemp) || die "mktemp failed"
+    split_frontmatter "$agent_src" "$agent_fm" "$agent_body"
+    rm -f -- "$agent_fm"
+    assert_prompt_safe "$agent_body" "$agent_src"
+  fi
 
   tmp=$(mktemp) || die "mktemp failed"
   {
@@ -468,6 +505,10 @@ sync_view_toml() {
     printf "prompt = '''\n"
     if [ -f "$preamble" ]; then
       cat -- "$preamble"
+      printf '\n'
+    fi
+    if [ -n "$agent_body" ]; then
+      cat -- "$agent_body"
       printf '\n'
     fi
     cat -- "$body"
@@ -483,6 +524,17 @@ sync_view_toml() {
   unset SYNC_TO_LABEL
 
   rm -f -- "$merged" "$fm" "$body" "$tmp"
+  if [ -n "$agent_body" ]; then
+    rm -f -- "$agent_body"
+    agent_body=
+  fi
+}
+
+gemini_agent_skipped() {
+  case " $GEMINI_SKIPPED_AGENTS " in
+  *" $1 "*) return 0 ;;
+  esac
+  return 1
 }
 
 sync_agents() {
@@ -503,7 +555,9 @@ sync_agents() {
 
     for_host claude sync_view ".claude/agents" "$f" "$HOME/.claude/agents/$name.md"
     for_host copilot sync_view ".copilot/agents" "$f" "$HOME/.copilot/agents/$name.agent.md"
-    for_host gemini sync_view ".gemini/agents" "$f" "$HOME/.gemini/agents/$name.md"
+    if ! gemini_agent_skipped "$name"; then
+      for_host gemini sync_view ".gemini/agents" "$f" "$HOME/.gemini/agents/$name.md"
+    fi
     for_host opencode sync_view ".opencode/agents" "$f" "$HOME/.config/opencode/agents/$name.md"
   done
 }
