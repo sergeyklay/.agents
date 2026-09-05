@@ -312,6 +312,26 @@ for sigil in "'''" '!{echo pwned}' '@{/etc/passwd}'; do
   assert_absent "$guard_home/.gemini/commands/specify.toml"
 done
 
+home=$(new_home gemini-stale-orchestrator-agents)
+# Skipping the two orchestrators only stops the installer writing them. Per-file
+# views go through `rsync -a` with no `--delete`, so a copy an earlier install
+# left in place survives untouched, keeps advertising `invoke_agent`, and is now
+# frozen because nothing overwrites it either. The fresh-home assertion above
+# passes trivially since nothing ever wrote those paths; this is the case that
+# decides whether R-3 holds for a machine that already ran the old installer.
+mkdir -p "$home/.gemini/agents"
+for agent in composer conductor; do
+  printf -- '---\nname: %s\ntools:\n  - invoke_agent\n---\n\nstale body\n' \
+    "$agent" >"$home/.gemini/agents/$agent.md"
+done
+stale_output=$(NO_COLOR=1 TERM=xterm HOME="$home" sh "$INSTALLER" --agents --gemini)
+assert_absent "$home/.gemini/agents/composer.md"
+assert_absent "$home/.gemini/agents/conductor.md"
+assert_contains "$stale_output" 'removed disarmed orchestrator'
+# The removal is keyed to the skip list, not to the directory.
+assert_file "$home/.gemini/agents/architect.md"
+assert_file "$home/.gemini/agents/sleuth.md"
+
 home=$(new_home copilot-reasoning-effort)
 run_install "$home" --agents --copilot
 # A Copilot view that pins no effort runs at whatever effort the parent
