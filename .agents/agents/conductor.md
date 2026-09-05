@@ -60,7 +60,7 @@ After the implementation subagent returns, proceed to Phase 3.
 
 ### Phase 3: Check Findings
 
-Use the list of `.findings/Finding-*.md` file paths reported by the implementation subagent in its result. Because the implementation subagent's first action was `rm -rf .findings/`, any files listed here were created during this pipeline run. If the implementation subagent's summary omitted the list, read the `.findings/` directory once to enumerate them (fallback path).
+Use the list of `.findings/Finding-*.md` file paths reported by the implementation subagent in its result. Because the implementation subagent's first action was `rm -rf .findings/`, any files listed here were created during this pipeline run. If the implementation subagent's summary omitted the list, enumerate them once by searching for `.findings/Finding-*.md` by filename (fallback path).
 
 **If no finding files exist:** proceed to Phase 4.
 
@@ -176,3 +176,4 @@ Revise Specification to address the deviations, then re-run the pipeline.
 7. **One pipeline run, one task.** Do not batch multiple issues or features into a single pipeline run.
 8. **Clean before run.** The implementation subagent's delegation prompt begins with `rm -rf .findings/` so the implementation subagent executes the cleanup itself. Findings are ephemeral - scoped to a single pipeline run, not persistent state.
 9. **No post-processing verification.** After the tester subagent returns, do NOT run additional terminal commands.
+10. **Read each artifact once.** The implementation summary, the tester's labeled status lines, and the reported `.findings/` paths are the handoff. Once a plan, finding, or source file is in your context, do not read it again. An unchanged file returns nothing new, and every re-read costs a full context round trip. Read a path a second time only after a subagent reports writing to it. To check one line or one symbol, search the file's content with the search tool in your toolbox rather than pulling the whole file into context. To locate a file whose exact name or directory you do not know, search by filename; never probe for a path by reading it.

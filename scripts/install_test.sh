@@ -151,6 +151,23 @@ assert_absent "$home/.copilot/agents"
 assert_absent "$home/.gemini/agents"
 assert_absent "$home/.config/opencode/agents"
 
+home=$(new_home orchestrator-search-tools)
+run_install "$home" --agents
+# The orchestrators inspect artifacts they never write. Without a targeted search
+# tool, checking one line of a review means pulling the whole file into context,
+# and the cheapest way to check it again is to pull it again. Every host that
+# ships a tool list must carry a content search and a filename search.
+for agent in composer conductor; do
+  assert_frontmatter "$home/.claude/agents/$agent.md" '  - Grep'
+  assert_frontmatter "$home/.claude/agents/$agent.md" '  - Glob'
+  assert_frontmatter "$home/.copilot/agents/$agent.agent.md" '  - search/textSearch'
+  assert_frontmatter "$home/.copilot/agents/$agent.agent.md" '  - search/fileSearch'
+  assert_frontmatter "$home/.gemini/agents/$agent.md" '  - grep_search'
+  assert_frontmatter "$home/.gemini/agents/$agent.md" '  - glob'
+  # OpenCode ships no tool list for these agents, so there is nothing to widen.
+  assert_no_frontmatter_key "$home/.config/opencode/agents/$agent.md" 'tools'
+done
+
 home=$(new_home multiple-hosts)
 run_install "$home" --gemini --commands --opencode
 assert_file "$home/.gemini/commands/challenge-pr.toml"

@@ -1,6 +1,8 @@
 tools:
   - invoke_agent
   - read_file
+  - glob
+  - grep_search
   - write_todos
   - mcp_atlassian_getJiraIssue
   - mcp_atlassian_searchJiraIssuesUsingJql
