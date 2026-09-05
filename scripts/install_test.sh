@@ -59,6 +59,26 @@ assert_not_contains() {
   esac
 }
 
+frontmatter_of() {
+  awk 'NR == 1 && $0 == "---" { inside = 1; next }
+       inside && $0 == "---" { exit }
+       inside { print }' "$1"
+}
+
+assert_frontmatter() {
+  if ! frontmatter_of "$1" | grep -qxF "$2"; then
+    printf 'expected frontmatter line in %s: %s\n' "$1" "$2" >&2
+    exit 1
+  fi
+}
+
+assert_no_frontmatter_key() {
+  if frontmatter_of "$1" | grep -q "^$2:"; then
+    printf 'unexpected frontmatter key in %s: %s\n' "$1" "$2" >&2
+    exit 1
+  fi
+}
+
 escape=$(printf '\033')
 help_output=$(NO_COLOR=1 TERM=xterm sh "$INSTALLER" --help)
 assert_contains "$help_output" 'Usage'
@@ -111,6 +131,16 @@ assert_file "$home/.claude/rules/commit-messages.md"
 assert_file "$home/.claude/settings.json"
 assert_file "$home/.claude/skills/context-files/SKILL.md"
 assert_same "$CONTEXT" "$home/.claude/CLAUDE.md"
+# The orchestrator commands must fork into their agent, and must not pin that
+# fork to the invoking turn: a fork that cannot take a later turn never
+# receives its delegated subagent's completion notification.
+for command in specify implement; do
+  assert_file "$home/.claude/commands/$command.md"
+  assert_frontmatter "$home/.claude/commands/$command.md" 'context: fork'
+  assert_no_frontmatter_key "$home/.claude/commands/$command.md" 'background'
+done
+assert_frontmatter "$home/.claude/commands/specify.md" 'agent: composer'
+assert_frontmatter "$home/.claude/commands/implement.md" 'agent: conductor'
 jq -e '
   .permissions.defaultMode == "dontAsk" and
   (.permissions.deny | index("Read(**/.env)") != null) and
