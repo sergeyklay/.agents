@@ -207,8 +207,8 @@ progress_skipped() {
 
 progress_removed() {
   UPDATED_COUNT=$((UPDATED_COUNT + 1))
-  printf '  %s-%s %s %s(removed stale rule)%s\n' "$GREEN" "$RESET" \
-    "$(display_path "$1")" "$DIM" "$RESET"
+  printf '  %s-%s %s %s(%s)%s\n' "$GREEN" "$RESET" \
+    "$(display_path "$1")" "$DIM" "$2" "$RESET"
 }
 
 print_plan() {
@@ -537,6 +537,22 @@ gemini_agent_skipped() {
   return 1
 }
 
+# Per-file views are written with rsync and never pruned, so skipping an
+# agent leaves any copy an earlier install wrote exactly where it was. A
+# leftover orchestrator still advertises a delegation tool the host removes
+# without warning, and is now frozen because nothing overwrites it either.
+# Unlike a stale rule, this destination has no canonical twin to compare
+# against, and sync_view has always overwritten it unconditionally.
+cleanup_skipped_gemini_agents() {
+  for skipped in $GEMINI_SKIPPED_AGENTS; do
+    stale="$HOME/.gemini/agents/$skipped.md"
+    if [ -e "$stale" ] || [ -L "$stale" ]; then
+      rm -f -- "$stale"
+      progress_removed "$stale" 'removed disarmed orchestrator'
+    fi
+  done
+}
+
 sync_agents() {
   any_host_active claude copilot gemini opencode || return 0
   progress_section "Agent definitions"
@@ -560,6 +576,8 @@ sync_agents() {
     fi
     for_host opencode sync_view ".opencode/agents" "$f" "$HOME/.config/opencode/agents/$name.md"
   done
+
+  for_host gemini cleanup_skipped_gemini_agents
 }
 
 sync_commands() {
@@ -700,7 +718,7 @@ cleanup_stale_working_agreement() {
   [ -e "$stale" ] || [ -L "$stale" ] || return 0
   if [ -f "$stale" ] && stale_rule_matches_context "$stale" "$context"; then
     rm -f -- "$stale"
-    progress_removed "$stale"
+    progress_removed "$stale" 'removed stale rule'
   else
     progress_skipped "$stale" "modified stale file preserved"
   fi
