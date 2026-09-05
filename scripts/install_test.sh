@@ -86,6 +86,11 @@ assert_no_frontmatter_key() {
   fi
 }
 
+# Write a spec of exactly $1 words, to drive the validator's word budget.
+filler_spec() {
+  awk -v n="$1" 'BEGIN { for (i = 0; i < n; i++) print "word" }' >"$2"
+}
+
 escape=$(printf '\033')
 help_output=$(NO_COLOR=1 TERM=xterm sh "$INSTALLER" --help)
 assert_contains "$help_output" 'Usage'
@@ -206,6 +211,37 @@ if validator_output=$(python3 "$validator" "$broken_spec"); then
 fi
 assert_contains "$validator_output" 'VALIDATION_RESULT=FAIL'
 assert_contains "$validator_output" 'fix all errors in one pass, then re-run once'
+
+# A document far over its word budget is a scope signal, not a writing problem,
+# and the validator knows the number before review does. Both sides are
+# asserted: a band that also fires on a modest overrun teaches the agent to
+# ignore it, which costs more than saying nothing.
+budget_warning='if it covers more than one independently shippable goal'
+split_guidance='Ask the user whether to split it into two'
+
+huge_spec="$TEST_ROOT/Spec-huge.md"
+filler_spec 14000 "$huge_spec"
+if huge_output=$(python3 "$validator" "$huge_spec"); then
+  printf 'expected the validator to fail on a spec with no sections\n' >&2
+  exit 1
+fi
+assert_contains "$huge_output" 'document_words=14000'
+assert_contains "$huge_output" "$budget_warning"
+assert_contains "$huge_output" "$split_guidance"
+
+slight_spec="$TEST_ROOT/Spec-slightly-over.md"
+filler_spec 7100 "$slight_spec"
+if slight_output=$(python3 "$validator" "$slight_spec"); then
+  printf 'expected the validator to fail on a spec with no sections\n' >&2
+  exit 1
+fi
+assert_contains "$slight_output" 'document_words=7100'
+assert_contains "$slight_output" "$budget_warning"
+assert_not_contains "$slight_output" "$split_guidance"
+
+# The broken spec above is two words long, so neither band may fire on it.
+assert_not_contains "$validator_output" "$budget_warning"
+assert_not_contains "$validator_output" "$split_guidance"
 
 home=$(new_home multiple-hosts)
 run_install "$home" --gemini --commands --opencode
