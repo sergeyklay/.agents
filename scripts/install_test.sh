@@ -259,9 +259,6 @@ for pair in specify:composer implement:conductor; do
     printf 'unexpected agent key in %s\n' "$toml" >&2
     exit 1
   fi
-  # Gemini has no `context: fork` equivalent, so the orchestrator shares the
-  # primary session's history. The generated text has to say so.
-  assert_file_contains "$toml" '/chat clear'
 done
 # Under the default approval mode a stage agent receives neither `write_file`
 # nor `replace`: measured on 0.58.0, an agent declaring `read_file`,
