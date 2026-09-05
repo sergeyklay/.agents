@@ -316,6 +316,21 @@ if grep -q '^action[[:space:]]*=' "$home/.gemini/policies/safe-commands.toml"; t
   printf 'unexpected action key in installed policy\n' >&2
   exit 1
 fi
+# `buildArgsPatterns` prefix-anchors by concatenating `"command":"` with the
+# rule's own pattern, so a top-level alternation anchors only its first branch
+# and every later branch matches anywhere in the stringified arguments. Measured
+# on the spelling this replaced: `echo sudo hello` and
+# `git commit -m 'remove sudo from docs'` were both denied. Every commandRegex
+# here must open with a group so the anchor reaches all of its branches.
+if grep '^commandRegex = ' "$home/.gemini/policies/safe-commands.toml" |
+  grep -qv '^commandRegex = "(?:'; then
+  printf 'commandRegex without a leading group in installed policy\n' >&2
+  exit 1
+fi
+# The whole-word half of the same rule. commandPrefix anchors each entry on its
+# own and appends a word boundary, which is what keeps `sudo` off `sudoku`.
+assert_file_contains "$home/.gemini/policies/safe-commands.toml" \
+  'commandPrefix = ["sudo", "su", "shutdown", "reboot", "eval"]'
 # The repository's own `.gemini/settings.json` is the workspace scope for any
 # Gemini session started inside this repository, and workspace beats user. A
 # `false` for either key here disarms every agent and every skill the installer

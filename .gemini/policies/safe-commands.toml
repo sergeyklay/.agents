@@ -140,9 +140,35 @@ decision = "allow"
 priority = 100
 
 # ── Dangerous commands ───────────────────────────────────────────
+#
+# `buildArgsPatterns` prefix-anchors by string concatenation: it emits
+# `"command":"` followed by the rule's own pattern. A top-level alternation
+# therefore anchors only its first branch, and every later branch matches
+# anywhere in the stringified arguments. The single rule these two replace
+# spelled `rm -rf /|sudo|su |...`, so `sudo` matched `echo sudo hello` and
+# `git commit -m 'remove sudo from docs'`, both of which were denied.
+#
+# `commandPrefix` anchors each array entry separately and appends `(?:[\s"]|\")`,
+# which supplies a word boundary for free. That boundary is why `sudo` does not
+# match `sudoku`, and also why a prefix that continues mid-token cannot use this
+# form at all: `mkfs` would not match `mkfs.ext4`, and `dd if=` would not match
+# `dd if=/dev/zero`. Whole-word commands go here.
+
 [[rule]]
 toolName = "run_shell_command"
-commandRegex = "rm -rf /|sudo|su |shutdown|reboot|mkfs|dd if=|:(){ :|eval "
+commandPrefix = ["sudo", "su", "shutdown", "reboot", "eval"]
+decision = "deny"
+deny_message = "Blocked: potentially destructive system command"
+priority = 200
+
+# The four prefixes that must match mid-token, as one alternation wrapped in a
+# group so the anchor applies to every branch rather than only the first.
+# `:\(\)\{` replaces the old `:(){ :` branch, which was read as regex `:` plus an
+# empty group plus `{ :`, matched the literal string `:{ :`, and so never matched
+# a real fork bomb.
+[[rule]]
+toolName = "run_shell_command"
+commandRegex = "(?:rm -rf /|mkfs|dd if=|:\\(\\)\\{)"
 decision = "deny"
 deny_message = "Blocked: potentially destructive system command"
 priority = 200
