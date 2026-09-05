@@ -59,6 +59,13 @@ assert_not_contains() {
   esac
 }
 
+assert_file_contains() {
+  if ! grep -qF -- "$2" "$1"; then
+    printf 'expected %s to contain: %s\n' "$1" "$2" >&2
+    exit 1
+  fi
+}
+
 frontmatter_of() {
   awk 'NR == 1 && $0 == "---" { inside = 1; next }
        inside && $0 == "---" { exit }
@@ -167,6 +174,38 @@ for agent in composer conductor; do
   # OpenCode ships no tool list for these agents, so there is nothing to widen.
   assert_no_frontmatter_key "$home/.config/opencode/agents/$agent.md" 'tools'
 done
+
+home=$(new_home skills-authoring-parity)
+run_install "$home" --skills
+# The writing-specs authoring procedure is the control on edit churn, and it is
+# worth nothing on a host that never receives it. Skills install to all five
+# hosts, so every installed copy must carry the rule, not only Claude Code's.
+for skill_root in "$home/.claude/skills" "$home/.codex/skills" \
+  "$home/.copilot/skills" "$home/.gemini/skills" \
+  "$home/.config/opencode/skills"; do
+  spec_skill="$skill_root/writing-specs/SKILL.md"
+  assert_file "$spec_skill"
+  assert_file_contains "$spec_skill" '#### Authoring procedure'
+  assert_file_contains "$spec_skill" \
+    '**Draft the whole document before the first write.**'
+  assert_file_contains "$spec_skill" \
+    '**Group revisions into as few calls as the host allows.**'
+  assert_file_contains "$spec_skill" \
+    '**Never re-read a file you wrote yourself.**'
+done
+# The validator gathers every error before it prints. Its failure line has to
+# say so, or an agent that reads "N error(s)" and nothing else re-runs the
+# script after each single fix, which is the churn the rule above forbids.
+broken_spec="$TEST_ROOT/Spec-broken.md"
+printf '# Broken\n' >"$broken_spec"
+validator="$home/.claude/skills/writing-specs/scripts/validate_spec.py"
+assert_file "$validator"
+if validator_output=$(python3 "$validator" "$broken_spec"); then
+  printf 'expected the validator to fail on a spec with no sections\n' >&2
+  exit 1
+fi
+assert_contains "$validator_output" 'VALIDATION_RESULT=FAIL'
+assert_contains "$validator_output" 'fix all errors in one pass, then re-run once'
 
 home=$(new_home multiple-hosts)
 run_install "$home" --gemini --commands --opencode

@@ -319,7 +319,11 @@ def main() -> int:
 
     if errors:
         print("VALIDATION_RESULT=FAIL")
-        print(f"Validation failed: {len(errors)} error(s), {len(warnings)} warning(s)")
+        print(
+            f"Validation failed: {len(errors)} error(s), "
+            f"{len(warnings)} warning(s); fix all errors in one pass, "
+            "then re-run once"
+        )
         return 1
 
     print("VALIDATION_RESULT=PASS")
