@@ -246,6 +246,26 @@ for view in "$home"/.copilot/agents/*.agent.md; do
   assert_no_frontmatter_key "$view" 'agents'
 done
 
+home=$(new_home sleuth-report-terminal)
+run_install "$home" --agents --claude
+# The sleuth workflow is an ordered list the agent executes, and it treats the
+# last step as its final output. While that step was the `improve-self` trigger
+# check, the agent closed on its own self-assessment and the deliverable had to
+# be requested in a second message, costing a full extra run every time. So the
+# report has to be the step that ends the list, and the self-assessment has to
+# survive as a step that no longer ends it. Assert both: a body that drops the
+# self-assessment altogether would satisfy the first half on its own.
+sleuth_agent="$home/.claude/agents/sleuth.md"
+assert_file "$sleuth_agent"
+sleuth_workflow=$(sed -n '/^## Workflow$/,/^## /p' "$sleuth_agent")
+sleuth_last_step=$(printf '%s\n' "$sleuth_workflow" | grep '^[0-9][0-9]*\. ' | tail -n 1)
+assert_contains "$sleuth_last_step" '**Deliver the report.**'
+assert_not_contains "$sleuth_last_step" 'improve-self'
+assert_contains "$sleuth_workflow" '**Self-assess.**'
+# That last step has to point somewhere, or it is one more imperative competing
+# with the five above it. The output contract lives in its own section.
+assert_file_contains "$sleuth_agent" '## Report'
+
 home=$(new_home skills-authoring-parity)
 run_install "$home" --skills
 # The writing-specs authoring procedure is the control on edit churn, and it is
