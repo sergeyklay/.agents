@@ -185,7 +185,16 @@ run_install "$home" --agents --copilot
 # Claude pins an effort per agent and OpenCode pins the same levels, so a
 # Copilot view that pins none runs at whatever effort the parent session
 # happened to hold. The levels must therefore survive into the Copilot view.
-assert_frontmatter "$home/.copilot/agents/architect.agent.md" 'reasoning-effort: max'
+# The architect is the one agent whose level is not Claude's. Copilot resolves
+# each level against the pinned model, and the level set differs per model:
+# `GPT-5.5 (copilot)` offers no `max`, so the `max` Claude's architect uses
+# would be dropped at dispatch and the agent would fall back to the session
+# effort. `xhigh` is that model's ceiling and keeps the intent. Claude's
+# architect can use `max` because it runs on Opus, which has it. Do not
+# "restore" `max` here to match Claude without also changing the pinned model:
+# the loader accepts any string for this key without warning, so a level the
+# model does not offer installs clean and fails silently later.
+assert_frontmatter "$home/.copilot/agents/architect.agent.md" 'reasoning-effort: xhigh'
 assert_frontmatter "$home/.copilot/agents/sleuth.agent.md" 'reasoning-effort: xhigh'
 for agent in arch-review composer conductor planner \
   go-coder go-tester ts-coder ts-tester; do
