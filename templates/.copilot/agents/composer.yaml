@@ -1,6 +1,6 @@
 name: Composer
-argument-hint: Tracker reference, feature description, or path to an existing spec
 model: GPT-5.5 (copilot)
+reasoning-effort: high
 tools:
   - agent
   - read/readFile
@@ -16,7 +16,3 @@ tools:
   - atlassian/searchConfluenceUsingCql
   - atlassian/searchJiraIssuesUsingJql
   - context7/*
-agents:
-  - Architect
-  - Planner
-  - Reviewer

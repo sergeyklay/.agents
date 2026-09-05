@@ -1,6 +1,6 @@
 name: Architect
-argument-hint: Specify the feature, tracker reference, or design question to architect
 model: GPT-5.5 (copilot)
+reasoning-effort: max
 tools:
   - execute/getTerminalOutput
   - execute/killTerminal

@@ -1,6 +1,6 @@
 name: Planner
-argument-hint: Specify the spec file, tracker reference, or feature description to plan
 model: Claude Sonnet 4.6 (copilot)
+reasoning-effort: high
 tools:
   - execute/getTerminalOutput
   - execute/killTerminal
