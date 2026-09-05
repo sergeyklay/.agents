@@ -1,4 +1,7 @@
 {
+  "general": {
+    "defaultApprovalMode": "auto_edit"
+  },
   "model": {
     "name": "gemini-3.1-pro-preview"
   },

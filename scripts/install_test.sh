@@ -263,6 +263,17 @@ for pair in specify:composer implement:conductor; do
   # primary session's history. The generated text has to say so.
   assert_file_contains "$toml" '/chat clear'
 done
+# Under the default approval mode a stage agent receives neither `write_file`
+# nor `replace`: measured on 0.58.0, an agent declaring `read_file`,
+# `write_file`, `replace` and `run_shell_command` gets 2 tools under `default`
+# and 4 under `auto_edit`. The pipeline then cannot write a spec or a plan and
+# reports success anyway. `general.defaultApprovalMode` carries the mitigation
+# without a flag, and is the only one of the two that a settings file can hold:
+# `"yolo"` there is discarded and falls back to `default`.
+jq -e '.general.defaultApprovalMode == "auto_edit"' \
+  "$home/.gemini/settings.json" >/dev/null
+# The merge is a deep merge, so a host-local sibling key survives it.
+jq -e '.general.vimMode == true' "$home/.gemini/settings.json" >/dev/null
 # The policy engine honors a singular `[[rule]]` table with a `decision` field.
 # The plural table and the `action` field, both of which the shipped Gemini
 # documentation uses, are discarded with no diagnostic at all.
