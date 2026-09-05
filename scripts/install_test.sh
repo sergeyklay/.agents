@@ -176,9 +176,34 @@ for agent in composer conductor; do
   assert_frontmatter "$home/.copilot/agents/$agent.agent.md" '  - search/fileSearch'
   assert_frontmatter "$home/.gemini/agents/$agent.md" '  - grep_search'
   assert_frontmatter "$home/.gemini/agents/$agent.md" '  - glob'
-  # OpenCode ships no tool list for these agents, so there is nothing to widen.
+  # OpenCode has no tool list to widen: an agent that names no tools keeps the
+  # default `"*": allow`, which already covers both searches. A `tools` key
+  # here would only narrow that, and the list shape every other host uses fails
+  # the whole config load on OpenCode 1.18.27 ("Expected object | undefined"),
+  # taking every other agent down with it. OpenCode's own widening for these
+  # two agents is the delegation block asserted below, not a tool list.
   assert_no_frontmatter_key "$home/.config/opencode/agents/$agent.md" 'tools'
 done
+
+home=$(new_home opencode-orchestrator-delegation)
+run_install "$home" --agents --settings --opencode
+# Delegation is the entire protocol of both orchestrators, and OpenCode 1.18.27
+# revokes it from every subagent session the task tool spawns: deriving the
+# child session's permissions appends `task: deny`, and separately
+# `todowrite: deny`, unless the agent already carries a rule whose permission
+# name is literally that string. A blanket `"*": allow` does not satisfy the
+# test, because it resolves to a rule named `*`; only the spelled-out keys
+# survive. Without them the tool is dropped from the request before the model
+# ever sees it, so the agent does not fail loudly, it simply never delegates.
+for agent in composer conductor; do
+  assert_frontmatter "$home/.config/opencode/agents/$agent.md" 'permission:'
+  assert_frontmatter "$home/.config/opencode/agents/$agent.md" '  task: allow'
+  assert_frontmatter "$home/.config/opencode/agents/$agent.md" '  todowrite: allow'
+done
+# Naming the keys only cancels the automatic deny; the depth ceiling is a
+# separate gate, and at its default of 1 a subagent still cannot spawn one.
+# The setting is global, so the repository's own copy is what has to carry it.
+assert_file_contains "$home/.config/opencode/opencode.json" '"subagent_depth": 2'
 
 home=$(new_home copilot-reasoning-effort)
 run_install "$home" --agents --copilot

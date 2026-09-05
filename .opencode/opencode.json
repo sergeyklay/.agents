@@ -3,6 +3,7 @@
   "instructions": [
     "~/.config/opencode/rules/*.md"
   ],
+  "subagent_depth": 2,
   "permission": {
     "skill": {
       "scan-security": "deny"
