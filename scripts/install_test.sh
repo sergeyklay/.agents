@@ -182,9 +182,10 @@ done
 
 home=$(new_home copilot-reasoning-effort)
 run_install "$home" --agents --copilot
-# Claude pins an effort per agent and OpenCode pins the same levels, so a
-# Copilot view that pins none runs at whatever effort the parent session
-# happened to hold. The levels must therefore survive into the Copilot view.
+# A Copilot view that pins no effort runs at whatever effort the parent
+# session happened to hold, so every view pins one. The levels themselves are
+# per host: each host pins against its own models, and OpenCode's set already
+# differs from Claude's, including agents it leaves unpinned entirely.
 # The architect is the one agent whose level is not Claude's. Copilot resolves
 # each level against the pinned model, and the level set differs per model:
 # `GPT-5.5 (copilot)` offers no `max`, so the `max` Claude's architect uses
