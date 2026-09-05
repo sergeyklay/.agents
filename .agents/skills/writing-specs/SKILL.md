@@ -106,6 +106,14 @@ Use the same slug across all related artifacts (spec, review, plan) so traceabil
 
 Use the template in [assets/spec-template.md](assets/spec-template.md) as the structural foundation. Fill every section. Do not leave placeholders. Each section that genuinely cannot be filled MUST include a note explaining why and what information is needed to fill it.
 
+#### Authoring procedure
+
+These rules govern how the document reaches disk, not what it says. Every tool call is a round trip that re-sends the whole context, so a spec grown by thirty small edits costs roughly thirty times what the same spec costs written once.
+
+1. **Draft the whole document before the first write.** Compose it in your reasoning trace, then emit it in a single `Write`. Do not write a skeleton and fill it in.
+2. **Group revisions into as few calls as the host allows.** No host in this family ships a batch-edit tool. Claude Code's `Edit`, Gemini CLI's `replace`, and the `edit` tool on Copilot and OpenCode each carry one `old_string` and `new_string` pair, and their `replace_all` and `allow_multiple` flags repeat one string across a file rather than carrying distinct changes. What every host does support is several independent tool calls in one turn, so issue the edits together instead of one per turn. When the pending changes reach most of the document, rewrite it with one `Write`.
+3. **Never re-read a file you wrote yourself.** You know its contents and the tool result confirmed the write. Re-read only when something other than you changed it.
+
 #### Output rules
 
 These rules are non-negotiable. Every rule reflects a class of defect that delays implementation.
@@ -141,7 +149,7 @@ The `[i]` line reports the counts on every run, including passing ones. Use it.
 
 When the document is over its word budget, compressing prose is the wrong first move. Ask first whether the spec covers more than one independently shippable goal, meaning two or more deliverables that could each be reviewed, tested, and merged without the other. If it does, that is the finding: say so in your Specification Summary and propose the split, rather than trimming a document that is long because it is doing two jobs. Only when the spec is genuinely single-goal is the remaining length a writing problem, and then rules 11 to 13 above are where it is solved.
 
-If validation reports errors, fix them and re-run the checklist. Do not report the spec complete until the script exits zero and every checklist item passes.
+If validation reports errors, fix every one of them in a single revision pass, then re-run once. The script gathers all errors before it prints, so one run already names everything that is wrong; re-running after each individual fix buys no information and costs a round trip. Do not report the spec complete until the script exits zero and every checklist item passes.
 
 ## Writing standards
 

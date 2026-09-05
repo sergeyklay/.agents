@@ -59,6 +59,13 @@ assert_not_contains() {
   esac
 }
 
+assert_file_contains() {
+  if ! grep -qF -- "$2" "$1"; then
+    printf 'expected %s to contain: %s\n' "$1" "$2" >&2
+    exit 1
+  fi
+}
+
 frontmatter_of() {
   awk 'NR == 1 && $0 == "---" { inside = 1; next }
        inside && $0 == "---" { exit }
@@ -77,6 +84,11 @@ assert_no_frontmatter_key() {
     printf 'unexpected frontmatter key in %s: %s\n' "$1" "$2" >&2
     exit 1
   fi
+}
+
+# Write a spec of exactly $1 words, to drive the validator's word budget.
+filler_spec() {
+  awk -v n="$1" 'BEGIN { for (i = 0; i < n; i++) print "word" }' >"$2"
 }
 
 escape=$(printf '\033')
@@ -167,6 +179,69 @@ for agent in composer conductor; do
   # OpenCode ships no tool list for these agents, so there is nothing to widen.
   assert_no_frontmatter_key "$home/.config/opencode/agents/$agent.md" 'tools'
 done
+
+home=$(new_home skills-authoring-parity)
+run_install "$home" --skills
+# The writing-specs authoring procedure is the control on edit churn, and it is
+# worth nothing on a host that never receives it. Skills install to all five
+# hosts, so every installed copy must carry the rule, not only Claude Code's.
+for skill_root in "$home/.claude/skills" "$home/.codex/skills" \
+  "$home/.copilot/skills" "$home/.gemini/skills" \
+  "$home/.config/opencode/skills"; do
+  spec_skill="$skill_root/writing-specs/SKILL.md"
+  assert_file "$spec_skill"
+  assert_file_contains "$spec_skill" '#### Authoring procedure'
+  assert_file_contains "$spec_skill" \
+    '**Draft the whole document before the first write.**'
+  assert_file_contains "$spec_skill" \
+    '**Group revisions into as few calls as the host allows.**'
+  assert_file_contains "$spec_skill" \
+    '**Never re-read a file you wrote yourself.**'
+done
+# The validator gathers every error before it prints. Its failure line has to
+# say so, or an agent that reads "N error(s)" and nothing else re-runs the
+# script after each single fix, which is the churn the rule above forbids.
+broken_spec="$TEST_ROOT/Spec-broken.md"
+printf '# Broken\n' >"$broken_spec"
+validator="$home/.claude/skills/writing-specs/scripts/validate_spec.py"
+assert_file "$validator"
+if validator_output=$(python3 "$validator" "$broken_spec"); then
+  printf 'expected the validator to fail on a spec with no sections\n' >&2
+  exit 1
+fi
+assert_contains "$validator_output" 'VALIDATION_RESULT=FAIL'
+assert_contains "$validator_output" 'fix all errors in one pass, then re-run once'
+
+# A document far over its word budget is a scope signal, not a writing problem,
+# and the validator knows the number before review does. Both sides are
+# asserted: a band that also fires on a modest overrun teaches the agent to
+# ignore it, which costs more than saying nothing.
+budget_warning='if it covers more than one independently shippable goal'
+split_guidance='Ask the user whether to split it into two'
+
+huge_spec="$TEST_ROOT/Spec-huge.md"
+filler_spec 14000 "$huge_spec"
+if huge_output=$(python3 "$validator" "$huge_spec"); then
+  printf 'expected the validator to fail on a spec with no sections\n' >&2
+  exit 1
+fi
+assert_contains "$huge_output" 'document_words=14000'
+assert_contains "$huge_output" "$budget_warning"
+assert_contains "$huge_output" "$split_guidance"
+
+slight_spec="$TEST_ROOT/Spec-slightly-over.md"
+filler_spec 7100 "$slight_spec"
+if slight_output=$(python3 "$validator" "$slight_spec"); then
+  printf 'expected the validator to fail on a spec with no sections\n' >&2
+  exit 1
+fi
+assert_contains "$slight_output" 'document_words=7100'
+assert_contains "$slight_output" "$budget_warning"
+assert_not_contains "$slight_output" "$split_guidance"
+
+# The broken spec above is two words long, so neither band may fire on it.
+assert_not_contains "$validator_output" "$budget_warning"
+assert_not_contains "$validator_output" "$split_guidance"
 
 home=$(new_home multiple-hosts)
 run_install "$home" --gemini --commands --opencode
