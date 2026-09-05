@@ -91,6 +91,20 @@ filler_spec() {
   awk -v n="$1" 'BEGIN { for (i = 0; i < n; i++) print "word" }' >"$2"
 }
 
+# First non-empty line of a Markdown body, past any YAML frontmatter.
+first_body_line() {
+  awk 'NR == 1 && $0 == "---" { inside = 1; next }
+       inside && $0 == "---"   { inside = 0; body = 1; next }
+       body && NF              { print; exit }' "$1"
+}
+
+assert_toml_parses() {
+  if ! python3 -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$1"; then
+    printf 'expected valid TOML: %s\n' "$1" >&2
+    exit 1
+  fi
+}
+
 escape=$(printf '\033')
 help_output=$(NO_COLOR=1 TERM=xterm sh "$INSTALLER" --help)
 assert_contains "$help_output" 'Usage'
@@ -174,8 +188,8 @@ for agent in composer conductor; do
   assert_frontmatter "$home/.claude/agents/$agent.md" '  - Glob'
   assert_frontmatter "$home/.copilot/agents/$agent.agent.md" '  - search/textSearch'
   assert_frontmatter "$home/.copilot/agents/$agent.agent.md" '  - search/fileSearch'
-  assert_frontmatter "$home/.gemini/agents/$agent.md" '  - grep_search'
-  assert_frontmatter "$home/.gemini/agents/$agent.md" '  - glob'
+  # Gemini receives no orchestrator agent at all, so the two search tools are
+  # asserted below over the eight agents it still gets.
   # OpenCode has no tool list to widen: an agent that names no tools keeps the
   # default `"*": allow`, which already covers both searches. A `tools` key
   # here would only narrow that, and the list shape every other host uses fails
@@ -183,6 +197,11 @@ for agent in composer conductor; do
   # taking every other agent down with it. OpenCode's own widening for these
   # two agents is the delegation block asserted below, not a tool list.
   assert_no_frontmatter_key "$home/.config/opencode/agents/$agent.md" 'tools'
+done
+for agent in architect arch-review planner sleuth \
+  go-coder go-tester ts-coder ts-tester; do
+  assert_frontmatter "$home/.gemini/agents/$agent.md" '  - grep_search'
+  assert_frontmatter "$home/.gemini/agents/$agent.md" '  - glob'
 done
 
 home=$(new_home opencode-orchestrator-delegation)
@@ -204,6 +223,83 @@ done
 # separate gate, and at its default of 1 a subagent still cannot spawn one.
 # The setting is global, so the repository's own copy is what has to carry it.
 assert_file_contains "$home/.config/opencode/opencode.json" '"subagent_depth": 2'
+
+home=$(new_home gemini-orchestrator-command)
+# Gemini CLI 0.58.0 discards every agent-kind tool when it builds a subagent's
+# tool registry, so an orchestrator shipped as a Gemini agent loses
+# `invoke_agent` at load time with no warning, burns its turn budget failing to
+# delegate, and exits 0. The primary session keeps the tool, so the protocol
+# has to arrive as a top-level command instead: `agent: <name>` in the Gemini
+# command template inlines the canonical agent body into the generated prompt.
+# The two disarmed agent files must stop being installed, because their
+# description actively invites the primary model to call them.
+mkdir -p "$home/.gemini"
+printf '{"general": {"vimMode": true}}\n' >"$home/.gemini/settings.json"
+run_install "$home" --agents --commands --settings --gemini
+assert_absent "$home/.gemini/agents/composer.md"
+assert_absent "$home/.gemini/agents/conductor.md"
+assert_file "$home/.gemini/agents/architect.md"
+for pair in specify:composer implement:conductor; do
+  command=${pair%:*}
+  agent=${pair#*:}
+  toml="$home/.gemini/commands/$command.toml"
+  assert_file "$toml"
+  assert_toml_parses "$toml"
+  # The protocol itself, not a summary of it. Derived from the canonical file
+  # so the assertion cannot drift out of date, and distinct per agent so an
+  # installer that inlined the wrong body still fails.
+  assert_file_contains "$toml" \
+    "$(first_body_line "$SCRIPT_DIR/../.agents/agents/$agent.md")"
+  # The command's own body and argument block survive alongside it.
+  assert_file_contains "$toml" '{{args}}'
+  # Gemini's TOML command schema is `prompt` plus optional `description`, and
+  # unknown keys are stripped without a warning. An `agent` key written here
+  # would be a control that looks present and does nothing.
+  if grep -q '^agent[[:space:]]*=' "$toml"; then
+    printf 'unexpected agent key in %s\n' "$toml" >&2
+    exit 1
+  fi
+  # Gemini has no `context: fork` equivalent, so the orchestrator shares the
+  # primary session's history. The generated text has to say so.
+  assert_file_contains "$toml" '/chat clear'
+done
+# The policy engine honors a singular `[[rule]]` table with a `decision` field.
+# The plural table and the `action` field, both of which the shipped Gemini
+# documentation uses, are discarded with no diagnostic at all.
+assert_file_contains "$home/.gemini/policies/safe-commands.toml" '[[rule]]'
+assert_file_contains "$home/.gemini/policies/safe-commands.toml" 'decision ='
+if grep -q '^\[\[rules\]\]' "$home/.gemini/policies/safe-commands.toml"; then
+  printf 'unexpected plural [[rules]] table in installed policy\n' >&2
+  exit 1
+fi
+if grep -q '^action[[:space:]]*=' "$home/.gemini/policies/safe-commands.toml"; then
+  printf 'unexpected action key in installed policy\n' >&2
+  exit 1
+fi
+
+# The inlined body lands inside a TOML literal string that Gemini expands
+# before it runs the prompt. All three counts are 0 in the canonical bodies
+# today, which is exactly why the guard needs a planted body to prove it fires:
+# ''' closes the string early, !{...} executes a shell command at expansion
+# time, and @{...} reads a file.
+fake_repo="$TEST_ROOT/guard-repo"
+mkdir -p "$fake_repo/scripts"
+cp -R -- "$SCRIPT_DIR/../.agents" "$fake_repo/.agents"
+cp -R -- "$SCRIPT_DIR/../templates" "$fake_repo/templates"
+cp -- "$INSTALLER" "$fake_repo/scripts/install.sh"
+for sigil in "'''" '!{echo pwned}' '@{/etc/passwd}'; do
+  printf -- '---\nname: composer\ndescription: "planted"\n---\n\nBody with %s in it.\n' \
+    "$sigil" >"$fake_repo/.agents/agents/composer.md"
+  guard_home=$(new_home "guard-$(printf '%s' "$sigil" | cksum | cut -d' ' -f1)")
+  if guard_output=$(NO_COLOR=1 HOME="$guard_home" \
+    sh "$fake_repo/scripts/install.sh" --commands --gemini 2>&1); then
+    printf 'expected the installer to reject an inlined body containing %s\n' \
+      "$sigil" >&2
+    exit 1
+  fi
+  assert_contains "$guard_output" 'refusing to inline'
+  assert_absent "$guard_home/.gemini/commands/specify.toml"
+done
 
 home=$(new_home copilot-reasoning-effort)
 run_install "$home" --agents --copilot
