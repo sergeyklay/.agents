@@ -59,7 +59,15 @@ assert_not_contains() {
   esac
 }
 
+# An empty needle matches every line, so `grep -qF -- ""` turns any assertion
+# built from a helper's output into one that cannot fail. Refuse it here rather
+# than at each call site, because the empty value is produced upstream and the
+# pass looks identical to a real one.
 assert_file_contains() {
+  if [ -z "$2" ]; then
+    printf 'refusing to match %s against an empty needle\n' "$1" >&2
+    exit 1
+  fi
   if ! grep -qF -- "$2" "$1"; then
     printf 'expected %s to contain: %s\n' "$1" "$2" >&2
     exit 1
@@ -91,9 +99,13 @@ filler_spec() {
   awk -v n="$1" 'BEGIN { for (i = 0; i < n; i++) print "word" }' >"$2"
 }
 
-# First non-empty line of a Markdown body, past any YAML frontmatter.
+# First non-empty line of a Markdown body, past any YAML frontmatter. The
+# frontmatter is optional: a file that does not open with `---` is body from
+# line 1. Without that case the function returns nothing for such a file, and
+# an empty result fed to an assertion is a pass that could never have failed.
 first_body_line() {
   awk 'NR == 1 && $0 == "---" { inside = 1; next }
+       NR == 1                 { body = 1 }
        inside && $0 == "---"   { inside = 0; body = 1; next }
        body && NF              { print; exit }' "$1"
 }
