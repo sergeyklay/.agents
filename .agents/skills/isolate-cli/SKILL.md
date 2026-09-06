@@ -40,10 +40,13 @@ Where the authoritative behavior is readable depends on how the tool ships:
 | Shim or wrapper script | The script and whatever it exec's | Follow the shebang or the exec line to the real entry point |
 | Interpreted package tree (site-packages, gems, node_modules, vendored sources) | Full sources, unminified | Grep the installed tree for a distinctive literal, then read the module that defines it |
 | Single-file bundle (bundled JS, PEX, self-extracting archive) | Usually plain text; build banners with upstream file paths often survive | Locate the chunk with `grep -rlc`, then slice by byte offset, never by line |
+| Split bundle (a directory of generated chunks beside one entry file) | The same as a single-file bundle, but only for the reachable subset | Resolve the import graph from the entry the package manifest names, then locate within that set only |
 | Archive (JAR, WAR, wheel, container layer) | Contents after unpacking | Unpack first, then treat the result as one of the rows above; class files need `javap -c` or a decompiler |
 | Statically linked binary (Go, Rust, C or C++) | Literals and embedded metadata only | `strings -n 6` for path fragments and marker names, `go version -m` for module metadata, then confirm by observation |
 
 Two rules hold across all of them. Enter on a **distinctive literal** (a marker filename, an error string, a config key), never on a common word. And read the declaration that **owns** the paths, the single list the tool itself iterates, not a call site that happens to build one: a call site is a partial view that stays correct until the tool adds a root.
+
+A third rule holds wherever the build emits more than one file: **a hit is not evidence the code runs**. A packager that splits its output writes many generated files into one directory and re-emits the same module into several of them, and only the ones reachable from the entry the manifest names are ever loaded. The unreachable copies carry the same literals as the live one, so a filename search cannot rank them and returns a dead copy as readily as the real one. Walk the static imports from the entry, keep the reachable set, and re-derive any citation that falls outside it. Measured once on a bundle of 72 generated files, 40 were reachable, and a search for one distinctive method name returned three files of which two never execute. Minifiers make this worse in a way that hides it: the live copy may hold a symbolic reference where a dead copy inlined the literal, so searching for the literal finds only the dead ones and the reachable set looks empty.
 
 Never `grep`, `grep -o` or `sed -n` on a bundle to read a match. A single line can be a megabyte wide and one hit floods the context. Slice around the match instead:
 
@@ -121,6 +124,7 @@ Entering the bundle on the literal `.project_root` reaches a build banner naming
 
 - **Taking the state paths from the documentation.** Docs describe the version their author had. The artifact on disk describes the version that will run tonight.
 - **Grepping a bundle for content.** One match prints one megabyte-wide line. Locate with `grep -rlc`, read with a byte-offset slice.
+- **Citing a generated file without proving the entry reaches it.** Duplicate copies of one module across split output are near-identical and a filename search cannot rank them, so a citation can describe code the tool never loads and nothing in the output says so.
 - **Reconstructing the entry name from the working directory.** The tool's own transform owns that name; guessing it deletes somebody else's session, or nothing at all.
 - **Sweeping the whole state directory.** Every entry that is not this run's belongs to another operator, another project, or a process running right now.
 - **Reading a stderr note as noise.** "Policy file error", "rule ignored" or "falling back to defaults" alongside exit 0 is the tool announcing that the confinement is off.
