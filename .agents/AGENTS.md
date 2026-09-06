@@ -25,6 +25,22 @@ Before implementing:
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
+## Comments Explain Why
+
+**Code says what. Comments say why. Needing to explain what is a defect in the code.**
+
+When you reach for a comment to explain a block, stop. Rewrite the code so it explains itself: extract the block into a named function, rename the variables that raised the question, flatten the nesting, or split the long function.
+
+A comment earns its place in three cases:
+
+- The non-obvious why: a workaround, a protocol requirement, a business rule, or a reference to an issue or RFC.
+- A public contract or docstring: what goes in, what comes out, what it throws.
+- A warning the caller cannot infer: required call order, a race, a hidden cost.
+
+Never leave behind step labels ("step 1", "section: validation"), commented-out code, restatements of the obvious ("increment the counter"), banner separators, or TODOs with no owner.
+
+The test: if there are more comments than code, or the code is unreadable without them, the code is not done. Rewrite it instead of adding explanation.
+
 ## Surgical Changes
 
 **Touch only what you must. Clean up only your own mess.**
