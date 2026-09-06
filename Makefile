@@ -60,17 +60,24 @@ fmt: ## Rewrite Python formatting with ruff (companion to "make lint")
 .PHONY: lint-shell
 lint-shell: ## Run shellcheck on every tracked shell script
 	@scripts=$$(git ls-files -- '*.sh'); \
-	if [ -z "$$scripts" ]; then exit 0; fi; \
-	printf '%s\n' "$$scripts"; \
-	git ls-files -z -- '*.sh' | xargs -0 \
-		$(SHELLCHECK) --shell=sh --external-sources --
+	if [ -n "$$scripts" ]; then \
+		printf '%s\n' "$$scripts"; \
+		git ls-files -z -- '*.sh' | xargs -0 \
+			$(SHELLCHECK) --shell=sh --external-sources --; \
+	fi
+	@scripts=$$(git ls-files -- '*.bash' '*.bats'); \
+	if [ -n "$$scripts" ]; then \
+		printf '%s\n' "$$scripts"; \
+		git ls-files -z -- '*.bash' '*.bats' | xargs -0 \
+			$(SHELLCHECK) --shell=bash --external-sources --; \
+	fi
 
 .PHONY: fmt-shell
 fmt-shell: ## Fail if any tracked shell script needs shfmt reformatting
-	@scripts=$$(git ls-files -- '*.sh'); \
+	@scripts=$$(git ls-files -- '*.sh' '*.bash' '*.bats'); \
 	if [ -z "$$scripts" ]; then exit 0; fi; \
 	$(SHFMT) --version; \
-	git ls-files -z -- '*.sh' | xargs -0 $(SHFMT) -d --
+	git ls-files -z -- '*.sh' '*.bash' '*.bats' | xargs -0 $(SHFMT) -d --
 
 # ── Gates ──────────────────────────────────────────────────────────────────────
 
