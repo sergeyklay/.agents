@@ -115,7 +115,17 @@ first_body_line() {
 # so a missing tomllib is reachable. Probe for it first: without the probe the
 # ImportError traceback is followed by "expected valid TOML", which blames a
 # file that parses perfectly well.
+#
+# Probe for the interpreter ahead of that. `$(python3 -V)` on a host with no
+# python3 captures the shell's own "not found" line, so the message reports
+# a version problem, names the interpreter it just failed to run as the thing
+# it found, and quotes a line number from this file that moves on every edit.
 assert_toml_parses() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    printf 'need python3 3.11+ with tomllib to validate %s; found %s\n' \
+      "$1" 'no python3 on PATH' >&2
+    exit 1
+  fi
   if ! python3 -c 'import tomllib' 2>/dev/null; then
     printf 'need python3 3.11+ with tomllib to validate %s; found %s\n' \
       "$1" "$(python3 -V 2>&1)" >&2
