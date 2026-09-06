@@ -1,15 +1,8 @@
-# Resolution of `.gemini/policies/safe-commands.toml` by the policy engine that
-# ships inside the installed Gemini CLI. The rules are regexes the CLI rewrites
-# before it compiles them, so the text of a rule says nothing about what it
-# matches; every assertion here is the decision the engine returns.
-
 load 'test_helper'
 
 POLICY="$ROOT/.gemini/policies/safe-commands.toml"
+DESTRUCTIVE_PATTERN='"command":"(?:rm -rf \/|rm -[-A-Za-z0-9_=. ]* \/[\s"]|mkfs|dd if=|:\(\)\{)'
 
-# `command -v gemini` is a version-manager shim on some hosts, and readlink
-# resolves a shim to itself rather than to the bundle it execs; ask the version
-# manager when the first resolution is not the bundle entry point.
 gemini_bundle_entry() {
   local candidate
   for candidate in "$(command -v gemini 2>/dev/null)" \
@@ -26,21 +19,7 @@ gemini_bundle_entry() {
   return 1
 }
 
-# The CI workflow installs the Gemini CLI, so a skip there means the install
-# step regressed and the job would go green having asserted nothing. On a
-# developer machine without the CLI a skip is the right answer.
-ci_fail_or_skip() {
-  if [ -n "${CI:-}" ]; then
-    fail "$1 (CI is set, and the workflow installs the Gemini CLI)"
-  fi
-  skip "$1"
-}
-
-# The `node` on PATH can be a version-manager shim, which picks its version by
-# walking up from the working directory and exits 126 in a scratch directory
-# that has no version file. The interpreter that owns the installed CLI sits a
-# fixed distance from the bundle, so take that one and fall back to PATH.
-gemini_node() {
+node_beside_bundle() {
   local prefix=${1%/lib/node_modules/*}
   if [ "$prefix" != "$1" ] && [ -x "$prefix/bin/node" ]; then
     printf '%s\n' "$prefix/bin/node"
@@ -49,18 +28,20 @@ gemini_node() {
   command -v node
 }
 
-# The engine under test ships with the CLI, so there is nothing to assert
-# against when the CLI is absent.
-require_gemini() {
-  BUNDLE=$(gemini_bundle_entry) ||
-    ci_fail_or_skip 'no Gemini CLI bundle on PATH; it carries the policy engine under test'
-  NODE=$(gemini_node "$BUNDLE") ||
-    ci_fail_or_skip 'no node to load the Gemini CLI bundle with'
+fail_on_ci_else_skip() {
+  if [ -n "${CI:-}" ]; then
+    fail "$1 (CI is set, and the workflow installs the Gemini CLI)"
+  fi
+  skip "$1"
 }
 
-# The CLI itself, invoked through the bundle entry point its package manifest
-# names as the `gemini` binary, from a scratch directory with HOME pointed at
-# it so the run leaves nothing in the operator's own state roots.
+require_gemini() {
+  BUNDLE=$(gemini_bundle_entry) ||
+    fail_on_ci_else_skip 'no Gemini CLI bundle on PATH; it carries the policy engine under test'
+  NODE=$(node_beside_bundle "$BUNDLE") ||
+    fail_on_ci_else_skip 'no node to load the Gemini CLI bundle with'
+}
+
 gemini_cli() {
   (
     cd "$TEST_HOME" &&
@@ -68,22 +49,19 @@ gemini_cli() {
   )
 }
 
-# One engine run for every case, with HOME pointed at the per-test directory so
-# the CLI's own state roots stay untouched.
 policy_decisions() {
   HOME="$TEST_HOME" "$NODE" "$ROOT/test/policy_decision.mjs" \
     "$BUNDLE" "$POLICY" "$@"
 }
 
-# Each argument is "<expected decision><tab><command>". Comparing the whole
-# block at once means a decision that moves in either direction shows up.
 assert_decisions() {
-  local expected line
-  local commands=()
-  expected=$(printf '%s\n' "$@")
-  for line in "$@"; do
-    commands+=("${line#*"$(printf '\t')"}")
+  local expected lines=() commands=()
+  while [ "$#" -gt 0 ]; do
+    lines+=("$(printf '%s\t%s' "$1" "$2")")
+    commands+=("$2")
+    shift 2
   done
+  expected=$(printf '%s\n' "${lines[@]}")
   run policy_decisions "${commands[@]}"
   [ "$status" -eq 0 ] || fail "policy engine run failed:
 $output"
@@ -93,10 +71,7 @@ got:
 $output"
 }
 
-# A rule the loader rejects is dropped with no error and the engine runs on
-# whatever survived, so every decision below would resolve to the default and
-# pass a test that only listed ask_user. Pin the compiled pattern instead.
-@test "the destructive-command rule compiles and is in force" {
+@test "the destructive-command rule reaches the engine compiled, not dropped" {
   require_gemini
   run policy_decisions --rules
   [ "$status" -eq 0 ] || fail "policy load failed:
@@ -105,121 +80,98 @@ $output"
   [ -n "$count" ] || fail "no rule count in:
 $output"
   [ "$count" -gt 0 ] || fail "the policy compiled $count rules"
-  assert_contains "$output" 'pattern'"$(printf '\t')"'"command":"(?:rm -rf \/|rm -[-A-Za-z0-9_=. ]* \/[\s"]|mkfs|dd if=|:\(\)\{)'
+  assert_contains "$output" "$(printf 'pattern\t')$DESTRUCTIVE_PATTERN"
 }
 
-# The rule is anchored at the first character of the command, so the plain
-# `rm -rf /` branch only fires when the path follows the flags immediately.
-# Every command here has `/` as a whole argument.
 @test "rm is denied when its target is root and a flag stands in between" {
   require_gemini
   assert_decisions \
-    "$(printf 'deny\trm -rf --no-preserve-root /')" \
-    "$(printf 'deny\trm --no-preserve-root -rf /')" \
-    "$(printf 'deny\trm -fr /')" \
-    "$(printf 'deny\trm -r -f /')" \
-    "$(printf 'deny\trm -v build dist /')"
+    deny 'rm -rf --no-preserve-root /' \
+    deny 'rm --no-preserve-root -rf /' \
+    deny 'rm -fr /' \
+    deny 'rm -r -f /' \
+    deny 'rm -v build dist /'
 }
 
 @test "the destructive-command rule still denies what it already caught" {
   require_gemini
   assert_decisions \
-    "$(printf 'deny\trm -rf /')" \
-    "$(printf 'deny\trm -rf /tmp/foo')" \
-    "$(printf 'deny\tmkfs.ext4 /dev/sda1')" \
-    "$(printf 'deny\tdd if=/dev/zero of=/dev/sda')" \
-    "$(printf 'deny\t:(){ :|:& };:')" \
-    "$(printf 'deny\tsudo rm foo')" \
-    "$(printf 'deny\tcd /tmp && rm -rf /')"
+    deny 'rm -rf /' \
+    deny 'rm -rf /tmp/foo' \
+    deny 'mkfs.ext4 /dev/sda1' \
+    deny 'dd if=/dev/zero of=/dev/sda' \
+    deny ':(){ :|:& };:' \
+    deny 'sudo rm foo' \
+    deny 'cd /tmp && rm -rf /'
 }
 
-# `deny` is a hard block, not a prompt. Every case here is a relative path with
-# a slash in it, reached past a flag: the shape an earlier revision of the rule
-# denied outright, including the one carrying the safe `--preserve-root`.
 @test "a flagged relative path with a slash keeps its decision" {
   require_gemini
   assert_decisions \
-    "$(printf 'ask_user\trm -rf -v build/dist')" \
-    "$(printf 'ask_user\trm -rf -v dist/assets/js')" \
-    "$(printf 'ask_user\trm -rf -v node_modules/.cache')" \
-    "$(printf 'ask_user\trm -rf -i target/debug')" \
-    "$(printf 'ask_user\trm -rf --verbose build/dist')" \
-    "$(printf 'ask_user\trm -rf --one-file-system build/dist')" \
-    "$(printf 'ask_user\trm -rf --preserve-root build/dist')" \
-    "$(printf 'ask_user\trm -rf -- build/dist')" \
-    "$(printf 'ask_user\tcd frontend && rm -rf -v dist/js')" \
-    "$(printf 'ask_user\trm -rf -v build/')" \
-    "$(printf 'ask_user\trm -rf -v dist/ obj/')"
+    ask_user 'rm -rf -v build/dist' \
+    ask_user 'rm -rf -v dist/assets/js' \
+    ask_user 'rm -rf -v node_modules/.cache' \
+    ask_user 'rm -rf -i target/debug' \
+    ask_user 'rm -rf --verbose build/dist' \
+    ask_user 'rm -rf --one-file-system build/dist' \
+    ask_user 'rm -rf --preserve-root build/dist' \
+    ask_user 'rm -rf -- build/dist' \
+    ask_user 'cd frontend && rm -rf -v dist/js' \
+    ask_user 'rm -rf -v build/' \
+    ask_user 'rm -rf -v dist/ obj/'
 }
 
-# A deny on the whole command returns before `checkShellCommand` splits it, so
-# a run that crosses a shell operator blocks the entire line. In every case
-# here the slash is an operand of the *second* command, not of the rm.
 @test "a slash belonging to a later sub-command keeps its decision" {
   require_gemini
-  # The command substitutions below are the payload the rule must not match,
-  # not code to run; single quotes are what keeps them literal.
   # shellcheck disable=SC2016
   assert_decisions \
-    "$(printf 'ask_user\trm -rf build && cd /')" \
-    "$(printf 'ask_user\trm -rf dist && du -sh /')" \
-    "$(printf 'ask_user\trm -rf build ; df -h /')" \
-    "$(printf 'ask_user\trm -rf build || ls /')" \
-    "$(printf 'ask_user\trm -rf build | tee /')" \
-    "$(printf 'ask_user\trm -rf build & cd /')" \
-    "$(printf 'ask_user\trm -f log && grep -r foo /')" \
-    "$(printf 'ask_user\trm -rf -v out && cd /')" \
-    "$(printf 'ask_user\trm -rf build > /tmp/log')" \
-    "$(printf 'ask_user\t(rm -rf build) && cd /')" \
-    "$(printf 'ask_user\trm -rf $(cat list) /')" \
-    "$(printf 'ask_user\trm -rf `cat list` /')" \
-    "$(printf 'ask_user\trm -rf %s' "'a b' /")" \
-    "$(printf 'ask_user\trm -rf build\ncd /')"
+    ask_user 'rm -rf build && cd /' \
+    ask_user 'rm -rf dist && du -sh /' \
+    ask_user 'rm -rf build ; df -h /' \
+    ask_user 'rm -rf build || ls /' \
+    ask_user 'rm -rf build | tee /' \
+    ask_user 'rm -rf build & cd /' \
+    ask_user 'rm -f log && grep -r foo /' \
+    ask_user 'rm -rf -v out && cd /' \
+    ask_user 'rm -rf build > /tmp/log' \
+    ask_user '(rm -rf build) && cd /' \
+    ask_user 'rm -rf $(cat list) /' \
+    ask_user 'rm -rf `cat list` /' \
+    ask_user "rm -rf 'a b' /" \
+    ask_user 'rm -rf build
+cd /'
 }
 
-# The rule this one replaced spelled `rm -rf /|sudo|...` as a bare alternation
-# and denied both of the middle two; `sudoku` is the word boundary the
-# commandPrefix form supplies.
 @test "ordinary developer commands keep the decisions they had" {
   require_gemini
   assert_decisions \
-    "$(printf 'ask_user\trm -rf ./build')" \
-    "$(printf 'ask_user\trm -rf build')" \
-    "$(printf 'ask_user\trm -rf -v ./build')" \
-    "$(printf 'ask_user\trm -f /tmp/lock')" \
-    "$(printf 'ask_user\tsudoku')" \
-    "$(printf 'allow\tgit commit -m "remove rf files"')" \
-    "$(printf 'allow\techo sudo hello')"
+    ask_user 'rm -rf ./build' \
+    ask_user 'rm -rf build' \
+    ask_user 'rm -rf -v ./build' \
+    ask_user 'rm -f /tmp/lock' \
+    ask_user 'sudoku' \
+    allow 'git commit -m "remove rf files"' \
+    allow 'echo sudo hello'
 }
 
-# The bridge above calls the loader directly. This one runs the CLI, which
-# reaches a policy file through its own settings merge and tier resolution, and
-# it does so without a credential: policy files load at startup and the run
-# stops later, at the auth check.
 @test "the installed CLI loads the shipped policy without a diagnostic" {
   require_gemini
   run gemini_cli --prompt x --policy "$POLICY"
   assert_not_contains "$output" 'Policy file error'
 
-  # Positive control. A probe that has never seen the diagnostic it is looking
-  # for cannot distinguish a clean policy from a blind probe.
-  broken="$BATS_TEST_TMPDIR/broken-policy.toml"
+  local policy_with_unsafe_regex="$BATS_TEST_TMPDIR/unsafe-regex.toml"
   printf '%s\n' \
     '[[rule]]' \
     'toolName = "run_shell_command"' \
     'commandRegex = "(?:rm (?:-\\S+ )*/)"' \
     'decision = "deny"' \
-    'priority = 200' >"$broken"
-  run gemini_cli --prompt x --policy "$broken"
+    'priority = 200' >"$policy_with_unsafe_regex"
+  run gemini_cli --prompt x --policy "$policy_with_unsafe_regex"
   assert_contains "$output" 'Policy file error'
   assert_contains "$output" 'Unsafe regex pattern'
 }
 
-# GEMINI_MODEL pins an identifier that Google retires on its own schedule, and
-# the CLI does not check one locally: a bogus model and a live one produce the
-# same error when the key is bad, so only a real call tells them apart. This is
-# the one test that spends a request, and the only one that needs a credential.
-@test "the pinned Gemini model is still served" {
+@test "GEMINI_MODEL still names a model the API serves" {
   require_gemini
   if [ -z "${GEMINI_MODEL:-}" ]; then
     [ -z "${CI:-}" ] ||
