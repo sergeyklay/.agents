@@ -309,6 +309,28 @@ for sigil in "'''" '!{echo pwned}' '@{/etc/passwd}'; do
   assert_absent "$guard_home/.gemini/commands/specify.toml"
 done
 
+# The `agent` value is interpolated straight into `.agents/agents/$agent.md`,
+# so a traversing value resolves to a file outside the canonical directory.
+# The existence check does not catch it, because the traversed path exists:
+# the installer inlines that file and exits 0, which is how untracked local
+# content reaches a shipped prompt.
+path_repo="$TEST_ROOT/agent-path-repo"
+mkdir -p "$path_repo/scripts" "$path_repo/private"
+cp -R -- "$SCRIPT_DIR/../.agents" "$path_repo/.agents"
+cp -R -- "$SCRIPT_DIR/../templates" "$path_repo/templates"
+cp -- "$INSTALLER" "$path_repo/scripts/install.sh"
+printf 'planted body outside the agents directory\n' >"$path_repo/private/notes.md"
+printf 'agent: ../../private/notes\n' \
+  >"$path_repo/templates/.gemini/commands/specify.yaml"
+path_home=$(new_home gemini-agent-path-guard)
+if path_output=$(NO_COLOR=1 HOME="$path_home" \
+  sh "$path_repo/scripts/install.sh" --commands --gemini 2>&1); then
+  printf 'expected the installer to reject a traversing agent name\n' >&2
+  exit 1
+fi
+assert_contains "$path_output" 'refusing to inline agent'
+assert_absent "$path_home/.gemini/commands/specify.toml"
+
 home=$(new_home gemini-stale-orchestrator-agents)
 # Skipping the two orchestrators only stops the installer writing them. Per-file
 # views go through `rsync -a` with no `--delete`, so a copy an earlier install

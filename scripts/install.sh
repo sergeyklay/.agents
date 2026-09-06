@@ -490,6 +490,15 @@ sync_view_toml() {
   agent=$(frontmatter_value "$fm" agent)
   agent_body=
   if [ -n "$agent" ]; then
+    # The name is interpolated into a path, so anything but a bare token
+    # traverses out of .agents/agents and inlines whatever it lands on. The
+    # existence check below cannot catch that: the traversed path exists, and
+    # the installer ships the file it read and exits 0.
+    case $agent in
+    *[!A-Za-z0-9-]*)
+      die "refusing to inline agent \"$agent\" from $tmpl onto $src: expected [A-Za-z0-9-]"
+      ;;
+    esac
     agent_src="$REPO_ROOT/.agents/agents/$agent.md"
     [ -f "$agent_src" ] || die "agent source missing: $agent_src"
     agent_body=$(mktemp) || die "mktemp failed"
