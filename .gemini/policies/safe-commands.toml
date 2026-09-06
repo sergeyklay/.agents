@@ -161,14 +161,40 @@ decision = "deny"
 deny_message = "Blocked: potentially destructive system command"
 priority = 200
 
-# The four prefixes that must match mid-token, as one alternation wrapped in a
+# The prefixes that must match mid-token, as one alternation wrapped in a
 # group so the anchor applies to every branch rather than only the first.
 # `:\(\)\{` replaces the old `:(){ :` branch, which was read as regex `:` plus an
 # empty group plus `{ :`, matched the literal string `:{ :`, and so never matched
 # a real fork bomb.
+#
+# `rm -[-A-Za-z0-9_=. ]* /[\s"]` is the second `rm` branch. The anchor puts the
+# pattern at the first character of the command, so the first branch fires only
+# when the path follows `-rf` immediately, and `rm -rf --no-preserve-root /`
+# resolved to `ask_user`.
+#
+# The class is a positive list rather than a negated one, and that is the whole
+# of its safety. Of the shell metacharacters it admits only the space, so the
+# run cannot leave the `rm` command. It has to: `rm -rf build && cd /` passes
+# `/` to `cd`, and a whole-command deny returns before `checkShellCommand`
+# splits the sub-commands, so a run that crossed `&&` would block that command
+# outright. `;`, `||`, `|`, `&`, `<`, `>`, `(`, `$`, a backtick, either quote
+# and a newline all end the run for the same reason. A character nobody
+# anticipated is a miss rather than a false deny, which is the safe direction
+# for a rule whose decision is a hard block. An earlier spelling used `[^/"]`
+# and denied 94 of a 185-command corpus, nearly all of them commands whose
+# slash belonged to a later sub-command.
+#
+# Excluding `/` keeps the run inside one argument; the ` ` before it and the
+# `[\s"]` after require that argument to be exactly `/`. So `rm -rf -v
+# build/dist`, `rm -rf -v build/` and `rm -rf -v dist/ obj/` do not match.
+#
+# A quantified group such as `(?:-\S+ )*` cannot be used here: `isSafeRegExp`
+# rejects a quantifier applied to a group that already contains one, and the
+# loader then records an error and drops that rule while the run carries on
+# without it.
 [[rule]]
 toolName = "run_shell_command"
-commandRegex = "(?:rm -rf /|mkfs|dd if=|:\\(\\)\\{)"
+commandRegex = "(?:rm -rf /|rm -[-A-Za-z0-9_=. ]* /[\\s\"]|mkfs|dd if=|:\\(\\)\\{)"
 decision = "deny"
 deny_message = "Blocked: potentially destructive system command"
 priority = 200
