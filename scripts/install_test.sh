@@ -363,6 +363,27 @@ assert_contains "$stale_output" 'removed disarmed orchestrator'
 assert_file "$home/.gemini/agents/architect.md"
 assert_file "$home/.gemini/agents/sleuth.md"
 
+home=$(new_home gemini-stale-orchestrator-not-a-file)
+# `rm -f` fails on a directory, and the installer runs under `set -e`, so a
+# directory sitting at a destination the cleanup wants to remove aborts the
+# whole run. The eight agents ahead of it are already written, the summary line
+# never prints, and the second orchestrator is never considered.
+mkdir -p "$home/.gemini/agents/composer.md"
+printf 'not an agent\n' >"$home/.gemini/agents/composer.md/inner.txt"
+printf -- '---\nname: conductor\n---\n\nstale body\n' \
+  >"$home/.gemini/agents/conductor.md"
+odd_output=$(NO_COLOR=1 TERM=xterm HOME="$home" sh "$INSTALLER" --agents --gemini)
+assert_contains "$odd_output" 'not a regular file'
+assert_contains "$odd_output" ':: Installation complete'
+# The directory is reported and left alone, never deleted.
+[ -d "$home/.gemini/agents/composer.md" ] || {
+  printf 'expected the planted directory to survive\n' >&2
+  exit 1
+}
+# The loop continues past it, so the second orchestrator is still removed.
+assert_absent "$home/.gemini/agents/conductor.md"
+assert_file "$home/.gemini/agents/architect.md"
+
 home=$(new_home copilot-reasoning-effort)
 run_install "$home" --agents --copilot
 # A Copilot view that pins no effort runs at whatever effort the parent
