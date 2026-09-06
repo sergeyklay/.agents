@@ -130,7 +130,20 @@ jobs:
           persist-credentials: false
 
       # jq and rsync come preinstalled on the ubuntu-latest image, like the
-      # shellcheck the Portability job relies on; neither needs a setup step.
-      - name: Exercise the installer
+      # shellcheck the Portability job relies on; bats does not, and is
+      # installed the same checksummed way as shfmt in the Format job.
+      - name: Install bats
+        shell: bash
+        run: |
+          curl -fsSL "https://github.com/bats-core/bats-core/archive/refs/tags/v${BATS_VERSION}.tar.gz" \
+            -o "${RUNNER_TEMP}/bats.tar.gz"
+          echo "${BATS_SHA}  ${RUNNER_TEMP}/bats.tar.gz" | sha256sum --check -
+          tar -xzf "${RUNNER_TEMP}/bats.tar.gz" -C "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/bats-core-${BATS_VERSION}/bin" >> "${GITHUB_PATH}"
+        env:
+          BATS_VERSION: 1.12.0
+          BATS_SHA: e36b020436228262731e3319ed013d84fcd7c4bd97a1b34dee33d170e9ae6bab
+
+      - name: Run the installer test suite
         shell: bash
         run: make install-test
