@@ -307,28 +307,62 @@ if grep -q '^action[[:space:]]*=' "$home/.gemini/policies/safe-commands.toml"; t
   exit 1
 fi
 
-# The inlined body lands inside a TOML literal string that Gemini expands
-# before it runs the prompt. All three counts are 0 in the canonical bodies
-# today, which is exactly why the guard needs a planted body to prove it fires:
-# ''' closes the string early, !{...} executes a shell command at expansion
-# time, and @{...} reads a file.
+# The prompt lands inside a TOML literal string that Gemini expands before it
+# runs: ''' closes the string early, !{...} executes a shell command at
+# expansion time, and @{...} reads a file. All three counts are 0 in the
+# canonical sources today, which is exactly why the guard needs a planted
+# fragment to prove it fires.
+#
+# Four fragments are concatenated into that literal, and every one of them is a
+# place a sigil can enter: the preamble, the inlined agent body, the command
+# body, and the body.md suffix. Guarding only the agent body left the other
+# three open, measured: each sigil planted in any of them installed clean, exit
+# 0, no message, and reached the generated TOML. Each is now planted in turn so
+# each is proven to fire, and the message must name the offending file.
+#
+# The bare `@arch-review` in the two live preambles is not the `@{` sigil and
+# must keep installing.
+guard_pristine="$TEST_ROOT/guard-pristine"
+mkdir -p "$guard_pristine"
+cp -R -- "$SCRIPT_DIR/../.agents" "$guard_pristine/.agents"
+cp -R -- "$SCRIPT_DIR/../templates" "$guard_pristine/templates"
 fake_repo="$TEST_ROOT/guard-repo"
-mkdir -p "$fake_repo/scripts"
-cp -R -- "$SCRIPT_DIR/../.agents" "$fake_repo/.agents"
-cp -R -- "$SCRIPT_DIR/../templates" "$fake_repo/templates"
-cp -- "$INSTALLER" "$fake_repo/scripts/install.sh"
-for sigil in "'''" '!{echo pwned}' '@{/etc/passwd}'; do
-  printf -- '---\nname: composer\ndescription: "planted"\n---\n\nBody with %s in it.\n' \
-    "$sigil" >"$fake_repo/.agents/agents/composer.md"
-  guard_home=$(new_home "guard-$(printf '%s' "$sigil" | cksum | cut -d' ' -f1)")
-  if guard_output=$(NO_COLOR=1 HOME="$guard_home" \
-    sh "$fake_repo/scripts/install.sh" --commands --gemini 2>&1); then
-    printf 'expected the installer to reject an inlined body containing %s\n' \
-      "$sigil" >&2
-    exit 1
-  fi
-  assert_contains "$guard_output" 'refusing to inline'
-  assert_absent "$guard_home/.gemini/commands/specify.toml"
+for pair in \
+  '.agents/agents/composer.md:specify' \
+  'templates/.gemini/commands/vet-impl.preamble.md:vet-impl' \
+  '.agents/commands/vet-impl.md:vet-impl' \
+  'templates/.gemini/commands/vet-impl.body.md:vet-impl'; do
+  target=${pair%:*}
+  blocked=${pair#*:}
+  for sigil in "'''" '!{echo pwned}' '@{/etc/passwd}'; do
+    rm -rf -- "$fake_repo"
+    mkdir -p "$fake_repo/scripts"
+    cp -R -- "$guard_pristine/.agents" "$fake_repo/.agents"
+    cp -R -- "$guard_pristine/templates" "$fake_repo/templates"
+    cp -- "$INSTALLER" "$fake_repo/scripts/install.sh"
+    printf -- 'Planted %s here.\n' "$sigil" >>"$fake_repo/$target"
+    guard_home=$(new_home \
+      "guard-$(printf '%s%s' "$target" "$sigil" | cksum | cut -d' ' -f1)")
+    if guard_output=$(NO_COLOR=1 HOME="$guard_home" \
+      sh "$fake_repo/scripts/install.sh" --commands --gemini 2>&1); then
+      printf 'expected the installer to reject %s containing %s\n' \
+        "$target" "$sigil" >&2
+      exit 1
+    fi
+    assert_contains "$guard_output" 'refusing to inline'
+    # Naming the file is what makes the refusal actionable, and it is also what
+    # proves the guard caught this fragment rather than a different one.
+    assert_contains "$guard_output" "$target"
+    assert_absent "$guard_home/.gemini/commands/$blocked.toml"
+  done
+done
+# The live preambles carry a bare `@arch-review`, so a guard that matched a lone
+# `@` would break both commands. Assert they still generate and still carry it.
+home=$(new_home gemini-preamble-bare-at)
+run_install "$home" --commands --gemini
+for command in vet-impl vet-spec; do
+  assert_file "$home/.gemini/commands/$command.toml"
+  assert_file_contains "$home/.gemini/commands/$command.toml" '@arch-review'
 done
 
 # The `agent` value is interpolated straight into `.agents/agents/$agent.md`,

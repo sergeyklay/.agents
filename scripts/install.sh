@@ -508,6 +508,19 @@ sync_view_toml() {
     assert_prompt_safe "$agent_body" "$agent_src"
   fi
 
+  # Four fragments reach the prompt literal, and every one of them is a place a
+  # sigil can enter. Guarding only the inlined agent body left the other three
+  # open: measured on 0.58.0, `!{...}`, `@{...}` and ''' each planted in the
+  # preamble, the command body or the suffix installed clean and reached the
+  # generated TOML.
+  if [ -f "$preamble" ]; then
+    assert_prompt_safe "$preamble" "$preamble"
+  fi
+  assert_prompt_safe "$body" "$src"
+  if [ -f "$suffix" ]; then
+    assert_prompt_safe "$suffix" "$suffix"
+  fi
+
   tmp=$(mktemp) || die "mktemp failed"
   {
     printf 'description = "%s"\n' "$description_escaped"
