@@ -59,6 +59,9 @@ MAX_NAME_LENGTH = 64
 MAX_DESCRIPTION_LENGTH = 1024
 MAX_COMPATIBILITY_LENGTH = 500
 MAX_BODY_LINES = 500
+# The spec recommends under 5000 tokens for the body; Anthropic's glossary
+# puts a token at roughly 3.5 English characters, so 5000 x 3.5 bytes.
+MAX_BODY_BYTES = 17_500
 MAX_REFERENCE_LINES_WITHOUT_TOC = 100
 
 RESERVED_WORDS: tuple[str, ...] = ("anthropic", "claude")
@@ -605,6 +608,15 @@ def _check_body(body: str) -> Iterable[Issue]:
         )
     else:
         yield Issue(Severity.INFO, f"SKILL.md body: {line_count} lines")
+
+    byte_count = len(body.encode("utf-8"))
+    if byte_count > MAX_BODY_BYTES:
+        yield Issue(
+            Severity.WARN,
+            f"SKILL.md body is {byte_count} bytes "
+            f"(recommended: under {MAX_BODY_BYTES}). "
+            f"Consider splitting into reference files.",
+        )
 
     if WINDOWS_PATH_PATTERN.search(body):
         yield Issue(
