@@ -3,7 +3,9 @@
 ## Contents
 
 - When to use which shape
+- Register (written deep-dive vs conversational)
 - Length budgets
+- The six moves
 - Narrow question template
 - Broad question template
 - TL;DR pattern
@@ -30,6 +32,19 @@ Read this file before writing the first broad-question response in a session.
 
 The last row is set by the reader's role rather than the question's grammar, so it can pair with any of the rows above it. "How does X work?" from someone who will approve X and never open it is a behaviour-altitude question wearing a mechanism-question's clothes. Read the role, not only the wording (`SKILL.md`, *Output format*).
 
+## Register: written deep-dive or conversational
+
+Scope controls length and structure. Register controls sentence rhythm and how much article-furniture the answer carries. The two are independent: a narrow question can be written or conversational, and so can a broad one.
+
+- **Written deep-dive** - the default when the answer will be read and re-read (onboarding docs, "write an explanation of X", a published deep-dive). Carries the full structure: TL;DR, section headers, the closing experiment. The templates in `output-templates.md` assume this register.
+- **Conversational** - for a question asked the way a colleague asks one in person or in chat ("wait, why does X…", "explain this to me", "I don't get why…"). Drop the furniture. Lead with the conclusion in one sentence, then short sentences with one idea each, in the order a person would actually say them. No "TL;DR" label, no headers. Still give the practical takeaway, but woven in, not as a labelled block.
+
+Conversational changes the *shape* of the sentences, not the *standard* of their content. Three things never relax:
+
+1. **Stay at peer level.** Conversational is not simplified - the reader is still a competent professional (see the Kindergarten Trap). Pick the precise, natural word for each concept in whatever language you are writing, and do not trade a precise term for a vague colloquial one to sound casual. Naming two distinct concepts "things" or "stuff" is not friendlier; it is just less precise, and a careful reader notices.
+2. **Every sentence is still true and earns its place.** A casual rapport-opener that asserts something unverified is worse than no opener. If you write "these are easy to confuse", they must genuinely be confusable and the next sentence must show why - otherwise you plant a doubt the reader cannot resolve ("why is this 'easy'? what am I missing?"). When in doubt, cut the filler and state the point (this is the Hollow Opener anti-pattern).
+3. **The Honesty rule holds.** A relaxed tone is not licence to state unverified implementation details or to drop a citation a claim needs.
+
 ## Length budgets
 
 Name a ceiling in Phase 1, before drafting, and check the finished draft against it by counting rendered lines including blank ones. That is the unit the reader experiences. Estimating instead of counting defeats the exercise, because the drift this guards against is invisible from inside the draft.
@@ -45,6 +60,19 @@ Three rules govern the ceiling:
 1. **A ceiling from the reader replaces the default and is a hard limit.** Not a target to approach, and not a suggestion to round up from. Coming in under it is a good outcome, never a shortfall to pad.
 2. **Cut extraneous load first, then scope, then depth.** When a draft runs over, the repair order is fixed: delete restatement, hedging and filler; then narrow the question being answered; only then reduce depth. Reducing depth first produces a vague answer of the right length, which is the worst available trade (see *Cognitive load* in `communication-calibration.md`).
 3. **Name what you cut.** One sentence offering the omitted material ("the mechanism behind this is a separate pass; ask if you want it") costs a line and turns a truncated answer into a scoped one.
+
+## The six moves
+
+The construction sequence named in `SKILL.md`, Phase 3. Each move gets its purpose and its length budget.
+
+| Move | Purpose | Length |
+|---|---|---|
+| Open with the **why** | Problem, motivation, context. Mechanisms are easier to understand when you know what they were built to solve. | 2–3 sentences |
+| **Bridge** to adjacent knowledge | Connect to something the reader likely already knows before introducing the first new concept. The bridge does not need to be perfect - it needs to be a handhold. The same move recurs at sentence scale: open from the known, end on the new (see Information flow). | 1 sentence |
+| Introduce concepts **one at a time** | Each new concept gets a name, a one-sentence definition, and a concrete example *before* the next concept is introduced. Never stack three new terms in a paragraph. | 1 paragraph each |
+| Show **mechanics as a worked example** | At mechanism altitude, trace an execution path through real code: what happens step by step when you call this function, what data structures are involved, what triggers what. At behaviour altitude, trace one real scenario through observable events instead - the move and its step-by-step discipline are the same, only the units change. | As long as needed |
+| Report internals **honestly** | Go as deep as the question warrants. Do not hand-wave with "under the hood, it handles this efficiently." If it is worth mentioning, it is worth explaining. If you do not know - say so, or go find it. | As needed |
+| Close with **tradeoffs and practice** | What does this sacrifice for what it gains? Where does it break down? What do practitioners learn the hard way? When to use, when not to. For software topics: a minimal, concrete experiment the reader can run. | 1–2 paragraphs |
 
 ## Narrow question template
 

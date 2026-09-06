@@ -9,6 +9,8 @@ Use this reference at Step 2a (triage decisions) and Step 2b (executing the work
 - The "when in doubt, run it" rule
 - Examples that look safe but are not
 - Handling Context7 failures
+- Why the audit is mandatory
+- Running the audit
 
 ## What counts as a library claim
 
@@ -54,6 +56,8 @@ The asymmetry favors running it.
 
 If a claim straddles the internal / external boundary - for example, a question about how the project's own wrapper around an external library behaves - split the claim. The wrapper is internal (no Context7); the wrapped library's behavior is external (Context7 if specific).
 
+The default posture is cautious: **when in doubt, run Context7.** A false positive (running it when not strictly necessary) costs one tool call. A false negative (skipping it when needed) costs a wrong classification and a defensible-looking mistake.
+
 ## Examples that look safe but are not
 
 These claims look like they might be internal but turn out to involve external library behavior. Treat each as **[C7-REQUIRED]**:
@@ -91,3 +95,15 @@ If you catch yourself thinking "I already know how this library works" about any
 2. Rephrase the query to be more specific - name the exact symbol, the exact version, the exact scenario.
 3. Reduce the `tokens` budget to force higher-relevance filtering.
 4. If the best result still does not address the claim, classify the comment as **Needs Discussion** per Binding Rule 4. Do not guess.
+
+## Why the audit is mandatory
+
+A reviewer asserting that a library behaves a certain way is making a verifiable, falsifiable claim. Context7 is the verification mechanism. Accepting or rejecting on unchecked library assumptions is the proximate cause of both false approvals and false rejections. This step prevents both failure modes.
+These rules govern every classification in Step 3. They are not guidelines; they are gates. They exist to counteract the well-documented tendency of language models to drift toward agreeing with whoever spoke last - a drift that is the proximate cause of both sycophantic acceptance of wrong suggestions and sycophantic rejection of correct ones when the reviewer's tone becomes uncertain.
+
+## Running the audit
+
+For every **[C7-REQUIRED]** comment, run the two-step Context7 workflow per the project's Context7 usage instructions. Follow those instructions for query phrasing, topic filtering, token budgets, and failure recovery.
+
+When the library is not indexed and you fall back to an authoritative source (the library's official docs, its package-registry page, or its GitHub README at the version pinned in the project's manifest), record `[FALLBACK: web]` in the evidence table. The finding is still treated as authoritative; only the logistics differ.
+Build this table completely before proceeding to Step 3. Every **[C7-REQUIRED]** comment gets exactly one row. The table is evidence, not interpretation - classification comes in Step 3.

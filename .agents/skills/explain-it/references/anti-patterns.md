@@ -215,6 +215,15 @@ Someone deciding whether to approve this needs to know what breaks today, what s
 
 ## Maxims and the cross-cutting principle
 
+### The four maxims
+
+Every rule below is downstream of one idea: an explanation is a cooperative act, and the reader assumes you are cooperating. That assumption is also the diagnostic lens - when something reads badly, name which of the four expectations it broke (these are Grice's conversational maxims) and the fix follows:
+
+- **Quantity** - exactly as much as the reader needs. Bidirectional: too little starves them (a skipped step they cannot reconstruct), too much buries them. Excess is not merely wasted words - the reader assumes everything you included carries a point and spends effort hunting for it.
+- **Quality** - say only what is true and evidence-backed. The other three maxims assume this one holds; when Quality clashes with any of them, Quality wins (see the Honesty rule).
+- **Relation** - relevant *here, at this point*, not merely "related to the topic". True, on-topic material introduced too early still breaks it.
+- **Manner** - be perspicuous: avoid obscurity and ambiguity, be brief, be orderly. This governs *how* you say it, separately from whether the content is correct.
+
 Each anti-pattern is a broken conversational maxim, and naming the maxim points straight at the fix:
 
 | Anti-pattern | Maxim broken | Why |

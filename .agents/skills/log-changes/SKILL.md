@@ -17,19 +17,7 @@ Format authority: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/)
 
 Detect the following constants from the project itself - do not ask the user unless detection fails. Inspect, in order: existing CHANGELOG.md entries, project documentation (README.md, CONTRIBUTING.md, docs/), and recent git commit messages.
 
-1. **GitHub repository slug (`OWNER/REPO`).** Read existing comparison links at the bottom of CHANGELOG.md (preferred). Fall back to `git remote get-url origin` and parse the slug from the URL.
-2. **Issue tracker.** Look for tracker references in existing CHANGELOG entries, PR templates, contributing docs, and recent commit messages:
-   - **GitHub Issues** - links of the form `https://github.com/OWNER/REPO/issues/NNN`, or closing keywords `closes/fixes/resolves #NNN` in commit/PR bodies.
-   - **Jira** - task keys of the form `[A-Z]+-[0-9]+` (e.g. `ABC-123`) or links to `*.atlassian.net/browse/...`.
-   - **Linear** - keys like `ENG-123` or links to `https://linear.app/...`.
-   - **Other trackers** - distinct ID schemes or links in commit/PR bodies.
-
-   For non-GitHub trackers, also detect the tracker base URL and the project key prefix (e.g. `BP`, `ABC`, `ENG`).
-3. **Subsystem labels.** Read existing CHANGELOG entries to learn which subsystem prefixes the project already uses (e.g. `API:`, `CLI:`, `Auth:`). If none exist, propose labels that match the project's top-level directory or package layout. The human reviewer will correct any that are wrong.
-4. **Entry unit.** Count tracker references per bullet in the newest released section to learn whether the project groups distinct but related user-facing changes by epic, milestone, or roadmap checkpoint. This convention controls whether separate logical changes may share a bullet; it never splits one logical change by PR, commit, or implementation task.
-5. **Bullet order within a category.** Keep a Changelog fixes the order of versions and categories but says nothing about bullets inside a category, so every project has its own convention. Recover it from git rather than guessing: for three or four bullets in the newest released section, run `git log --format='%h %ai %s' -S'<key unique to that bullet>' -- CHANGELOG.md | tail -1` to find the commit that *added* it. Descending timestamps down the section mean newest-first (prepend); ascending mean oldest-first (append). Default to newest-first when the file is new or the signal is mixed - it matches the reverse-chronological rule the file already applies to versions.
-6. **Audience.** Decide who reads the file: operators and consumers of a distributed artifact (published package, self-hosted service, OSS release), or an internal team plus non-technical stakeholders such as a client, manager, or leadership. This governs whether deploy mechanics belong in an entry at all - see Step 4. Detect it from the project's distribution setup (release workflow, package manifest, install docs); ask once if that is inconclusive.
-7. **Product surface.** Detect whether the project ships an application, CLI, service, library, or framework from its install and usage documentation. In applications, CLIs, and services, implementation types, functions, modules, protocol states, and internal error taxonomies are not user-facing merely because they have names. In libraries and frameworks, include a symbol only when it is part of the supported public API.
+Seven constants: the GitHub repository slug, the issue tracker with its base URL and key prefix, the subsystem labels, the entry unit, the bullet order within a category, the audience, and the product surface. How to detect each one, and what to fall back to when the first probe fails, is in [references/project-constants.md](references/project-constants.md).
 
 Use the detected values everywhere a project key, tracker URL, or GitHub URL is needed. If a constant cannot be determined with confidence, ask the user once before proceeding. Do not guess or invent values.
 
@@ -112,43 +100,7 @@ The changelog records **notable changes to the distributed software**. A change 
 
 Apply the following filter to every commit or change before writing an entry.
 
-**ALWAYS include:**
-
-| Signal                                                                                     | Why it matters to consumers           |
-| ------------------------------------------------------------------------------------------ | ------------------------------------- |
-| New user-facing feature (CLI flag, integration, config option, API surface, UI capability) | Consumers discover new capabilities   |
-| Changed behavior of existing feature                                                       | Consumers must adjust usage           |
-| Bug fix for incorrect behavior                                                             | Consumers know issues are resolved    |
-| Security or vulnerability fix                                                              | Operators must act on upgrades        |
-| Deprecation of public interface                                                            | Consumers prepare for removal         |
-| Removal of feature or public interface                                                     | Consumers must adapt before upgrading |
-| Performance improvement with measurable impact                                             | Consumers benefit from upgrading      |
-| New or changed persistence schema (migration)                                              | Operators plan upgrade procedures     |
-| Changed CLI flags, env vars, deployment, or config file format                             | Operators must update deployment config |
-
-**NEVER include - these are noise, not signal:**
-
-| Noise                                                     | Why it does not belong                |
-| --------------------------------------------------------- | ------------------------------------- |
-| Internal variable/function/type renames                   | No observable effect on consumers     |
-| Code formatting, whitespace, linting fixes                | No observable effect on consumers     |
-| Test-only changes (new tests, test refactors)             | Not shipped to consumers              |
-| CI/CD pipeline changes (workflows, actions)               | Not shipped to consumers              |
-| Dotfile changes (`.gitignore`, `.github/*`, `CODEOWNERS`) | Not shipped to consumers              |
-| Documentation-only changes (README, CLAUDE.md, AGENTS.md, comments)  | Not shipped to consumers              |
-| Merge commits                                             | Infrastructure artifact, not a change |
-| Internal refactoring with no behavior change              | No observable effect on consumers     |
-| Dev-only dependency bumps                                 | Not shipped to consumers              |
-| Project scaffolding and repo housekeeping                 | Not shipped to consumers              |
-
-**Edge cases - include only when the threshold is met:**
-
-| Change                         | Include when...                                                  | Omit when...                            |
-| ------------------------------ | ---------------------------------------------------------------- | --------------------------------------- |
-| Dependency bump                | Major version, security fix, or changed behavior                 | Routine patch/minor with no user impact |
-| Refactoring                    | It changes observable performance, error messages, or log output | Purely internal restructuring           |
-| New internal module/package    | It introduces a new adapter or public API surface                | It reorganizes existing code            |
-| ADR or architecture doc update | It records a decision that changes system behavior               | It clarifies existing behavior          |
+The signals that always belong, the noise that never does, and the edge cases with their thresholds are tabulated in [references/entry-filter.md](references/entry-filter.md). Open it before drafting, and again for any change you cannot place from the paragraph above.
 
 When in doubt, ask: "If I were a consumer of this project reading this before
 upgrading, would I need to know this?" If the answer is no, leave it out.
@@ -166,42 +118,7 @@ Place every surviving entry under exactly one category:
 | **Fixed**      | Bug fix - incorrect behavior corrected                                       |
 | **Security**   | Vulnerability patch, dependency CVE fix                                      |
 
-Writing rules:
-
-- **A changelog is an upgrade decision aid, not a user guide, API reference, design document, or implementation report.** Announce the final released behavior at the product boundary; leave setup sequences, exhaustive option lists, diagnostic catalogs, and implementation mechanics to reference documentation.
-- **Lead with the capability or observable outcome.** A reader who sees only the first sentence should still know what was added, changed, fixed, removed, or deprecated.
-- **Default to one bullet of one to three sentences.** Add a sentence only for a required user action, a compatibility or security consequence, or a material behavioral constraint. Concise does not mean shortest: retain a limitation when removing it would give users the wrong setup or runtime expectation.
-- **Apply a clause-level relevance test.** Keep a clause only when it answers at least one of: what changed, what the user can now do, what the user must do, or what material behavior or limitation the user will observe. Omit clauses that only explain how the code validates, retries, falls back, maps protocol states, logs diagnostics, or organizes configuration.
-- **Name public controls selectively.** Keep a CLI flag, configuration key, agent kind, API symbol, or error identifier when the reader needs that exact name to discover, enable, migrate, or react to the change. Do not inventory nested fields, accepted types, validation codes, or every new error kind; those belong in reference documentation unless automation or operator action depends on them.
-- **Describe effects, not machinery.** Prefer "requests requiring human input end the attempt" to a list of protocol outcomes and retry branches. Preserve the source's exact scope: do not replace "attempt" with "run", or a conditional capability with an unconditional promise, merely to simplify the sentence.
-- **Explain a limitation when the cause clarifies expectations.** "Token-based budgets do not apply because the protocol does not report token usage" is more useful than listing both facts separately. Do not add architectural rationale that does not change user action or expectations.
-- **One bullet per logical change between releases.** A logical change is everything the consumer observes as a single unit of value. It may span multiple PRs and commits if they all deliver, refine, or fix the same capability within the release window.
-- **Fold within-release churn.** If a feature is introduced in one PR and then corrected, polished, or adjusted in subsequent PRs before the release ships, all of that work produces **one** changelog entry describing the final state. From the consumer's perspective there was no intermediate broken state - only the delivered result.
-- **Fold sub-fixes into the feature entry.** If a PR introduces a feature and also fixes a bug found during its implementation, describe the fix as part of the feature bullet. Only create a standalone Fixed entry when the PR's sole purpose is a bug fix that is independent of any in-progress feature.
-- **Do not duplicate or silently rewrite an existing entry.** Fold freely into an entry written in the same session. If `[Unreleased]` already contains a committed entry for the same logical change, ask whether to update it; do not work around the approval boundary by appending a duplicate. Leave unrelated previous entries untouched, and never fold new work into a dated release.
-- **Never document the absence of a change.** "No migration is required", "no new environment variables", "No operator action is required", "nothing to do here" describe non-events. The file records changes; a reader who finds no migration note concludes there is no migration. Positive operator facts are changes and stay: a required migration or manual step, a new or removed environment variable, a new permission or scope, a changed default. When the audience detected in Step 1 does not deploy the software, drop deploy mechanics in both directions - the negative assertion and the positive instruction - and keep only what that audience can act on.
-- **Reference the issue/task when one exists; fall back to the PR otherwise.** Each bullet ends with a parenthetical reference using a full URL (plain `#NNN` or bare tracker keys are not clickable in rendered markdown). When a tracker issue/task is linked from the PR, reference **the issue/task only** - not also the PR. When multiple distinct issues/tasks are linked, list all of them. See `references/trackers.md` for the URL format matching the detected tracker.
-- Start each bullet with what changed, not with "Fixed" or "Added" (the heading already says that).
-- Be specific: "`coroutine 'main' was never awaited` bug after async migration" not "Fixed async bug".
-- Identify the subsystem when it helps locate the change, using the labels detected in Step 1 (e.g. `API:`, `CLI:`, `Auth:`, `Dashboard:`).
-- Reference types or functions in backticks when they help the reader.
-- Do not copy git commit messages verbatim - rewrite for a human reader.
-
-Use this integration example as the target altitude:
-
-**Too implementation-heavy:**
-
-```markdown
-- A new agent kind runs protocol-compatible runtimes. Set its command and optional nested MCP configuration; validation emits a dedicated wrong-type code. Permission requests map to protocol refusal, two non-retried error kinds cover declined and unknown outcomes, continuation falls back to a fresh session, and a notice lists unsupported runtime capabilities.
-```
-
-**Changelog-ready:**
-
-```markdown
-- The new `agent-client-protocol` agent kind runs Agent Client Protocol-compatible runtimes over stdio and resumes previous sessions when supported by the runtime. Locally launched runtimes can use workflow-configured MCP servers, while requests requiring human input are refused or end the attempt rather than waiting indefinitely. Token-based budgets do not apply because the protocol does not report token usage. ([#976](https://github.com/sortie-ai/sortie/issues/976))
-```
-
-The second form is not minimal for its own sake: it retains the exact public capability and the constraints that affect session continuity, configuration, control flow, and budgeting, while dropping setup syntax, validation codes, error taxonomy, session fallback mechanics, and diagnostic notices.
+The writing rules and a worked altitude example are in [references/entry-style.md](references/entry-style.md). They govern how much of the change survives into prose, when a CLI flag or API symbol earns its name, how several PRs fold into one bullet, why an entry never asserts the absence of a change, and how a bullet cites its issue or task. Read it before drafting any bullet.
 
 ### Step 5: Write the entry
 
@@ -265,63 +182,12 @@ To cut a release:
 
 Reviewing someone else's changelog edit is not the authoring workflow run backwards. The rules above are enforced by *where the insert is anchored*, and a reviewer never sees the anchor - only the result. The result hides the one fact that decides whether the edit is legal.
 
-A unified-diff hunk header names the enclosing **category**, never the enclosing **version**:
-
-```
-@@ -76,6 +76,16 @@
- ### Fixed
-```
-
-That reads as a plausible `### Fixed`, and it is one. It says nothing about whether the `## [x.y.z]` heading above it is `[Unreleased]` or a version shipped months ago - that heading can sit dozens of lines further up and never appear in the diff at all. The built-in markdown diff driver does not rescue this: its function-name pattern matches any heading level, so it reports the nearest `###` and not the `##`.
-
-Resolve the version yourself, one line per added hunk:
-
-```bash
-git diff -U0 "$BASE".."$HEAD" -- CHANGELOG.md \
-| sed -n 's/^@@ -[^ ]* +\([0-9]*\).*/\1/p' \
-| while read -r n; do
-    v=$(git show "$HEAD":CHANGELOG.md | awk -v n="$n" 'NR<=n && /^## \[/{h=$0} END{print h}')
-    printf '+%-6s %s\n' "$n" "${v:-<preamble>}"
-  done
-```
-
-Every hunk must resolve to `## [Unreleased]`, unless the change under review is deliberately cutting a release. A hunk resolving to a dated version is an edit to shipped history. Confirm it against what was actually published - `git tag --list`, plus the forge's release list when the project publishes releases - because a section can carry a date before anyone has shipped it, and only the tag settles the question.
-
-Two further defects travel with this one, because a bullet anchored against the wrong heading is usually drafted against the wrong neighbours too. Check all three in the same pass:
-
-- **Placement.** Every hunk resolves to `[Unreleased]`.
-- **Order.** The bullet sits at whichever end of its category the file's convention reserves for new work - the direction detected in Step 1, not the direction that looks natural.
-- **Width.** The bullet wraps to the width its new neighbours use, not the width of whatever it was drafted against.
+The procedure for resolving every added hunk to its enclosing `## [` heading, and the placement, order, and width checks that travel with a misanchored bullet, are in [references/reviewing-diffs.md](references/reviewing-diffs.md). Open it before approving any pull request that touches CHANGELOG.md.
 
 ## Error Recovery
 
-| Problem                    | Fix                                                        |
-| -------------------------- | ---------------------------------------------------------- |
-| Missing comparison links   | Reconstruct from `git tag --sort=-version:refname`         |
-| Duplicate entries          | Deduplicate, keep the more descriptive version             |
-| Entry under wrong category | Move it; if ambiguous, prefer Changed over Added           |
-| No tags in repository      | Use commit SHAs in comparison links as a temporary measure |
-| Edited a dated release section by mistake | Restore that section from `git show HEAD:CHANGELOG.md`, then re-anchor the insert inside `[Unreleased]` |
-| Bullet order mixed across sections | Reorder the outlier section to the file's dominant convention. Verify by diffing the sorted, whitespace-stripped, non-empty lines of the file before and after: the only differences allowed are ones you made deliberately, which proves no bullet was lost or silently reworded |
-| Dangling clause left by a removed sentence | Re-read the whole bullet and close the sentence; grep the file for the same artifact in sibling entries |
-| Noise entry slipped in     | Remove it - a leaner changelog is more trustworthy         |
+The recovery table for a changelog that is already in a bad state (missing comparison links, duplicate entries, a dated section edited by mistake, bullet order mixed across sections, a dangling clause left by a removed sentence) is in [references/anti-patterns.md](references/anti-patterns.md). Open it the moment you find the file wrong rather than the entry wrong.
 
 ## Anti-Patterns
 
-| Anti-pattern | Why it's wrong | Correct approach |
-| --- | --- | --- |
-| One entry per commit | Commits are implementation steps, not logical changes. A 6-commit PR produces one changelog bullet. | Use `gh pr list` to enumerate PRs; write one bullet per logical change. |
-| One entry per PR | Several PRs may introduce, refine, and fix one feature before release; separate bullets expose development history rather than the final user-facing change. | Inspect each PR as evidence, then combine all PRs for the same unreleased capability into one bullet. |
-| Using `git log --oneline` as the primary source | Produces commit-level noise: test commits, review feedback, merge commits, formatting fixes. | Query merged PRs via `gh pr list --state merged` filtered by milestone or date range since the last git tag. |
-| Mini user guide | Exact setup steps, every option, accepted types, and examples obscure the change itself. | State the capability and only configuration names or required actions needed to discover, enable, or migrate it; leave the procedure to user documentation. |
-| Implementation report | Protocol mappings, retry branches, fallback algorithms, internal error kinds, and diagnostic notices describe how the feature was built rather than what shipped. | Translate internals into observable behavior or omit them when they do not affect user action or expectations. |
-| Vague minimalism | "Added protocol support" is short but does not tell readers what can run or which important constraints apply. | Name the public capability and retain material limitations; remove detail by relevance, not by word count alone. |
-| Diagnostic catalog | Listing every validation or error code turns the changelog into reference documentation. | Include an identifier only when users or automation must recognize it and respond differently after upgrading. |
-| Plain `#NNN` references | Not clickable in rendered markdown - readers must manually construct the URL to navigate to the change. | Use full URLs (see `references/trackers.md`). |
-| Including both the issue/task and the PR in one bullet | Doubles the noise and misleads the reader: the issue/task already describes the user-visible problem, the PR is its implementation. | Reference the issue/task only when one exists; fall back to the PR only when no issue/task is available. |
-| Bare tracker keys (e.g. `BP-123`, `ENG-42`) | Not clickable; readers cannot navigate to the task without knowing the tracker URL. | Use the full tracker URL (see `references/trackers.md`). |
-| Stating that nothing is required (`No migration or new configuration is required.`) | Documents a non-event, and it degrades: once such sentences accumulate, their absence from one entry reads as an oversight rather than as "no migration". | State only what changed. Silence already means nothing changed. |
-| Anchoring an edit on a bare `### Added` / `### Fixed` heading | Those headings repeat once per version, and the first match in the file usually sits inside the newest release - so the insert mutates shipped history. | Anchor on text unique to the `[Unreleased]` window, then confirm with `git diff` that no dated section moved. |
-| Rewriting an entry that was already committed | The prose was reviewed and approved by a human; a silent rewrite can drop a caveat that was accurate when written, and the diff hides it among the new work. | Append a new bullet. Report the stale wording to the user and let them decide. |
-| GitHub Issue links in changelog **when the project's tracker is not GitHub Issues** | The detected tracker is the authoritative source for task references. Adding `/issues/NNN` links is misleading and breaks over time as the GitHub Issues tab is unused. | Use tracker links for all task references; GitHub links remain only for PRs. |
-| Reading a CHANGELOG hunk header as proof of the section | The header names the category (`### Fixed`), never the enclosing version, so a bullet inserted into a shipped release reviews as clean. | Resolve each added hunk's line number to the nearest preceding `## [` heading and require `[Unreleased]`. |
+One entry per commit, one entry per PR, `git log --oneline` as the primary source, mini user guide, implementation report, vague minimalism, diagnostic catalog, plain `#NNN` references, bare tracker keys, stating that nothing is required, anchoring an edit on a bare `### Added` heading, rewriting an entry that was already committed, and reading a hunk header as proof of the section. Each one's failure mode and its correction are in [references/anti-patterns.md](references/anti-patterns.md).

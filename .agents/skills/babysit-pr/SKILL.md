@@ -13,7 +13,7 @@ Apply changes that genuinely improve the work. Respectfully decline those that d
 
 This skill carries the protocol. The project supplies the standards: coding conventions, verification commands, architectural invariants, tracker choice, and Context7 mechanics live in the project's context files (AGENTS.md, CLAUDE.md, CONTRIBUTING.md, README.md) and architecture documentation. This skill tells you *how to reason*; the project tells you *what to reason about*.
 
-Project context (AGENTS.md, CLAUDE.md, architecture documentation) is reference material consulted *while* walking through this skill's steps - not a prerequisite to read end-to-end before starting. If a wrapper prompt that invoked this skill lists its own prerequisite reading, honor those reads first; the wrapper has authority to add such a gate. The "not a prerequisite" rule applies only to the project context files named here - it is not a blanket prohibition against preliminary reading the wrapper requires.
+Project context is reference material consulted while walking the steps, not a prerequisite to read end-to-end first; the exception for a wrapper prompt that declares its own reading gate is in [references/protocol-rationale.md](references/protocol-rationale.md).
 
 ## Running scripts bundled with this skill
 
@@ -25,11 +25,7 @@ Script paths in this document (e.g. `scripts/`) are resolved relative to **this*
 
 Before executing any step, confirm:
 
-1. **`gh` CLI** is available and authenticated - required for Source B (fetching comments from a GitHub PR). Inline-input mode (Source A) does not need it.
-2. **Context7** is available and you know its workflow (two calls: `resolve-library-id`, then `query-docs`). This skill defines *when* to use it; the project context defines *how*.
-3. **Project verification commands** (formatter, linter, tests, type checker) are documented in the project's context files. You will read those at Step 4a and run only the subset relevant to what you change.
-4. **Project architecture documentation** can be located. Common forms: a dedicated file (`docs/architecture.md`, `ARCHITECTURE.md`), an architecture section inside the primary context file (AGENTS.md/CLAUDE.md), a directory of design notes, or a set of accepted ADRs. If no dedicated doc exists, treat the most architecturally-detailed context file as the de facto record. Never guess what the architecture says - read it.
-5. **Issue tracker discovery** happens in Step 4b. Do not assume GitHub Issues, Jira, GitLab, Linear, or any specific tool until you have evidence from project context.
+An authenticated `gh` CLI for Source B, Context7 and its two-call workflow, the project's documented verification commands, the project's architecture documentation, and no assumption about which issue tracker the project uses. What each one means and where to look for it is in [references/setup-and-ingest.md](references/setup-and-ingest.md).
 
 ## Workflow
 
@@ -52,14 +48,7 @@ Examine the input the user provided.
 
 **Source B - GitHub PR.** The user provided a PR number or URL, or the input is empty and a PR exists on the current branch. Run the fetch script to collect every kind of comment: `python3 scripts/fetch_pr_comments.py [PR_NUMBER]`. The script emits a single JSON object on stdout with `pr`, `inline`, `reviews`, and `issue` fields.
 
-If `python3` or the script is unavailable, run the three commands it wraps - missing any of them silently drops a class of comments:
-
-```bash
-PR=$(gh pr view --json number --jq '.number')
-gh api "repos/{owner}/{repo}/pulls/${PR}/comments" --paginate
-gh api "repos/{owner}/{repo}/pulls/${PR}/reviews"  --paginate
-gh pr view "$PR" --json comments --jq '.comments'
-```
+If `python3` or the script is unavailable, run the three `gh` commands it wraps, listed in [references/setup-and-ingest.md](references/setup-and-ingest.md). Missing any of them silently drops a class of comments.
 
 Classify the feedback domain from what the comments reference:
 
@@ -73,7 +62,7 @@ Classify the feedback domain from what the comments reference:
 
 **MANDATORY.** Complete every sub-step before assigning any classification to any comment. There are no exceptions.
 
-A reviewer asserting that a library behaves a certain way is making a verifiable, falsifiable claim. Context7 is the verification mechanism. Accepting or rejecting on unchecked library assumptions is the proximate cause of both false approvals and false rejections. This step prevents both failure modes.
+Why this audit is mandatory, why the binding rules below are gates rather than guidelines, and the cautious default that governs a borderline call are in [references/context7-triage.md](references/context7-triage.md).
 
 #### 2a. Triage - which comments require Context7
 
@@ -85,23 +74,15 @@ The tag is a working annotation for Steps 2b–2c and Step 3 reasoning only. It 
 
 For the heuristic that decides what counts as a library claim, the categories of comments that do NOT require Context7, the cautious-default rule, and the failure-recovery procedure, read [references/context7-triage.md](references/context7-triage.md).
 
-The default posture is cautious: **when in doubt, run Context7.** A false positive (running it when not strictly necessary) costs one tool call. A false negative (skipping it when needed) costs a wrong classification and a defensible-looking mistake.
-
 #### 2b. Execute the Context7 workflow
 
-For every **[C7-REQUIRED]** comment, run the two-step Context7 workflow per the project's Context7 usage instructions. Follow those instructions for query phrasing, topic filtering, token budgets, and failure recovery.
-
-When the library is not indexed and you fall back to an authoritative source (the library's official docs, its package-registry page, or its GitHub README at the version pinned in the project's manifest), record `[FALLBACK: web]` in the evidence table. The finding is still treated as authoritative; only the logistics differ.
+Run the two-call workflow for every **[C7-REQUIRED]** comment. The query mechanics, the not-indexed fallback, and the `[FALLBACK: web]` convention are in [references/context7-triage.md](references/context7-triage.md).
 
 #### 2c. Library Evidence Table
-
-Build this table completely before proceeding to Step 3. Every **[C7-REQUIRED]** comment gets exactly one row. The table is evidence, not interpretation - classification comes in Step 3.
 
 Use [assets/evidence-table-template.md](assets/evidence-table-template.md) as the structural template. It contains a blank skeleton, filled example rows demonstrating each verdict type, and column-discipline notes.
 
 #### 2d. Binding rules
-
-These rules govern every classification in Step 3. They are not guidelines; they are gates. They exist to counteract the well-documented tendency of language models to drift toward agreeing with whoever spoke last - a drift that is the proximate cause of both sycophantic acceptance of wrong suggestions and sycophantic rejection of correct ones when the reviewer's tone becomes uncertain.
 
 1. **Refuted library claim ⇒ not Valid.** A comment whose library claim Context7 refutes CANNOT be classified as Valid. It is Incorrect or Counterproductive, regardless of the reviewer's seniority, the certainty of their tone, or any perceived social pressure to agree.
 2. **Confirmed library claim ⇒ not Subjective.** A comment whose library claim Context7 confirms has an objective basis. Classify it on correctness and scope grounds, never as Subjective.
@@ -134,15 +115,7 @@ For precise criteria, worked examples, the borderline-case decision rubric, and 
 
 #### 4a. Code-domain comments (Valid & Actionable)
 
-1. Locate the exact file and line range.
-2. **Before writing any fix that uses an external library API,** run Context7 for the *implementation* - not just for the classification. Verify the exact method signature, parameter types, and return shape against current documentation. The reviewer may be correct in direction but wrong in the specific API call they suggested.
-3. Implement the change surgically. Modify only what is necessary.
-4. Run the project's documented verification commands. Project context files (AGENTS.md, CLAUDE.md, CONTRIBUTING, README) declare the canonical commands for formatting, linting, type checking, and testing. Read them, then run only the subset relevant to what you changed:
-   - A change to source code runs the formatter, linter, type checker (if any), and the tests covering the affected area.
-   - A change to documentation runs the documentation linter or link checker if defined; otherwise no verification is needed.
-   - A change to configuration runs the schema validator if defined; otherwise no verification is needed.
-   Follow declared commands verbatim. Do not substitute equivalents (e.g., do not invoke a tool directly when conventions specify a task runner). If conventions are silent on a category you touched, infer the default from the project's manifest and note the inference in the Step 6 summary so the human operator can confirm.
-5. If the suggestion is directionally correct but the proposed implementation is suboptimal, implement a **better version** that addresses the underlying concern. Document the divergence in the Step 6 summary.
+The five-step apply procedure is in [references/applying-and-reporting.md](references/applying-and-reporting.md). It carries the rule to run Context7 for the implementation and not only for the classification, and how to pick the verification subset the project's context files declare.
 
 #### 4b. Deferred comments - tracker triage
 
@@ -150,68 +123,11 @@ A comment classified **Valid - Deferred to Backlog** in Step 3 is a real concern
 
 **Hard rule. Deferred ↔ ticket.** Every comment that ends Step 4b in the Deferred category MUST resolve to a ticket reference - either a newly created ticket or an existing ticket already covering the concern. A Deferred comment without a ticket reference is forbidden, regardless of which tracker the project uses: it is a memory leak in the review process. If the workflow below cannot produce a ticket reference, the comment was misclassified - return to Step 3 and pick a different category.
 
-Step 4b begins with **discovery, not action**. Two discoveries happen before any ticket is created.
-
-##### Discover the project's issue tracker
-
-The project uses one of: GitHub Issues, Jira, GitLab Issues, Linear, or another tracker. Identify it from the strongest available signal:
-
-1. **Project context files first.** AGENTS.md / CLAUDE.md / README.md / CONTRIBUTING.md may explicitly name the tracker - "issues live in Jira project ABC", "open a GitHub issue", a Linear board URL, a tracker-specific ticket-key convention. Trust these; they are authoritative.
-2. **Repository signals second.** A GitHub remote with a `.github/` directory and an authenticated `gh` CLI suggests GitHub Issues. Atlassian URLs (`*.atlassian.net`) in commit messages, PR descriptions, or branch names suggest Jira. GitLab CI configuration and `gitlab.com` remotes suggest GitLab Issues. Treat these as evidence only when context files do not name a tracker explicitly.
-3. **If ambiguous, ask the user.** Do not guess between two equally plausible trackers. State both candidates and the evidence for each, then ask which is canonical for the backlog.
-
-##### Discover sibling skills that manage the chosen tracker
-
-The current session loads a catalogue of skills. Inspect their descriptions for words that match the chosen tracker - typically descriptions naming the tracker, naming a ticket type, or describing operations like "create a ticket", "manage backlog", "triage issues", "manage roadmap", "manage epics". A matching skill is the *correct* tool because it carries project-specific conventions (label taxonomy, body templates, duplicate-detection logic, parent-epic resolution, custom-field handling) that hand-rolled CLI calls do not.
-
-If a matching skill exists, load and apply it for the create operation. Pass the deferred concern with full context: the file:line being deferred, the reviewer attribution, and the gate verdicts below. Let the discovered skill handle the mechanics; this skill's job is to decide *whether* to create a ticket and *what it should contain semantically*, not to format ticket payloads.
-
-If no matching skill exists, fall back to manual creation:
-
-- For GitHub Issues: `gh issue create` with a clear title, a body that names the file:line and the reviewer, and labels inferred from the project's existing issue conventions (read a few existing open issues for examples).
-- For Jira / GitLab / Linear: use any available API or MCP tool the session exposes. Compose the description in the project's expected markup.
-- Note in the Step 6 summary that ticket creation was hand-rolled (no managing-skill found) so the human operator can verify the result against project conventions.
-
-##### Weigh the fix against the ticket before either
-
-A ticket is a durable artifact with a cost of its own: the prose to write it, and the re-derivation a future reader faces because the context that produced it is gone. When the change it would request is smaller than that cost, the ticket is the more expensive half of the transaction, and filing it is a net loss even though every gate below would pass.
-
-Weigh both sides explicitly:
-
-- **The fix.** Is the whole change a small, local edit whose correctness is evident from the diff, inside code this change already touches, and covered by the verification commands already being run?
-- **The ticket.** How much of the body would restate context that exists only right now, and how much re-derivation does a future reader inherit?
-
-When the fix is clearly the cheaper half, do not file. Propose the edit: name the file and lines, state the change in a sentence or two, give the cost comparison that justifies doing it now, and **ask the human for approval, then wait.** On approval, apply it under the boy-scout principle - leave the code better than you found it - and report it in Step 6 as Applied, noting that it was admitted here rather than filed. On refusal or silence, continue to the gates below and file as normal.
-
-Never self-approve this path. The approval is what makes the edit part of the requested work instead of unrequested scope, which is the distinction a surgical-changes convention turns on: the edit traces to the human's decision, not to the agent's taste.
-
-Cheapness alone does not admit an edit. File regardless of size when the change would alter behaviour a user notices, touch a security boundary, require a decision the agent cannot make, or reach code the current work does not already touch.
-
-##### Apply the three triage gates in order
-
-The gates validate the Deferred classification. They are not silent stops: if a gate trips, the comment was misclassified and Step 3's category was wrong. **Reclassify and continue - never leave a Deferred comment without a ticket**, unless the proportionality step above already resolved it into an approved edit.
-
-1. **Architecture-conflict gate.** Read the relevant section of the project's architecture documentation. If the suggestion contradicts the design intent - not merely the current implementation - the comment is **Incorrect or Counterproductive (Category 5)**, not Deferred. Reclassify, cite the architecture rule as the rejection rationale, and document the reclassification in the Step 6 summary's Rejected section. Do not create a ticket.
-
-2. **Duplicate check.** Search open tickets for existing work covering this concern, even partially. If a matching ticket exists, the Deferred classification is validated. The outcome is `{existing ticket reference} (existing)`. Do not create a new ticket.
-
-3. **Scope test.** Would this realistically matter within the scope of the project's open milestones, epics, or roadmap?
-   - **Yes** → proceed to creation.
-   - **Out of current horizon, but the project has a backlog / icebox / future-ideas lane** → create the ticket in that lane. Deferred stands.
-   - **Out of current horizon, with no appropriate lane** → the comment is **Needs Discussion (Category 7)**, not Deferred. Reclassify and flag for the human operator to decide whether the project should track aspirational work at all.
-
-##### Create the ticket and verify
-
-If gates 1 and 3 pass, create the ticket via the discovered skill (preferred) or the manual fallback. Confirm the create operation returned a ticket identifier (the tracker echoed an ID, key, or URL) - a silent failure means no ticket exists, which means the comment cannot stay in Deferred.
-
-Record the outcome in the Step 6 summary as `{ticket reference} (created via discovered skill)` or `{ticket reference} (created via manual fallback)`. If creation failed and cannot be retried in this session, reclassify as **Needs Discussion (Category 7)** with the failure noted, and flag for the human operator to create the ticket manually.
+The tracker and sibling-skill discovery, the fix-versus-ticket proportionality test that runs before the gates, the three triage gates in order, and the creation-and-verification procedure are in [references/tracker-triage.md](references/tracker-triage.md).
 
 #### 4c. Architecture-domain comments (Valid & Actionable)
 
-1. Locate the relevant section of the project's architecture documentation.
-2. Revise the specification to address the concern.
-3. Verify internal consistency - the change must not contradict other architectural sections, supporting diagrams, contracts, or accepted ADRs.
-4. If the revision has downstream implications for existing code (e.g., a state transition was renamed, a validation rule tightened, a contract reshaped), enumerate them in the Step 6 summary so the human operator can schedule follow-up code work.
+The revision procedure, and the internal-consistency and downstream-implication checks that travel with it, are in [references/applying-and-reporting.md](references/applying-and-reporting.md).
 
 Never modify accepted ADRs without explicit instruction from the user. Accepted ADRs preserve the context, alternatives, and consequences of prior decisions; rewriting them retroactively destroys the historical record.
 
@@ -238,17 +154,7 @@ Before producing the Step 6 summary, confirm you have not executed any of the fo
 
 Output the summary **directly in the chat response** to the human operator, using [assets/summary-template.md](assets/summary-template.md) as the structural template. **Do not save the summary to a file** - the audience is the human reading the chat, not a persistent artifact. The template has one section per category plus the source header, the tracker header, and the Context7 evidence log.
 
-Before sending the response, verify the draft against this checklist:
-
-- [ ] Source header present (PR #N / Inline feedback / Mixed).
-- [ ] Tracker header present (discovered tracker, or "n/a - no items deferred").
-- [ ] Context7 Evidence Log table has one row per [C7-REQUIRED] comment.
-- [ ] All seven category sections are present, including empty ones (use `_(none)_` for empty bodies).
-- [ ] No `[C7-REQUIRED]` tags appear anywhere in the summary.
-- [ ] Every populated entry names the source file:line referenced.
-- [ ] Every "Deferred" entry names a ticket reference (newly created or existing). Any Deferred entry missing a ticket is a misclassification - move it to Rejected (Category 5) or Needs Discussion (Category 7).
-- [ ] Every "Rejected" entry cites specific Context7 or architecture evidence.
-- [ ] Every "Needs Discussion" entry names the open question and both sides.
+Before sending the response, verify the draft against the ten-item checklist in [references/applying-and-reporting.md](references/applying-and-reporting.md). It covers the required headers, the evidence log, the empty-section rule, the `[C7-REQUIRED]` tag prohibition, and the evidence each populated entry owes.
 
 The protocol ends here with the applied changes in the working tree. It does not decide whether they are committed: that belongs to whoever invoked it, and the summary is a report rather than a finish line.
 
@@ -269,12 +175,4 @@ The protocol ends here with the applied changes in the working tree. It does not
 
 ## Guiding principles
 
-1. **Library claims are falsifiable.** A reviewer asserting an API behavior is making a verifiable claim. Context7 verifies it. Accepting or rejecting without verifying is the root cause of both false approvals and false rejections.
-2. **Quality over harmony.** Never apply a change that makes the work worse, regardless of who suggested it or how confidently.
-3. **Architecture wins over library capability.** When the project's architecture documentation and Context7 conflict, architecture wins. Context7 describes what a library *can* do; architecture specifies what the project *will* do.
-4. **Spec-first, code-second.** For architecture-domain feedback, the specification is the source of truth; code follows. Revising code without revising the spec is drift.
-5. **Think like a maintainer, not a people-pleaser.** The goal is not to mark every comment resolved. The goal is to ship correct, maintainable work.
-6. **Be thorough but surgical.** Apply the minimum change that fully addresses the concern. Every changed line must trace to a classified comment.
-7. **Every decision needs evidence.** Document reasoning, source, and conclusion for every apply, skip, or reject. Assertions without citations are opinions.
-8. **Defer wisely, not reflexively.** "Not now" is only valid when paired with a tracked ticket - Deferred ↔ ticket, regardless of which tracker the project uses. A deferred comment without a ticket reference is forbidden: it is a promise the agent has no way to keep. If Step 4b cannot produce a ticket, the comment was misclassified; move it to Rejected or Needs Discussion.
-9. **A ticket is not free.** Its prose and the re-derivation it imposes on a future reader are the price of deferring. When that price exceeds the change itself, the honest move is to propose the edit, argue the cost, and let the human decide - not to file, and not to act unilaterally.
+Nine principles stand behind these rules: library claims are falsifiable, quality beats harmony, architecture beats library capability, spec before code, maintainer over people-pleaser, thorough but surgical, evidence for every decision, defer only with a ticket, and a ticket is never free. Each is stated in full in [references/protocol-rationale.md](references/protocol-rationale.md). Read it when a rule above and the situation in front of you seem to disagree.

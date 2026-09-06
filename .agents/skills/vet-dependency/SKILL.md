@@ -80,7 +80,7 @@ A significant consumer maintaining its own fork is the strongest available evide
 
 The README describes an intent. The exported interface is the contract, and **the artifact the registry serves is the thing consumers link against**. In most ecosystems it is not the repository tree at the tag, so fetch the artifact and read that.
 
-The gap is routine, not exotic. `npm pack zod@3.23.8` yields a tarball whose 50 files include `package/lib/*.js`; the git repository at tag `v3.23.8` has no `lib/` directory at all, only `src/`. Fetching `raw.githubusercontent.com/colinhacks/zod/v3.23.8/lib/index.js` returns 404 while `src/index.ts` returns 200 (both fetched 2026-09-02). A vetting that read the tag would conclude the published entrypoint does not exist. npm's `prepare`, `prepublishOnly`, and `prepack` scripts run before packing, and compiling TypeScript to JavaScript is the documented use case, so any package with a build step diverges this way. PyPI serves sdists and wheels, neither of which is the repository tree: an sdist is a packaging artifact and a wheel is a built distribution. Go is the exception: the module is served from version control at the tag, so tag and artifact coincide.
+Which registries serve a built artifact that differs from the repository tree at the tag, with the worked example of the 404 a tag-based vetting walks into, is in [references/ecosystems.md](references/ecosystems.md). Read it for the candidate's ecosystem before fetching anything.
 
 Confirm the version resolves before believing anything fetched at it, and run a positive control before reading any zero as absence. A scoped code search returning zero hits is consistent with two different worlds: the symbol is absent, or the scope is invisible to the index. Forge code search typically indexes the default branch only and may not index a recently created repository at all, so a zero from it is not evidence about a released version.
 
@@ -91,10 +91,7 @@ grep -rl '<a string the artifact must contain>' "$dir" | wc -l   # positive cont
 grep -rn 'SymbolYouAreChasing' "$dir"
 ```
 
-Two failure shapes to expect while reading, both of which return a healthy-looking zero:
-
-- **A structured document that inherits.** A Maven POM declares `<scm>` in its parent, not in the artifact's own POM, and writes it as `<scm child.scm.url.inherit.append.path="false">`, so a `grep '<scm>'` over the child returns nothing and a reader concludes the project declares no repository. Resolve inheritance, and match tags allowing attributes.
-- **A minified or generated artifact.** Formatting assumptions written against a source tree (quoted attributes, one declaration per line, original identifiers) do not survive a bundler. Match format-agnostically, or read the type declarations the package ships instead of its emitted code.
+Two artifact shapes return a healthy-looking zero to a search that is in fact looking in the wrong place: a structured document that inherits the field from its parent, and a minified or generated artifact that breaks the formatting assumptions written against a source tree. Both are worked in [references/ecosystems.md](references/ecosystems.md).
 
 ### 5. Probe the one behavior the project has already committed to
 

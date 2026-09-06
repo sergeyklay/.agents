@@ -233,88 +233,16 @@ Three modes, controlled by frontmatter:
 
 ## Platform targeting
 
-The agentskills.io spec is intentionally minimal: required `name` and `description`; optional `license`, `compatibility`, `metadata`, and experimental `allowed-tools`. Every vendor ships extensions on top.
-
-**Decide once, up front: cross-platform or single-vendor?**
-
-| Choice          | When                                                                              | What to use                                                                                |
-| --------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Cross-platform  | Public distribution; team uses multiple platforms; portability is the goal.       | Spec frontmatter only; no vendor-only fields; forward slashes; bundle deps; document target in `compatibility` if narrow. |
-| Single-vendor   | The skill exists for one platform and will not be used elsewhere.                 | Use vendor extensions where they help; declare the target in `compatibility`; ignore other platforms. |
-
-**Single-vendor is not a smell.** A `commit` skill that lives only in `~/.claude/skills/` should use `disable-model-invocation: true`, `argument-hint: "[scope]"`, `allowed-tools: Bash(git:*)`, and `context: fork` if those make the skill correct on its target. Refusing those features to "stay portable" produces a worse Claude Code skill that nobody else runs anyway. The cross-platform default applies when portability is an actual goal — not as a moral rule.
-
-**Platform-specific extensions** (full reference in [references/frontmatter-fields.md](references/frontmatter-fields.md)):
-
-- **Claude Code**: `disable-model-invocation`, `user-invocable`, `argument-hint`, `arguments`, `when_to_use`, `model`, `effort`, `context`, `agent`, `hooks`, `paths`, `shell`. Slash-command invocation `/skill-name`. Live change detection on `~/.claude/skills/` and `.claude/skills/`.
-- **OpenAI Codex**: `agents/openai.yaml` for UI metadata and `policy.allow_implicit_invocation`. Invocation `$skill-name`. Scans `.agents/skills/` from CWD upward, then `~/.agents/skills/`.
-- **Cursor**: `.cursor/skills/`; spec-compliant frontmatter only.
-- **Gemini CLI**: prefers `.agents/skills/` over `.gemini/skills/` when both exist.
-- **VS Code / Copilot**: `.github/skills/`; spec-compliant frontmatter only.
-
-**Storage matrix:**
-
-| Platform                | Project           | User                  |
-| ----------------------- | ----------------- | --------------------- |
-| Claude Code             | `.claude/skills/` | `~/.claude/skills/`   |
-| Cursor                  | `.cursor/skills/` | `~/.cursor/skills/`   |
-| Gemini CLI              | `.gemini/skills/` | `~/.gemini/skills/`   |
-| OpenAI Codex            | `.agents/skills/` | `~/.codex/skills/`    |
-| VS Code / Copilot       | `.github/skills/` | `~/.copilot/skills/`  |
-| Cross-platform fallback | `.agents/skills/` | n/a                   |
-
-`.agents/` is the emerging cross-platform convention. Codex uses it natively; Gemini reads it preferentially; Antigravity and OpenCode adopt it. Claude Code does not: it loads only `.claude/skills/` at project scope, so a skill placed in `.agents/skills/` is invisible to it. Serve both from one source by symlinking the `.agents/skills/<name>` directory into `.claude/skills/`, which Claude Code follows.
-
-**Precedence**: project > personal > extension/plugin. (Codex shows colliding skills in the selector instead of merging.)
+Which platform a skill targets decides which frontmatter fields exist for it, where it installs, and how it ships. The cross-platform versus single-vendor decision table, the per-vendor extension lists, the storage matrix, and precedence live in [references/platform-targeting.md](references/platform-targeting.md). Open it at Phase 1 question 3 and before setting any vendor-only field.
 
 ## Distribution
 
-- **skills.sh** (Vercel package manager): `npx skills add <owner>/<repo>` or `... --skill "<name>"` for a multi-skill repo. Publish to GitHub in standard layout.
-- **`.skill` package** (Claude.ai-specific): zip archive with `.skill` extension; upload via Settings → Features.
-- **Claude Code Plugin marketplace**: `/plugin marketplace add <owner>/<repo>`.
+Three publishing channels carry a finished skill to other machines: skills.sh, the `.skill` package, and the Claude Code plugin marketplace. Their commands and layout requirements are in [references/platform-targeting.md](references/platform-targeting.md) § Distribution.
 
 ## Reviewing an existing skill
 
-When the user asks to review or improve a skill, run all of these in addition to mechanical validation. Each step has a fix path, not just a diagnosis.
-
-1. **Parse intent.** Read the frontmatter for `disable-model-invocation`, `user-invocable`, and (for Codex) `agents/openai.yaml` `policy.allow_implicit_invocation`. The intended invocation model determines what counts as a problem in the description and elsewhere.
-2. **Description audit.**
-   - User-invoked only? Flag any "Use when ..." trigger phrases as dead tokens — propose a terse user-facing label instead.
-   - Model-invoked? Flag missing triggers, vagueness, first/second person, marketing fluff that crowds out actionable triggers, and over-broad scope without negative triggers.
-3. **Platform audit.** Confirm whether the skill is single-vendor or cross-platform.
-   - Single-vendor skill missing vendor extensions that would help (e.g., a Claude-only `commit` skill without `disable-model-invocation` or `argument-hint`)? Propose adding them.
-   - Cross-platform skill using vendor-only fields? Propose removing them or splitting the skill.
-4. **Density audit.** Scan the body and references for the patterns in [references/writing-patterns.md](references/writing-patterns.md) § Density: hard wraps that imply meaning, blockquote-wrapped examples, ladders of nested indented bullets, "why this works" paragraphs after every example, redundant restatements of a rule already stated by a code block, single-sentence `Tip:`/`Note:` wrappers, decorative external-spec citations, intra-document anchor links (use plain "see § X below" instead), bare citation URLs that the agent will never fetch. Flag and propose tighter alternatives. Lead by example: do not write the review report itself in the style being criticized.
-5. **Structural audit.** Run `scripts/validate_skill.py` for body length, reference depth, forward slashes, frontmatter validity.
-
-The order matters. Step 1 reframes Step 2; without it, you will give bad advice about the description.
+When the user asks to review or improve a skill, run the five-step audit in [references/reviewing-skills.md](references/reviewing-skills.md) in addition to mechanical validation. Its step order is load-bearing, so do not start midway.
 
 ## Anti-patterns
 
-**Critical** (skill never activates correctly):
-
-- **Workflow summary in `description`.** The model may skip the body if the description tells the whole story. Description triggers; body teaches. Bad: `"Analyzes git diff, identifies the change type, generates a commit message"`. Good: `"Use when generating commit messages. Handles conventional commits, scope detection, breaking changes."`
-- **Vague description.** "Helps with documents" matches nothing.
-- **Monolithic skill.** "Handles all dev workflows" loads slowly and triggers imprecisely. Split.
-
-**High impact** (degrade performance):
-
-- **README-style content.** Skills teach how, not what. Procedures with steps, not narrated context.
-- **Inlining what belongs in `assets/`.** Templates with placeholders, schemas, and other output-generation patterns go in `assets/<name>.md`, referenced from SKILL.md. Inlining a per-type catalog loads every variant on every invocation and obscures the skill's structural shape. Inline only when the block is small and used unconditionally.
-- **External fetch dependencies.** Network downloads at activation time are fragile. Bundle.
-- **Command lists without verification.** Add explicit checks and failure handling.
-- **First/second person in description.** "I can help" / "You can use" reads wrong from a system prompt.
-- **Cross-platform dogma on a single-vendor skill.** Refusing `disable-model-invocation`, `allowed-tools`, or `argument-hint` on a skill that lives only in `~/.claude/skills/` is missed value. Portability is a goal, not a moral rule.
-- **"Use when ..." triggers in a user-invoked-only description.** When `disable-model-invocation: true` (Claude Code) or `allow_implicit_invocation: false` (Codex), the model never reads the description. The triggers consume the user-facing label budget for nothing.
-
-**Medium impact** (token bloat, lower quality):
-
-- **User-guide aesthetics.** Hard wraps that imply meaningful line breaks where there are none, blockquotes around examples (use code fences), three-deep ladders of indented bullets where one tight sentence suffices, "why this works" paragraphs after every example, restating a rule in prose immediately after a code block already showing it, `Tip:`/`Note:`/`Important:` wrappers around single sentences. The reader is a model; visual decoration costs tokens with no benefit. See [references/writing-patterns.md](references/writing-patterns.md) § Density.
-- **Decorative links to external specs and intra-document anchors.** `[agentskills.io spec](https://agentskills.io/specification)`, `[Platform targeting](#platform-targeting)`, bare citation URLs at the end of a sentence — these are documentation aesthetics. The agent does not click during normal execution; the whole SKILL.md is already in context. Anchor links break on heading rename and add nothing the model could not get from "see § Platform targeting below". External URLs are noise unless the agent is genuinely expected to `WebFetch` them as part of the procedure (rare). Functional links to bundled files — `[references/foo.md](references/foo.md)` — are different: the path is the operand the agent passes to Read/bash, the link text gives loading context. Keep those.
-- Verbose explanations of well-known concepts.
-- Multiple equivalent options without a default.
-- Windows backslash paths.
-- Deep reference chains (SKILL.md → a.md → b.md).
-- Time-sensitive notes ("After August 2025 ..."). Move to an "Old patterns" section.
-- Inconsistent terminology.
-- Heavy `MUST`s without reasoning.
+Failure modes are graded Critical, High impact, and Medium impact in [references/anti-patterns.md](references/anti-patterns.md). Load it before writing the description and again before finishing the body: the Critical tier names the three ways a skill fails to activate at all.

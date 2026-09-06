@@ -10,6 +10,7 @@
 - Vocabulary pacing
 - Information flow (given before new)
 - Cognitive load (what you can cut)
+- On depth
 - Curse-of-knowledge countermeasures
 - Calibration checklist
 
@@ -218,6 +219,14 @@ When a passage reads as too hard, name which load is to blame before cutting any
 - **Germane** - the productive effort of building the mental model. This is the load you *want*; protect it by clearing the other two out of its way.
 
 The triage question is *"is this hard because the topic is hard, or because I made it hard?"* If intrinsic, slow down and chunk. If extraneous, delete. An expert-elsewhere reader has little spare capacity for *your* extraneous load - which is also why re-explaining what they already know (the Kindergarten Trap) hurts: it is redundant load, not just bad manners.
+
+## On depth
+
+The right depth is determined by what was asked, not by what you know. A question about "how does Go's garbage collector decide when to run?" goes deep into the pacer algorithm. A question about "should I use Go or Rust here?" stays at the tradeoff level.
+
+When uncertain about depth, let the reader's role break the tie. At mechanism altitude, err toward more depth with clear structure: the reader can stop when they have enough, and they cannot extract detail that is not there. At behaviour altitude, err toward less and name what you left out - "the mechanism behind this is a separate pass; ask if you want it". The reader who wanted more can ask for it in one sentence, while the reader who did not has already stopped reading.
+
+**Depth is not length.** A precisely traced execution path through 20 lines of real code teaches more than three pages of architectural description. Concreteness is a form of depth. Brevity (the Manner maxim) and depth do not conflict: brevity removes words that carry no information - repetition, hedging, restatement - never the detail the reader needs.
 
 ## Curse-of-knowledge countermeasures
 

@@ -2,7 +2,7 @@
 
 Post-draft verification. Load and run this checklist during Phase 4 of `writing-specs`. Every failing item MUST be fixed before delivering the spec.
 
-This checklist combines IEEE 830 / ISO 29148 requirement-quality attributes with a catalogue of the most frequent spec-quality defects. Both are stack-agnostic.
+The checklist combines IEEE 830 / ISO 29148 requirement-quality attributes (Correct, Unambiguous, Complete, Consistent, Ranked, Verifiable, Modifiable, Traceable) with a catalogue of the most frequent spec-quality defects (vague verbs, missing error paths, implicit ordering, unspecified defaults, orphaned references, oversized steps, quantifiers without thresholds, cross-references to unnamed components, banned vocabulary). Both are stack-agnostic.
 
 ## Contents
 
