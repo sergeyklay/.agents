@@ -121,7 +121,7 @@ $output"
     ask_user 'rm -rf -v dist/ obj/'
 }
 
-@test "a slash belonging to a later sub-command keeps its decision" {
+@test "a slash the destructive-command rule cannot reach keeps its decision" {
   require_gemini
   # shellcheck disable=SC2016
   assert_decisions \
