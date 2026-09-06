@@ -9,9 +9,8 @@ REPO_ROOT=$(CDPATH="" cd -- "$SCRIPT_DIR/.." && pwd)
 ALL_ACTIONS='context agents commands hooks rules settings skills'
 ALL_HOSTS='claude codex copilot gemini opencode'
 
-# Gemini strips every agent-kind tool from a subagent's registry, so an
-# orchestrator installed as a Gemini agent cannot delegate and nothing warns.
-# Its protocol reaches Gemini through the top-level command instead.
+# Gemini strips agent-kind tools from subagents, so an orchestrator installed
+# as a Gemini agent cannot delegate. The protocol ships as a top-level command.
 GEMINI_SKIPPED_AGENTS='composer conductor'
 
 setup_formatting() {
@@ -248,7 +247,7 @@ canonical_path() {
   fi
 }
 
-# Directory sync uses --delete. Flags must work with macOS rsync 2.6.9.
+# Flags must work with macOS rsync 2.6.9.
 sync_to() {
   src=$1
   dst=$2
@@ -295,8 +294,8 @@ split_frontmatter() {
     ' "$1"
 }
 
-# Deep-merge frontmatter with template priority and array replacement.
-# Subshell scope prevents temporary assignments leaking to callers.
+# Deep-merge frontmatter with template priority; array values are replaced.
+# Subshell scope keeps temporaries out of the caller.
 overlay_with_yq() (
   src=$1
   tmpl=$2
@@ -321,8 +320,8 @@ overlay_with_yq() (
   rm -f -- "$fm" "$body" "$merged"
 )
 
-# Fallback replaces top-level /^[A-Za-z_][A-Za-z_0-9-]*:/ blocks.
-# It does not support quoted keys, anchors, or multi-document YAML.
+# Fallback: replaces top-level /^[A-Za-z_][A-Za-z_0-9-]*:/ blocks. No quoted
+# keys, anchors, or multi-document YAML.
 overlay_with_awk() (
   src=$1
   tmpl=$2
@@ -453,8 +452,7 @@ frontmatter_value() {
 }
 
 # A Gemini command prompt is a TOML literal string the CLI expands before it
-# runs: ''' closes the string early, while !{...} executes a shell command and
-# @{...} reads a file, both at expansion time.
+# runs: ''' closes the string early, !{...} executes a command, @{...} reads a file.
 assert_prompt_safe() {
   guard_file=$1
   guard_label=$2
@@ -465,10 +463,9 @@ assert_prompt_safe() {
   done
 }
 
-# Prompt fragments are inserted into a TOML literal string and must not
-# contain '''. An "agent: <name>" template key inlines that canonical agent
-# body, because Gemini's TOML command schema has no agent binding and the
-# primary session is the only one that holds invoke_agent.
+# Prompt fragments are inlined into a TOML literal and must not contain '''.
+# An "agent: <name>" template key inlines that agent's body: Gemini's command
+# schema has no agent binding, and only the primary session holds invoke_agent.
 sync_view_toml() {
   kind=$1
   src=$2
@@ -490,10 +487,8 @@ sync_view_toml() {
   agent=$(frontmatter_value "$fm" agent)
   agent_body=
   if [ -n "$agent" ]; then
-    # The name is interpolated into a path, so anything but a bare token
-    # traverses out of .agents/agents and inlines whatever it lands on. The
-    # existence check below cannot catch that: the traversed path exists, and
-    # the installer ships the file it read and exits 0.
+    # The name is interpolated into a path: a non-token value traverses out of
+    # .agents/agents, and the existence check below passes on the traversed file.
     case $agent in
     *[!A-Za-z0-9-]*)
       die "refusing to inline agent \"$agent\" from $tmpl onto $src: expected [A-Za-z0-9-]"
@@ -508,11 +503,8 @@ sync_view_toml() {
     assert_prompt_safe "$agent_body" "$agent_src"
   fi
 
-  # Four fragments reach the prompt literal, and every one of them is a place a
-  # sigil can enter. Guarding only the inlined agent body left the other three
-  # open: measured on 0.58.0, `!{...}`, `@{...}` and ''' each planted in the
-  # preamble, the command body or the suffix installed clean and reached the
-  # generated TOML.
+  # Every fragment reaching the prompt literal is a place a sigil can enter;
+  # guarding only the agent body left the other three open (measured 0.58.0).
   if [ -f "$preamble" ]; then
     assert_prompt_safe "$preamble" "$preamble"
   fi
@@ -559,19 +551,14 @@ gemini_agent_skipped() {
   return 1
 }
 
-# Per-file views are written with rsync and never pruned, so skipping an
-# agent leaves any copy an earlier install wrote exactly where it was. A
-# leftover orchestrator still advertises a delegation tool the host removes
-# without warning, and is now frozen because nothing overwrites it either.
-# Unlike a stale rule, this destination has no canonical twin to compare
-# against, and sync_view has always overwritten it unconditionally.
+# Per-file views go through rsync without --delete, so a previously installed
+# skipped agent survives frozen, still advertising a delegation tool the host
+# removes without warning.
 cleanup_skipped_gemini_agents() {
   for skipped in $GEMINI_SKIPPED_AGENTS; do
     stale="$HOME/.gemini/agents/$skipped.md"
-    # `rm -f` fails on a directory and the script runs under `set -e`, so an
-    # unexpected non-regular file here would abort the install partway through
-    # rather than skip one path. Remove only what an earlier install could have
-    # written: a regular file, or a symlink, whose own removal always succeeds.
+    # rm -f fails on a directory and the script runs under set -e; remove only
+    # what an earlier install could have written (a regular file or symlink).
     if [ -f "$stale" ] || [ -L "$stale" ]; then
       rm -f -- "$stale"
       progress_removed "$stale" 'removed disarmed orchestrator'
@@ -685,8 +672,7 @@ sync_skills() {
   for_host opencode sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills"
 }
 
-# Preserve destination-only settings; repository values win conflicts.
-# Without jq, skip existing files rather than overwrite local settings.
+# Repository values win conflicts; without jq, skip existing host-local files.
 merge_settings() {
   src=$1
   dst=$2
