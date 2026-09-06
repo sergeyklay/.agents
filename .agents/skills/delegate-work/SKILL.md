@@ -1,0 +1,129 @@
+---
+name: delegate-work
+description: "Brief a background agent, confirm the brief arrived, and verify its report before acting on it. Use when writing the prompt for a subagent or parallel session, when several agents will run against one repository, when an instruction sent to a running agent goes unmentioned in its report, or before relaying a delegate's report onward. Do NOT use to measure a run's cost (audit-agent), to prove a green check could go red (prove-checks), or to check a delegated claim (research-it)."
+metadata:
+  author: Serghei Iakovlev
+  version: "1.0"
+  category: meta
+---
+
+# Delegate Work and Verify What Comes Back
+
+Your only view of delegated work is the delegate's own account of it. That account is written by the one party with an interest in it reading as complete, from a context you cannot inspect, and it is silent in exactly the places where it is wrong. A report that says nothing about instruction four is indistinguishable from a report whose author never received instruction four.
+
+The defense is not skepticism, it is structure: make each instruction produce a named artifact, then check the artifacts instead of reading the prose.
+
+`research-it` owns what a delegated *conclusion* is worth (a claim, not evidence). `prove-checks` owns whether a *check* could have gone red. This skill owns the orchestrator's side of the exchange: the brief, the delivery, and the report as a whole.
+
+## Trigger
+
+- A prompt for a subagent, a background agent, or a parallel session is about to be written.
+- Two or more agents will run against the same repository or worktree.
+- A correction, a scope change, or a new instruction was sent to an agent that is already running.
+- A returned report is about to be relayed to a user, quoted, or used as the input to the next delegation.
+- The delegated work is expensive enough that re-running it is not the cheap fix.
+
+Not this skill: measuring what a run cost (`audit-agent`), proving a green check was capable of failing (`prove-checks`), or deciding whether a technical claim the delegate made is actually true (`research-it`).
+
+## Procedure
+
+### 1. Hoist the standing guardrail block out of the brief
+
+Anything repeated into a second brief is written down once and referenced, never retyped. Four hand-copied blocks are four blocks that will drift, and the drift is invisible: each brief looks right on its own.
+
+Keep one file (a shared brief fragment, a section of `AGENTS.md`, or a skill the brief names) covering the categories below. The instances are project-specific; the categories are not.
+
+| Category | What it must settle |
+|---|---|
+| Isolation | Which worktree or directory the agent owns, and that it owns it alone. |
+| Forbidden commands | The exact commands that would destroy a parallel session's uncommitted work. Name them; "be careful with git" is not an instruction. |
+| Gate selection | How this project's checks choose the files they check, when that differs from "everything". |
+| Evidence standard | Real command output pasted, not paraphrased. A summary of a gate run is not a gate run. |
+| Negative control | Required before any green counts. Defer to `prove-checks` rather than restating it. |
+| Incremental findings | Findings written to a file as they accumulate. Defer to the working agreement's reporting rule rather than restating it. |
+
+The gate-selection row is the one most often skipped and the most expensive to skip. In this repository every file-selecting `make` gate selects its inputs through `git ls-files`, so a new file that is not yet indexed is silently skipped and the gate still exits 0. A brief that omits this gets a green report about a file nothing read.
+
+### 2. Keep your arithmetic out of the brief
+
+`research-it` tells the receiver that the brief which reached it is not a source. This is the same rule from the sending end: a number you computed, a count you eyeballed, or a classification you inferred becomes unfalsifiable the moment it enters a brief as a fact, because the agent will build on it rather than check it.
+
+State provenance, and grant standing to refute:
+
+- Not: *"Remove the 26 new violations and leave the 43 pre-existing ones."*
+- But: *"I count 26 new and 43 pre-existing. That count is mine and unverified. Derive it yourself, and if it disagrees, report the disagreement and act on your number."*
+
+The second form costs one sentence and converts a silent corruption into a finding. A brief that encodes a verifier's arithmetic as fact has laundered an unchecked claim through the authority of an instruction.
+
+### 3. Give every instruction a named artifact
+
+A brief that says "do X" can only be verified by reading a report about X. A brief that says "do X, which leaves artifact Y" can be verified against the filesystem, without the report and without trusting it.
+
+Generalize the pattern this repository already uses in its own pipelines: gate on a literal token that a tool prints, not on prose that can be reworded. `composer` requires the string `VALIDATION_RESULT=PASS` pasted verbatim and treats "the validator was clean" as a failed gate. Apply the same shape to every instruction that matters:
+
+| Instruction shape | Artifact to name in the brief |
+|---|---|
+| Run a gate | The gate's own final line, pasted verbatim |
+| Add a target, rule, or config key | The file and the exact key, greppable |
+| Fix N occurrences | The count command, and its output before and after |
+| Write findings | The path written to |
+
+Instructions with no artifact are the ones that vanish without trace. Sort your brief by that test before sending it.
+
+### 4. Confirm a mid-flight message arrived
+
+A message to an already-running agent can fail to deliver in silence. The send returns without error, the agent never sees it, and its final report describes everything it *did* receive as complete. Nothing in the report marks the hole.
+
+Confirm against the artifact from step 3, never against an acknowledgment:
+
+1. For each mid-flight instruction, name the one artifact it must leave.
+2. When the agent reports, grep for that artifact directly. Do not search the report for a mention of it.
+3. If the artifact is absent while the rest of the report reads as complete, treat the message as undelivered, not as disobeyed. Resend the instruction alone, with its artifact restated.
+4. Record the resend. An instruction delivered on the second attempt was executed with different surrounding context than the first batch.
+
+This check is cheap and it is the only one that catches a dropped message. It costs one grep per mid-flight instruction.
+
+### 5. Verify the report in cost order
+
+Run these against the artifacts, in this order. Each is cheaper than the one below it and catches a different class.
+
+1. **Omission.** For every instruction in the brief, check its named artifact exists. This is the class the report structurally cannot fake, and the only one that surfaces an undelivered message. Do it first and do it from the brief, not from the report's own section list: a report organized around what it did will not have a section for what it did not.
+2. **Unsourced numbers.** Any figure not accompanied by the command that produced it is unsourced, including figures that agree with your own. Re-run the command.
+3. **Quotes.** Grep each quoted string in the file it is attributed to. A quote that matches nothing is fabricated, and a plausible fabricated quote is the single most damaging thing a report can carry downstream.
+4. **Propagated premises.** Any claim the report inherited from your brief is still your claim wearing the delegate's authority. It has been through no check at all. Mark these before relaying anything.
+
+**When the work is expensive or unrepeatable, verify with a second agent, and do not hand it the first report, unless the orchestrator's own protocol caps its delegations.** An agent given the first report reads it, agrees with it, and returns a confirmation; anchoring is the failure mode, not laziness. Give the second agent the brief and the tree, and ask it to rebuild the checks independently. Two roles that pay for themselves: one reading the run's own transcript for whether cited sources were actually fetched and whether gates ran in the claimed order, and one reconstructing the negative controls from scratch. The second routinely finds defects the first report's own self-check reported clean.
+
+### 6. Decide and record the scope
+
+Close with **accept**, **resend**, or **re-verify**, and record what was checked against artifacts versus what was taken on the report's word. "Steps 1 to 3 verified against the tree; step 4 is the delegate's account" is worth more downstream than "the agent completed the task".
+
+## Boundary with fixed pipelines
+
+An orchestrator that has no terminal, such as this repository's `composer` and `conductor`, is told to verify artifacts through delegation rather than by opening a shell. That is correct for them: they cannot run the check, and re-reading costs them a context round trip they were built to avoid. It is not a general rule. When the orchestrator does hold the tools, one grep against the tree beats any amount of parsing the report, and step 4 exists because a report parsed carefully still passed.
+
+## Validation
+
+A delegated result is accepted only when all of these hold:
+
+- [ ] The brief's repeated guardrails came from one file, not from retyping.
+- [ ] Every number and classification the brief asserted was labeled as unverified, with standing to refute.
+- [ ] Every instruction that matters named an artifact, and the artifact is a token or a path, not a claim.
+- [ ] Each named artifact was checked against the filesystem, working from the brief rather than from the report's contents.
+- [ ] Every quoted string was found in the file it was attributed to.
+- [ ] Every number was reproduced by re-running its command.
+- [ ] Any mid-flight instruction whose artifact is missing was resent rather than assumed refused.
+- [ ] The final report distinguishes what was verified from what was taken on the delegate's word.
+
+Any unticked box makes the result unverified, not wrong. Say which.
+
+## Anti-patterns
+
+- **Reading the report for plausibility.** A coherent, well-structured, confident report is the expected output of a delegate that went wrong, not a signal that it did not. Coherence is the one property the delegate optimizes for and the one property that carries no information.
+- **Checking completion from the report's own outline.** The report enumerates what it did. The brief enumerates what was asked. Only the second finds the missing item.
+- **Treating an acknowledgment as delivery.** A send that returns without error and an agent that received the message are different facts, and only one of them is observable from the tree.
+- **Accepting a self-audit.** "I verified X" inside a report is part of the report, written by the party under audit, and inherits none of the independence the word "verified" implies.
+- **Anchoring the second opinion.** Handing the re-verifier the first report converts an independent check into a review of someone else's conclusions, which is a different and much weaker thing.
+- **Retyping the guardrails.** Four copies of a block are four different blocks within a week, and no copy announces that it is the stale one.
+- **Welding your own arithmetic into the brief.** The delegate will build on it, and the error becomes structural rather than local. Give it provenance and standing to disagree.
+- **Re-asking the same agent.** A delegate confirming its own report is the writing path verifying itself. Verify through the tree.
