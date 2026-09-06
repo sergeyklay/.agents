@@ -110,7 +110,17 @@ first_body_line() {
        body && NF              { print; exit }' "$1"
 }
 
+# tomllib is standard library only from Python 3.11, and the Install CI job
+# runs this file with the runner image's own python3 and sets up no interpreter,
+# so a missing tomllib is reachable. Probe for it first: without the probe the
+# ImportError traceback is followed by "expected valid TOML", which blames a
+# file that parses perfectly well.
 assert_toml_parses() {
+  if ! python3 -c 'import tomllib' 2>/dev/null; then
+    printf 'need python3 3.11+ with tomllib to validate %s; found %s\n' \
+      "$1" "$(python3 -V 2>&1)" >&2
+    exit 1
+  fi
   if ! python3 -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$1"; then
     printf 'expected valid TOML: %s\n' "$1" >&2
     exit 1
