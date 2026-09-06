@@ -27,11 +27,7 @@ Script paths in this document (e.g. `scripts/`) are resolved relative to **this*
 
 These documents are the authority your specification must conform to. Do not start designing until you have read whichever of them the project ships. Stop reading once you have enough; do not load files that do not exist.
 
-1. **Project-level agent instructions**, in this priority order: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`. Read every file that exists; do not assume any of them is canonical. When they disagree, treat the most recently modified one as authoritative and surface the conflict in your output.
-2. **Documentation index**: if `docs/` exists, read `docs/README.md` (or the closest equivalent: `docs/index.md`, `docs/SUMMARY.md`, `docs/DIGEST.md`). Use it as a map. Open the individual documents it references only when they constrain the feature you are specifying.
-3. **Architecture and product docs** named by the documentation index: `architecture.md`, `ARCHITECTURE.md`, `design.md`, `PRD.md`, `product.md`, or whatever name the project uses.
-4. **Decision records**: `docs/decisions/`, `docs/adr/`, `adr/`, `ADR/`, or whatever path the project uses. Read the index file first; read individual records only when they constrain this feature. Treat accepted decisions as architectural law.
-5. **Language and style rules** the project ships under `.agents/rules/`, `.github/instructions/`, `.copilot/instructions/`, `.claude/rules/`, or referenced from the agent-instruction file. These constrain spec prose (RFC 2119 keywords, banned vocabulary, comment style, etc.).
+The five document classes, the filenames and directories each one hides behind, and the precedence rule for reading them are in [references/project-context.md](references/project-context.md). Read it at the start of Phase 1, before any design work.
 
 If the project ships none of the above, say so explicitly in the specification's opening section. Note that the spec is being written without project-context grounding and propose what context files the project should add.
 
@@ -90,19 +86,7 @@ If any check produces a `STOP`, surface the conflict and halt. Do not proceed un
 
 ### Phase 3: Write the specification
 
-Determine the output path:
-
-1. If the project's agent-instruction files document a spec directory, use it.
-2. Otherwise if `.specs/` already exists in the repository, use it.
-3. Otherwise if `docs/specs/` or `specs/` exists, use that.
-4. Otherwise default to `.specs/` and create it.
-
-File name: `Spec-{slug}.md`. Derive `{slug}` in this order:
-
-1. If a tracker ID is present (e.g. `BP-138`, `SORT-42`, `#238`), use it: `Spec-BP-138.md`, `Spec-238-codex-agent-adapter.md`.
-2. Otherwise, derive a concise kebab-case name from the feature title: `Spec-Email-Classification.md`.
-
-Use the same slug across all related artifacts (spec, review, plan) so traceability is automatic.
+Determine the output path and the file name using the resolution order in [references/authoring-procedure.md](references/authoring-procedure.md), then keep that slug across the spec, the review, and the plan so traceability is automatic.
 
 Use the template in [assets/spec-template.md](assets/spec-template.md) as the structural foundation. Fill every section. Do not leave placeholders. Each section that genuinely cannot be filled MUST include a note explaining why and what information is needed to fill it.
 
@@ -134,7 +118,7 @@ These rules are non-negotiable. Every rule reflects a class of defect that delay
 
 ### Phase 4: Validate the specification
 
-Load [references/quality-checklist.md](references/quality-checklist.md) and run every item in it against the drafted spec. The checklist combines IEEE 830 / ISO 29148 requirement-quality attributes (Correct, Unambiguous, Complete, Consistent, Ranked, Verifiable, Modifiable, Traceable) with a catalogue of the most frequent spec-quality defects (vague verbs, missing error paths, implicit ordering, unspecified defaults, orphaned references, oversized steps, quantifiers without thresholds, cross-references to unnamed components, banned vocabulary).
+Load [references/quality-checklist.md](references/quality-checklist.md) and run every item in it against the drafted spec.
 
 Apply the "two engineers test" to every numbered requirement: can two engineers read the requirement and reach the same implementation? If not, rewrite with concrete values, explicit types, or a worked example.
 

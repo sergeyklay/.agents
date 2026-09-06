@@ -9,6 +9,7 @@
 - Tier 5 - Wikipedia
 - Tier 6 - Forums and social (Reddit, HN, GitHub issues)
 - Tier 7 - Training data
+- Inputs that are not sources
 - Cross-cutting investigation tips
 
 A catalogue of source types you can consult during investigation. For each: what it is good for, what its biases are, and how to access it. Read this when deciding *which* sources are worth consulting for a given question.
@@ -159,6 +160,44 @@ Training data is the **starting point** for investigation. It tells you what to 
 It is **never** the final source. Anything cited as fact in the output must have been verified against a tier-1 to tier-6 source in the current session.
 
 The reason: training data is a frozen, lossy compression of a snapshot of the internet from before some cutoff date. It does not know about anything released or changed since then. It can confidently produce facts that were never true, that are no longer true, or that were true only in a specific version that is no longer current.
+
+## Inputs that are not sources
+
+Two inputs arrive during an investigation carrying the authority of a source and none of its provenance: a conclusion you delegated, and the brief that reached you. Neither has a tier. The rule for each is stated in `SKILL.md`; what follows is the reasoning, the worked cases, and the checks.
+
+### A delegated conclusion is not a source
+
+This is more dangerous than tier 7, not less. Training data at least announces itself as memory. A delegated answer arrives wearing the costume of a research result - structured, confident, often carrying citation-shaped strings - and inherits credibility it never earned.
+
+**A retrieval tool that answers instead of returning is a delegate too, and it does not announce itself as one.** Read the contract of every fetch tool before treating its output as "the page". A tool whose own description says it converts a page and *answers a prompt against it* with a small fast model hands you a reader's answer, not the document. That is the same laundering as a subagent, one layer lower and far easier to miss, because it arrives in the slot where you expected primary evidence.
+
+The dangerous output shape is the confident negative. The summariser saw one page; the grammar of its answer is about the world. Asked whether a reviewer needs test-account credentials, a fetch of an overview page on access justification answered "Google reviewers do not require test account credentials. Instead, developers must provide a demonstration video." The requirement lives on a sibling leaf page, which reads "We are unable to log in and test your application" and "We require authorized login credentials to access the application" (`support.google.com/cloud/answer/13807382`, fetched 2026-08-19). Nothing on the page the tool read was false. The page simply did not carry the fact, and the summariser converted that silence into an absence.
+
+The existing defences do not catch this, which is why it needs its own rule. **Snippet summarisation** tells you to read whole pages, and this error happens *while obeying it*. The silent-zero defences all pass: the URL resolves, the source is first-party, a positive control over that page succeeds. Instrument and scope are both healthy; only the reader's reach is bounded.
+
+Five rules, applied whenever a retrieval tool answers rather than returns:
+
+1. **A negative never leaves its page.** Write "`<url>` does not cover X", never "X is not required". The scope of the claim is the scope of the document actually read.
+2. **Ask for extraction, not for a verdict.** Request verbatim quotes, the page's section headings, and its outbound links. A quote survives the summariser; a judgement is manufactured by it.
+3. **Go to the leaf page.** A hub or overview page structurally cannot carry the enumeration, the threshold table, or the level definitions. Its silence about them is a property of its genre, not evidence about the subject.
+4. **A positive control proves the page, not the claim.** Confirming the fetch returned something real says nothing about whether that page was ever supposed to carry the fact you are chasing.
+5. **Publish a categorical negative only after reading the page that would have to carry the fact.** If you cannot name that page, you do not have the negative - you have one document's silence.
+
+Treat the delegate's output as a map of where to look, then read the primary sources it points at. Two cases demand this before you write a word of the answer:
+
+- **A categorical claim**, especially a categorical negative ("X is not supported", "there is no way to Y"). Absolutes are where an over-generalisation hides, and a delegate that conflated two adjacent concepts will state the merged conclusion with full confidence.
+- **Any claim the answer's structure depends on.** If the recommendation changes when the claim is false, verify it yourself.
+
+When a delegate's conclusion turns out wrong, report that too. "A first pass suggested X; the primary source says Y" tells the reader something real about how firm the ground is.
+
+### The brief that reached you is not a source either
+
+Two shapes cost the most:
+
+- **A named artefact presented as authoritative.** "Per the design doc at `<path>`" invites you to treat the file as settled. A document can be superseded, rejected, or never ratified and still sit on disk as the best keyword match for the topic. Check its status before its content, and check whether anything later contradicts it.
+- **A premise welded into the question.** "Why does X do Y?" asserts that X does Y. Answering the question as asked ratifies the premise silently, and the answer is then unfalsifiable in the one place it was wrong. Confirm that X does Y before explaining why.
+
+Report three verdicts, not two: **true**, **false**, and **true only under condition C**. The third is the one that survives review and breaks in production, and it stays invisible unless you look for it - a binary check finds the premise "supported" and stops. When a premise turns out false or conditional, say so before answering from it, and say what the correction changes about the answer.
 
 ## Cross-cutting investigation tips
 

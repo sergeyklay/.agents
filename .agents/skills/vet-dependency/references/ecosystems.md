@@ -10,13 +10,19 @@ Three operations in the vetting procedure differ per ecosystem. Everything else 
 
 ## Contents
 
+- The tag is not the artifact
 - Go
 - npm
 - PyPI
 - Cargo
 - Maven and Gradle
 - An ecosystem not listed here
+- Failure shapes that return a healthy-looking zero
 - Verification status
+
+## The tag is not the artifact
+
+The gap is routine, not exotic. `npm pack zod@3.23.8` yields a tarball whose 50 files include `package/lib/*.js`; the git repository at tag `v3.23.8` has no `lib/` directory at all, only `src/`. Fetching `raw.githubusercontent.com/colinhacks/zod/v3.23.8/lib/index.js` returns 404 while `src/index.ts` returns 200 (both fetched 2026-09-02). A vetting that read the tag would conclude the published entrypoint does not exist. npm's `prepare`, `prepublishOnly`, and `prepack` scripts run before packing, and compiling TypeScript to JavaScript is the documented use case, so any package with a build step diverges this way. PyPI serves sdists and wheels, neither of which is the repository tree: an sdist is a packaging artifact and a wheel is a built distribution. Go is the exception: the module is served from version control at the tag, so tag and artifact coincide.
 
 ## Go
 
@@ -154,6 +160,13 @@ Answer the three questions the table above asks, in this order, before running a
 1. **Is the package identity the repository identity?** Only Go's module path is. Everywhere else, find the registry's metadata endpoint and read whatever repository field it carries, then treat that field as a claim: follow it, confirm it resolves, and record it.
 2. **Is the published artifact the repository tree at the tag?** Assume no wherever a build, transpile, or packaging step exists. Download the artifact the installer resolves and read that. Where the registry publishes provenance (a recorded commit, a build attestation), prefer it over a self-declared URL.
 3. **Can the probe run without touching the project?** Every package manager has a way to install into a throwaway directory or virtual environment. Use it; never add a candidate to the project's manifest to test it.
+
+## Failure shapes that return a healthy-looking zero
+
+Two failure shapes to expect while reading, both of which return a healthy-looking zero:
+
+- **A structured document that inherits.** A Maven POM declares `<scm>` in its parent, not in the artifact's own POM, and writes it as `<scm child.scm.url.inherit.append.path="false">`, so a `grep '<scm>'` over the child returns nothing and a reader concludes the project declares no repository. Resolve inheritance, and match tags allowing attributes.
+- **A minified or generated artifact.** Formatting assumptions written against a source tree (quoted attributes, one declaration per line, original identifiers) do not survive a bundler. Match format-agnostically, or read the type declarations the package ships instead of its emitted code.
 
 ## Verification status
 

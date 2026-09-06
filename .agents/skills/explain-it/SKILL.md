@@ -33,12 +33,7 @@ When completeness and certainty clash - the reader needs a detail you have not v
 
 ## The four maxims behind every rule
 
-Every rule below is downstream of one idea: an explanation is a cooperative act, and the reader assumes you are cooperating. That assumption is also the diagnostic lens - when something reads badly, name which of the four expectations it broke (these are Grice's conversational maxims) and the fix follows:
-
-- **Quantity** - exactly as much as the reader needs. Bidirectional: too little starves them (a skipped step they cannot reconstruct), too much buries them. Excess is not merely wasted words - the reader assumes everything you included carries a point and spends effort hunting for it.
-- **Quality** - say only what is true and evidence-backed. The other three maxims assume this one holds; when Quality clashes with any of them, Quality wins (see the Honesty rule).
-- **Relation** - relevant *here, at this point*, not merely "related to the topic". True, on-topic material introduced too early still breaks it.
-- **Manner** - be perspicuous: avoid obscurity and ambiguity, be brief, be orderly. This governs *how* you say it, separately from whether the content is correct.
+Every rule below is downstream of one idea: an explanation is a cooperative act, and the reader assumes you are cooperating. Grice's four maxims name what that assumption covers, Quantity, Quality, Relation and Manner, and Quality wins whenever it clashes with the other three (see the Honesty rule). Each is defined in [references/anti-patterns.md](references/anti-patterns.md); read them when something reads badly and you cannot name why.
 
 The Anti-patterns section tags each failure with the maxim it breaks, turning "this reads badly" into "this violates Quantity - apply that fix".
 
@@ -66,14 +61,7 @@ Before drafting prose, build the structure of understanding:
 
 Construct the explanation to build understanding progressively, not to enumerate facts:
 
-| Move | Purpose | Length |
-|---|---|---|
-| Open with the **why** | Problem, motivation, context. Mechanisms are easier to understand when you know what they were built to solve. | 2–3 sentences |
-| **Bridge** to adjacent knowledge | Connect to something the reader likely already knows before introducing the first new concept. The bridge does not need to be perfect - it needs to be a handhold. The same move recurs at sentence scale: open from the known, end on the new (see Information flow). | 1 sentence |
-| Introduce concepts **one at a time** | Each new concept gets a name, a one-sentence definition, and a concrete example *before* the next concept is introduced. Never stack three new terms in a paragraph. | 1 paragraph each |
-| Show **mechanics as a worked example** | At mechanism altitude, trace an execution path through real code: what happens step by step when you call this function, what data structures are involved, what triggers what. At behaviour altitude, trace one real scenario through observable events instead - the move and its step-by-step discipline are the same, only the units change. | As long as needed |
-| Report internals **honestly** | Go as deep as the question warrants. Do not hand-wave with "under the hood, it handles this efficiently." If it is worth mentioning, it is worth explaining. If you do not know - say so, or go find it. | As needed |
-| Close with **tradeoffs and practice** | What does this sacrifice for what it gains? Where does it break down? What do practitioners learn the hard way? When to use, when not to. For software topics: a minimal, concrete experiment the reader can run. | 1–2 paragraphs |
+Six moves, in order: open with the **why**, **bridge** to adjacent knowledge, introduce concepts **one at a time** with a definition and a concrete example each, show the **mechanics as a worked example**, report **internals honestly**, and close with **tradeoffs and practice**. The move-by-move table, with the purpose and the length budget for each, is in [references/output-templates.md](references/output-templates.md); open it before drafting the first explanation in a session.
 
 ## Communication calibration
 
@@ -118,26 +106,13 @@ Infer the altitude from the question. "Why does X do Y?", "how is this implement
 
 **Lowering the altitude does not lower the register.** Breaking this is the standard failure and the expensive one. Behaviour altitude is not a simplified explanation, a beginner's explanation, or a metaphorical one: the reader is the same competent professional, and only the subject moved from the code to what the code does. Every rule in *Communication calibration* holds at full strength - precision most of all.
 
-Mechanism altitude draws its concreteness from code, so removing identifiers looks like removing the only way to be specific. It is not. The worked-example move is unchanged; only its vocabulary is:
-
-- **Trace a scenario, not an execution path.** Name one real situation, state what happens in it today, then what happens after.
-- **Keep the numbers.** Durations, counts, frequencies, money, error rates are precise without being implementation detail.
-- **Name the observable, not its cause.** "The report opens in about a second instead of about forty" is as falsifiable as the index that caused it, and it is the half the reader can act on.
+Mechanism altitude draws its concreteness from code, so removing identifiers looks like removing the only way to be specific. It is not: precision survives the move, and only the vocabulary that carries it changes.
 
 Full treatment, with the vague/mechanism/behaviour comparison table, is in [references/communication-calibration.md](references/communication-calibration.md). Reaching for an analogy instead is a choice, and the wrong one.
 
 ### Register: match how the answer reads to how the question was asked
 
-Scope controls length and structure. Register controls sentence rhythm and how much article-furniture the answer carries. The two are independent: a narrow question can be written or conversational, and so can a broad one.
-
-- **Written deep-dive** - the default when the answer will be read and re-read (onboarding docs, "write an explanation of X", a published deep-dive). Carries the full structure: TL;DR, section headers, the closing experiment. The templates in [references/output-templates.md](references/output-templates.md) assume this register.
-- **Conversational** - for a question asked the way a colleague asks one in person or in chat ("wait, why does X…", "explain this to me", "I don't get why…"). Drop the furniture. Lead with the conclusion in one sentence, then short sentences with one idea each, in the order a person would actually say them. No "TL;DR" label, no headers. Still give the practical takeaway, but woven in, not as a labelled block.
-
-Conversational changes the *shape* of the sentences, not the *standard* of their content. Three things never relax:
-
-1. **Stay at peer level.** Conversational is not simplified - the reader is still a competent professional (see the Kindergarten Trap). Pick the precise, natural word for each concept in whatever language you are writing, and do not trade a precise term for a vague colloquial one to sound casual. Naming two distinct concepts "things" or "stuff" is not friendlier; it is just less precise, and a careful reader notices.
-2. **Every sentence is still true and earns its place.** A casual rapport-opener that asserts something unverified is worse than no opener. If you write "these are easy to confuse", they must genuinely be confusable and the next sentence must show why - otherwise you plant a doubt the reader cannot resolve ("why is this 'easy'? what am I missing?"). When in doubt, cut the filler and state the point (this is the Hollow Opener anti-pattern).
-3. **The Honesty rule holds.** A relaxed tone is not licence to state unverified implementation details or to drop a citation a claim needs.
+Two registers. The **written deep-dive** is the default when the answer will be read and re-read, and carries the full structure: TL;DR, section headers, the closing experiment. The **conversational** answer drops that furniture and leads with the conclusion, but it relaxes no standard of content: peer level, every sentence true and earning its place, and the Honesty rule in force. Both are set out in [references/output-templates.md](references/output-templates.md).
 
 When unsure which register to use, match the question: a one-line spoken-style question gets a conversational answer; an explicit request for documentation gets the deep-dive.
 
@@ -159,11 +134,7 @@ Use real code from real sources. Cite where you found things. When you traced a 
 
 ## On depth
 
-The right depth is determined by what was asked, not by what you know. A question about "how does Go's garbage collector decide when to run?" goes deep into the pacer algorithm. A question about "should I use Go or Rust here?" stays at the tradeoff level.
-
-When uncertain about depth, let the reader's role break the tie. At mechanism altitude, err toward more depth with clear structure: the reader can stop when they have enough, and they cannot extract detail that is not there. At behaviour altitude, err toward less and name what you left out - "the mechanism behind this is a separate pass; ask if you want it". The reader who wanted more can ask for it in one sentence, while the reader who did not has already stopped reading.
-
-**Depth is not length.** A precisely traced execution path through 20 lines of real code teaches more than three pages of architectural description. Concreteness is a form of depth. Brevity (the Manner maxim) and depth do not conflict: brevity removes words that carry no information - repetition, hedging, restatement - never the detail the reader needs.
+The right depth is set by what was asked, not by what you know, and depth is not length. When uncertain, let the reader's role break the tie: at mechanism altitude err toward more depth with clear structure, at behaviour altitude toward less, naming what you left out. The reasoning, and why brevity and depth do not conflict, is in [references/communication-calibration.md](references/communication-calibration.md).
 
 ## When this skill is one half of the job
 
