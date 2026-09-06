@@ -157,19 +157,29 @@ jobs:
         with:
           node-version-file: .tool-versions
 
-      # Checksummed like bats and shfmt above. `npm install <pkg>@<version>`
-      # verifies the tarball against an integrity value it fetches from the
-      # same registry that serves the tarball, which is trust on first use
-      # rather than a pin. --omit=optional keeps the install fully determined
-      # by the checksummed file; the optional dependencies are PTY bindings
-      # that a headless run never reaches.
+      # Checksummed and unpacked like bats above, rather than installed.
+      # `npm install <pkg>@<version>` checks the tarball against an integrity
+      # value it fetches from the registry that serves the tarball, which is
+      # trust on first use rather than a pin; and `npm install --global`
+      # ignores --omit=optional, so it pulls seven unpinned packages from the
+      # registry and runs two install scripts whatever that flag says. The
+      # package's bin is a self-contained bundle with a node shebang, so
+      # unpacking the checksummed file and linking that one path is the whole
+      # install and nothing outside the checksum enters it. The bundle's
+      # optional dependencies are PTY and keychain bindings a headless run
+      # never reaches.
       - name: Install the Gemini CLI
         shell: bash
         run: |
           curl -fsSL "https://registry.npmjs.org/@google/gemini-cli/-/gemini-cli-${GEMINI_CLI_VERSION}.tgz" \
             -o "${RUNNER_TEMP}/gemini-cli.tgz"
           echo "${GEMINI_CLI_SHA}  ${RUNNER_TEMP}/gemini-cli.tgz" | sha256sum --check -
-          npm install --global --omit=optional "${RUNNER_TEMP}/gemini-cli.tgz"
+          mkdir -p "${RUNNER_TEMP}/gemini-cli" "${RUNNER_TEMP}/gemini-bin"
+          tar -xzf "${RUNNER_TEMP}/gemini-cli.tgz" -C "${RUNNER_TEMP}/gemini-cli"
+          chmod +x "${RUNNER_TEMP}/gemini-cli/package/bundle/gemini.js"
+          ln -s "${RUNNER_TEMP}/gemini-cli/package/bundle/gemini.js" \
+            "${RUNNER_TEMP}/gemini-bin/gemini"
+          echo "${RUNNER_TEMP}/gemini-bin" >> "${GITHUB_PATH}"
         env:
           GEMINI_CLI_VERSION: 0.58.0
           GEMINI_CLI_SHA: 8ffeb9e7edddffb054764d00749f39e8cc9804ca9b38b9093f906dd2157322ae
@@ -182,10 +192,13 @@ jobs:
           # so the pinned identifier has one home rather than two.
           #
           # The policy assertions need no credential: they read the engine out
-          # of the installed bundle and run the CLI far enough to load a policy
+          # of the unpacked bundle and run the CLI far enough to load a policy
           # file, which happens before authentication. Only the model canary
-          # calls the API, and it skips when this secret is empty - which is
-          # always the case for a pull request from a fork, where GitHub
-          # withholds secrets by design. A required gate that a fork
-          # contributor cannot turn green is worse than an unrun canary.
+          # calls the API, and it skips whenever this secret is empty. It is
+          # empty on every run today, because the repository has no
+          # GEMINI_API_KEY secret yet; once one is added it will still be
+          # empty on a pull request from a fork, where GitHub withholds
+          # secrets by design, and the canary will keep skipping there. A
+          # required gate that a fork contributor cannot turn green is worse
+          # than an unrun canary.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

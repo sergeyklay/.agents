@@ -178,11 +178,18 @@ priority = 200
 # `/` to `cd`, and a whole-command deny returns before `checkShellCommand`
 # splits the sub-commands, so a run that crossed `&&` would block that command
 # outright. `;`, `||`, `|`, `&`, `<`, `>`, `(`, `$`, a backtick, either quote
-# and a newline all end the run for the same reason. A character nobody
-# anticipated is a miss rather than a false deny, which is the safe direction
-# for a rule whose decision is a hard block. An earlier spelling used `[^/"]`
-# and denied 94 of a 185-command corpus, nearly all of them commands whose
-# slash belonged to a later sub-command.
+# and a newline all end the run for the same reason, so a character nobody
+# anticipated makes the branch miss rather than fire. An earlier spelling used
+# `[^/"]` and denied 94 of a 185-command corpus, nearly all of them commands
+# whose slash belonged to a later sub-command.
+#
+# That safe direction belongs to the class, not to the whole branch. The
+# `[\s"]` terminator is JavaScript's `\s`, which matches 19 Unicode space
+# characters that survive JSON escaping and that bash does not treat as
+# separators, so `rm -rf build /<U+00A0>dist` is denied although bash reads
+# that path as a single token. None of the 19 is plausible in a typed command,
+# so the terminator stands; ASCII tab, form feed and carriage return are
+# escaped by the serializer before the pattern sees them and miss instead.
 #
 # Excluding `/` keeps the run inside one argument; the ` ` before it and the
 # `[\s"]` after require that argument to be exactly `/`. So `rm -rf -v
