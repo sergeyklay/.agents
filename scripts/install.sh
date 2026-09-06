@@ -555,9 +555,15 @@ gemini_agent_skipped() {
 cleanup_skipped_gemini_agents() {
   for skipped in $GEMINI_SKIPPED_AGENTS; do
     stale="$HOME/.gemini/agents/$skipped.md"
-    if [ -e "$stale" ] || [ -L "$stale" ]; then
+    # `rm -f` fails on a directory and the script runs under `set -e`, so an
+    # unexpected non-regular file here would abort the install partway through
+    # rather than skip one path. Remove only what an earlier install could have
+    # written: a regular file, or a symlink, whose own removal always succeeds.
+    if [ -f "$stale" ] || [ -L "$stale" ]; then
       rm -f -- "$stale"
       progress_removed "$stale" 'removed disarmed orchestrator'
+    elif [ -e "$stale" ]; then
+      progress_skipped "$stale" 'not a regular file'
     fi
   done
 }
