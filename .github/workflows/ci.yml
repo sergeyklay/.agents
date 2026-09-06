@@ -148,6 +148,44 @@ jobs:
           BATS_VERSION: 1.12.0
           BATS_SHA: e36b020436228262731e3319ed013d84fcd7c4bd97a1b34dee33d170e9ae6bab
 
+      # test/gemini-policy.bats drives the policy engine that ships inside the
+      # Gemini CLI. Without the CLI those tests skip, and the job goes green
+      # having asserted nothing about the shipped policy. setup-node reads the
+      # same .tool-versions the Format and Validate jobs pin their tools from.
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .tool-versions
+
+      # Checksummed like bats and shfmt above. `npm install <pkg>@<version>`
+      # verifies the tarball against an integrity value it fetches from the
+      # same registry that serves the tarball, which is trust on first use
+      # rather than a pin. --omit=optional keeps the install fully determined
+      # by the checksummed file; the optional dependencies are PTY bindings
+      # that a headless run never reaches.
+      - name: Install the Gemini CLI
+        shell: bash
+        run: |
+          curl -fsSL "https://registry.npmjs.org/@google/gemini-cli/-/gemini-cli-${GEMINI_CLI_VERSION}.tgz" \
+            -o "${RUNNER_TEMP}/gemini-cli.tgz"
+          echo "${GEMINI_CLI_SHA}  ${RUNNER_TEMP}/gemini-cli.tgz" | sha256sum --check -
+          npm install --global --omit=optional "${RUNNER_TEMP}/gemini-cli.tgz"
+        env:
+          GEMINI_CLI_VERSION: 0.58.0
+          GEMINI_CLI_SHA: 8ffeb9e7edddffb054764d00749f39e8cc9804ca9b38b9093f906dd2157322ae
+
       - name: Run the installer test suite
         shell: bash
         run: make install-test
+        env:
+          # GEMINI_MODEL reaches the suite through default.mk, which exports it,
+          # so the pinned identifier has one home rather than two.
+          #
+          # The policy assertions need no credential: they read the engine out
+          # of the installed bundle and run the CLI far enough to load a policy
+          # file, which happens before authentication. Only the model canary
+          # calls the API, and it skips when this secret is empty - which is
+          # always the case for a pull request from a fork, where GitHub
+          # withholds secrets by design. A required gate that a fork
+          # contributor cannot turn green is worse than an unrun canary.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
