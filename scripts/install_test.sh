@@ -322,6 +322,15 @@ fi
 # on the spelling this replaced: `echo sudo hello` and
 # `git commit -m 'remove sudo from docs'` were both denied. Every commandRegex
 # here must open with a group so the anchor reaches all of its branches.
+#
+# That shape check filters the matching lines, so no matching lines is a pass.
+# Remove or rename the key and the pipeline goes empty, `grep -qv` finds nothing
+# to report, and the assertion reports success on a policy that no longer denies
+# `rm -rf /` at all. Assert the key is present before testing what it holds.
+if ! grep -q '^commandRegex = ' "$home/.gemini/policies/safe-commands.toml"; then
+  printf 'no commandRegex in installed policy\n' >&2
+  exit 1
+fi
 if grep '^commandRegex = ' "$home/.gemini/policies/safe-commands.toml" |
   grep -qv '^commandRegex = "(?:'; then
   printf 'commandRegex without a leading group in installed policy\n' >&2
