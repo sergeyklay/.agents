@@ -52,7 +52,14 @@ assert_same() {
   cmp -s -- "$1" "$2" || fail "expected identical files: $1 $2"
 }
 
+# Callers must `|| return 1`: bats clears errexit inside `run`, so a bare
+# call prints the refusal and the assertion proceeds anyway.
+have_needle() {
+  [ -n "$1" ] || fail "refusing to match $2 against an empty needle"
+}
+
 assert_contains() {
+  have_needle "$2" 'output' || return 1
   case $1 in
   *"$2"*) ;;
   *) fail "expected output to contain: $2" ;;
@@ -65,10 +72,8 @@ assert_not_contains() {
   esac
 }
 
-# grep -qF -- "" matches every line; refuse an empty needle so an assertion
-# built from a helper's empty output cannot pass vacuously.
 assert_file_contains() {
-  [ -n "$2" ] || fail "refusing to match $1 against an empty needle"
+  have_needle "$2" "$1" || return 1
   grep -qF -- "$2" "$1" || fail "expected $1 to contain: $2"
 }
 
@@ -79,10 +84,12 @@ frontmatter_of() {
 }
 
 assert_frontmatter() {
+  have_needle "$2" "the frontmatter of $1" || return 1
   frontmatter_of "$1" | grep -qxF "$2" || fail "expected frontmatter line in $1: $2"
 }
 
 assert_no_frontmatter_key() {
+  have_needle "$2" "the frontmatter keys of $1" || return 1
   if frontmatter_of "$1" | grep -q "^$2:"; then
     fail "unexpected frontmatter key in $1: $2"
   fi
