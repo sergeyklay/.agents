@@ -133,9 +133,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # jq and rsync come preinstalled on the ubuntu-latest image, like the
-      # shellcheck the Portability job relies on; bats does not, and is
-      # installed the same checksummed way as shfmt in the Format job.
       - name: Install bats
         shell: bash
         run: |
@@ -148,26 +145,11 @@ jobs:
           BATS_VERSION: 1.12.0
           BATS_SHA: e36b020436228262731e3319ed013d84fcd7c4bd97a1b34dee33d170e9ae6bab
 
-      # test/gemini-policy.bats drives the policy engine that ships inside the
-      # Gemini CLI. Without the CLI those tests skip, and the job goes green
-      # having asserted nothing about the shipped policy. setup-node reads the
-      # same .tool-versions the Format and Validate jobs pin their tools from.
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .tool-versions
 
-      # Checksummed and unpacked like bats above, rather than installed.
-      # `npm install <pkg>@<version>` checks the tarball against an integrity
-      # value it fetches from the registry that serves the tarball, which is
-      # trust on first use rather than a pin; and `npm install --global`
-      # ignores --omit=optional, so it pulls seven unpinned packages from the
-      # registry and runs two install scripts whatever that flag says. The
-      # package's bin is a self-contained bundle with a node shebang, so
-      # unpacking the checksummed file and linking that one path is the whole
-      # install and nothing outside the checksum enters it. The bundle's
-      # optional dependencies are PTY and keychain bindings a headless run
-      # never reaches.
       - name: Install the Gemini CLI
         shell: bash
         run: |
@@ -188,17 +170,4 @@ jobs:
         shell: bash
         run: make install-test
         env:
-          # GEMINI_MODEL reaches the suite through default.mk, which exports it,
-          # so the pinned identifier has one home rather than two.
-          #
-          # The policy assertions need no credential: they read the engine out
-          # of the unpacked bundle and run the CLI far enough to load a policy
-          # file, which happens before authentication. Only the model canary
-          # calls the API, and it skips whenever this secret is empty. It is
-          # empty on every run today, because the repository has no
-          # GEMINI_API_KEY secret yet; once one is added it will still be
-          # empty on a pull request from a fork, where GitHub withholds
-          # secrets by design, and the canary will keep skipping there. A
-          # required gate that a fork contributor cannot turn green is worse
-          # than an unrun canary.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

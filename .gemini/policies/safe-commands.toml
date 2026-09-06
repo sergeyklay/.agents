@@ -1,7 +1,3 @@
-# Safe read-only and common development commands.
-# These are auto-approved to avoid repetitive confirmation prompts.
-
-# ── File inspection ──────────────────────────────────────────────
 [[rule]]
 toolName = "run_shell_command"
 commandPrefix = [
@@ -18,7 +14,6 @@ commandPrefix = [
 decision = "allow"
 priority = 100
 
-# ── Directory navigation ─────────────────────────────────────────
 [[rule]]
 toolName = "run_shell_command"
 commandPrefix = [
@@ -34,7 +29,6 @@ commandPrefix = [
 decision = "allow"
 priority = 100
 
-# ── Search ───────────────────────────────────────────────────────
 [[rule]]
 toolName = "run_shell_command"
 commandPrefix = [
@@ -51,7 +45,6 @@ commandPrefix = [
 decision = "allow"
 priority = 100
 
-# ── Environment & system info ────────────────────────────────────
 [[rule]]
 toolName = "run_shell_command"
 commandPrefix = [
@@ -69,14 +62,12 @@ commandPrefix = [
 decision = "allow"
 priority = 100
 
-# ── Git (all operations) ────────────────────────────────────────
 [[rule]]
 toolName = "run_shell_command"
 commandPrefix = ["git", "gh"]
 decision = "allow"
 priority = 100
 
-# ── Build & test ─────────────────────────────────────────────────
 [[rule]]
 toolName = "run_shell_command"
 commandPrefix = [
@@ -103,14 +94,12 @@ commandPrefix = [
 decision = "allow"
 priority = 100
 
-# ── File management (non-destructive) ───────────────────────────
 [[rule]]
 toolName = "run_shell_command"
 commandPrefix = ["mkdir", "touch", "cp", "mv"]
 decision = "allow"
 priority = 100
 
-# ── Package info ─────────────────────────────────────────────────
 [[rule]]
 toolName = "run_shell_command"
 commandPrefix = [
@@ -125,34 +114,17 @@ commandPrefix = [
 decision = "allow"
 priority = 100
 
-# ── Containers ───────────────────────────────────────────────────
 [[rule]]
 toolName = "run_shell_command"
 commandPrefix = ["docker", "docker-compose"]
 decision = "allow"
 priority = 100
 
-# ── Network (read-only) ─────────────────────────────────────────
 [[rule]]
 toolName = "run_shell_command"
 commandPrefix = ["curl", "wget"]
 decision = "allow"
 priority = 100
-
-# ── Dangerous commands ───────────────────────────────────────────
-#
-# `buildArgsPatterns` prefix-anchors by string concatenation: it emits
-# `"command":"` followed by the rule's own pattern. A top-level alternation
-# therefore anchors only its first branch, and every later branch matches
-# anywhere in the stringified arguments. The single rule these two replace
-# spelled `rm -rf /|sudo|su |...`, so `sudo` matched `echo sudo hello` and
-# `git commit -m 'remove sudo from docs'`, both of which were denied.
-#
-# `commandPrefix` anchors each array entry separately and appends `(?:[\s"]|\")`,
-# which supplies a word boundary for free. That boundary is why `sudo` does not
-# match `sudoku`, and also why a prefix that continues mid-token cannot use this
-# form at all: `mkfs` would not match `mkfs.ext4`, and `dd if=` would not match
-# `dd if=/dev/zero`. Whole-word commands go here.
 
 [[rule]]
 toolName = "run_shell_command"
@@ -161,44 +133,6 @@ decision = "deny"
 deny_message = "Blocked: potentially destructive system command"
 priority = 200
 
-# The prefixes that must match mid-token, as one alternation wrapped in a
-# group so the anchor applies to every branch rather than only the first.
-# `:\(\)\{` replaces the old `:(){ :` branch, which was read as regex `:` plus an
-# empty group plus `{ :`, matched the literal string `:{ :`, and so never matched
-# a real fork bomb.
-#
-# `rm -[-A-Za-z0-9_=. ]* /[\s"]` is the second `rm` branch. The anchor puts the
-# pattern at the first character of the command, so the first branch fires only
-# when the path follows `-rf` immediately, and `rm -rf --no-preserve-root /`
-# resolved to `ask_user`.
-#
-# The class is a positive list rather than a negated one, and that is the whole
-# of its safety. Of the shell metacharacters it admits only the space, so the
-# run cannot leave the `rm` command. It has to: `rm -rf build && cd /` passes
-# `/` to `cd`, and a whole-command deny returns before `checkShellCommand`
-# splits the sub-commands, so a run that crossed `&&` would block that command
-# outright. `;`, `||`, `|`, `&`, `<`, `>`, `(`, `$`, a backtick, either quote
-# and a newline all end the run for the same reason, so a character nobody
-# anticipated makes the branch miss rather than fire. An earlier spelling used
-# `[^/"]` and denied 94 of a 185-command corpus, nearly all of them commands
-# whose slash belonged to a later sub-command.
-#
-# That safe direction belongs to the class, not to the whole branch. The
-# `[\s"]` terminator is JavaScript's `\s`, which matches 19 Unicode space
-# characters that survive JSON escaping and that bash does not treat as
-# separators, so `rm -rf build /<U+00A0>dist` is denied although bash reads
-# that path as a single token. None of the 19 is plausible in a typed command,
-# so the terminator stands; ASCII tab, form feed and carriage return are
-# escaped by the serializer before the pattern sees them and miss instead.
-#
-# Excluding `/` keeps the run inside one argument; the ` ` before it and the
-# `[\s"]` after require that argument to be exactly `/`. So `rm -rf -v
-# build/dist`, `rm -rf -v build/` and `rm -rf -v dist/ obj/` do not match.
-#
-# A quantified group such as `(?:-\S+ )*` cannot be used here: `isSafeRegExp`
-# rejects a quantifier applied to a group that already contains one, and the
-# loader then records an error and drops that rule while the run carries on
-# without it.
 [[rule]]
 toolName = "run_shell_command"
 commandRegex = "(?:rm -rf /|rm -[-A-Za-z0-9_=. ]* /[\\s\"]|mkfs|dd if=|:\\(\\)\\{)"
