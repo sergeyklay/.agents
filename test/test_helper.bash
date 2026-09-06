@@ -3,6 +3,8 @@
 
 ROOT=$(CDPATH="" cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 INSTALLER="$ROOT/scripts/install.sh"
+# Consumed by the .bats files via `load`; shellcheck cannot follow that.
+# shellcheck disable=SC2034
 CONTEXT="$ROOT/.agents/AGENTS.md"
 
 bats_require_minimum_version 1.5.0
@@ -15,7 +17,9 @@ fail() {
 }
 
 # writing-specs validator output bands (see skills.bats).
+# shellcheck disable=SC2034
 BUDGET_WARNING='if it covers more than one independently shippable goal'
+# shellcheck disable=SC2034
 SPLIT_GUIDANCE='Ask the user whether to split it into two'
 
 setup() {

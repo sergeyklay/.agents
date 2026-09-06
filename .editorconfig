@@ -4,3 +4,13 @@ root = true
 indent_style = space
 indent_size = 2
 shell_variant = posix
+
+[*.bash]
+indent_style = space
+indent_size = 2
+shell_variant = bash
+
+[*.bats]
+indent_style = space
+indent_size = 2
+shell_variant = bats
