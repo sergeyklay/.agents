@@ -32,6 +32,10 @@ jobs:
         shell: bash
         run: make validate
 
+      - name: Run the skill validator unit tests
+        shell: bash
+        run: make test
+
   basedpyright:
     name: Typecheck
     runs-on: ubuntu-latest

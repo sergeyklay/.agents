@@ -35,7 +35,8 @@ RUFF_OUTPUT_FORMAT ?= $(if $(CI),github,full)
 
 # ── Agent Skill validation ─────────────────────────────────────────────────────
 
-SKILL_VALIDATOR := .agents/skills/make-skill/scripts/validate_skill.py
+SKILL_VALIDATOR      := .agents/skills/make-skill/scripts/validate_skill.py
+SKILL_VALIDATOR_TEST := .agents/skills/make-skill/scripts/test_validate_skill.py
 
 # ── Color / formatting ─────────────────────────────────────────────────────────
 #
