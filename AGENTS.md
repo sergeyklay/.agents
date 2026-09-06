@@ -17,6 +17,7 @@ Run `asdf install shfmt` or `asdf install bats` when a tool is unavailable.
 - `--rules` does not remove stale destination files. Legacy Working Agreement cleanup happens only after a successful `--context` installation.
 - A Claude `paths` overlay marks a rule that must not become an OpenCode global instruction.
 - `--context` overwrites the host-native context file and removes only legacy rules that match the canonical content.
+- `lint`, `typecheck` and the other file-selecting gates read `git ls-files`; an untracked file is skipped silently and the gate still exits 0. Stage it first.
 
 ## Boundaries
 
