@@ -65,6 +65,12 @@ MAX_BODY_BYTES = 17_500
 MAX_REFERENCE_LINES_WITHOUT_TOC = 100
 
 RESERVED_WORDS: tuple[str, ...] = ("anthropic", "claude")
+# The complete frontmatter field list from <https://agentskills.io/specification>.
+# Anything else is a vendor extension: Claude Code accepts it, while claude.ai
+# uploads, the Skills API and package_skill.py reject the whole file.
+SPEC_FIELDS: frozenset[str] = frozenset(
+    {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
+)
 KNOWN_DIRECTORIES: frozenset[str] = frozenset(
     {"scripts", "references", "assets", "evals", "agents"}
 )
@@ -593,6 +599,63 @@ def _check_compatibility(fm: dict[str, YamlValue]) -> Iterable[Issue]:
         )
 
 
+def _check_allowed_tools(fm: dict[str, YamlValue]) -> Iterable[Issue]:
+    """Check that allowed-tools is a string, as the spec types it.
+
+    The spec calls it "a space-separated string of tools that are pre-approved
+    to run" and the reference validator types it Optional[str]. A YAML list
+    parses on Claude Code but fails everywhere the spec is enforced.
+    """
+    if "allowed-tools" not in fm:
+        return
+
+    value = fm["allowed-tools"]
+    if isinstance(value, list):
+        yield Issue(
+            Severity.ERROR,
+            "allowed-tools must be a space-separated string, not a YAML list",
+        )
+    elif not isinstance(value, str):
+        yield Issue(
+            Severity.ERROR,
+            "allowed-tools must be a space-separated string "
+            f"(got {type(value).__name__})",
+        )
+
+
+def _check_metadata(fm: dict[str, YamlValue]) -> Iterable[Issue]:
+    """Check that metadata is a map from string keys to string values."""
+    if "metadata" not in fm:
+        return
+
+    metadata = fm["metadata"]
+    if not isinstance(metadata, dict):
+        yield Issue(
+            Severity.ERROR,
+            "metadata must be a map from string keys to string values",
+        )
+        return
+
+    for key, value in metadata.items():
+        if not isinstance(value, str):
+            yield Issue(
+                Severity.ERROR,
+                f"metadata.{key} must be a string value (got {type(value).__name__})",
+            )
+
+
+def _check_spec_fields(fm: dict[str, YamlValue]) -> Iterable[Issue]:
+    """Report frontmatter fields the agentskills.io spec does not define."""
+    extra = sorted(key for key in fm if key not in SPEC_FIELDS)
+    if extra:
+        yield Issue(
+            Severity.INFO,
+            f"Fields outside the spec: {', '.join(extra)}. "
+            f"Portable frontmatter is limited to {', '.join(sorted(SPEC_FIELDS))}; "
+            f"claude.ai uploads and package_skill.py reject the rest.",
+        )
+
+
 def _check_body(body: str) -> Iterable[Issue]:
     line_count = len(body.splitlines())
     if line_count == 0:
@@ -778,6 +841,9 @@ def validate(skill_dir: Path, warnings_as_errors: bool = False) -> list[Issue]:
     issues.extend(_check_name(fm, skill_dir))
     issues.extend(_check_description(fm))
     issues.extend(_check_compatibility(fm))
+    issues.extend(_check_allowed_tools(fm))
+    issues.extend(_check_metadata(fm))
+    issues.extend(_check_spec_fields(fm))
     issues.extend(_check_body(body))
     issues.extend(_check_reference_depth(skill_dir, body))
     issues.extend(_check_directory_structure(skill_dir))

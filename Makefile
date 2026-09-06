@@ -26,6 +26,10 @@ validate: ## Validate every tracked Agent Skill
 	done < "$$tmp"; \
 	exit $$failed
 
+.PHONY: test
+test: ## Run the skill validator unit tests with unittest
+	$(UV) run --no-project python $(SKILL_VALIDATOR_TEST)
+
 .PHONY: typecheck
 typecheck: ## Type-check every tracked Python script with basedpyright
 	@scripts=$$(git ls-files -- '*.py'); \
@@ -84,7 +88,7 @@ fmt-shell: ## Fail if any tracked shell script needs shfmt reformatting
 ##@ Gates
 
 .PHONY: check
-check: validate typecheck lint lint-shell fmt-shell install-test ## Run every CI gate from ci.yml locally
+check: validate test typecheck lint lint-shell fmt-shell install-test ## Run every CI gate from ci.yml locally
 
 .PHONY: install-test
 install-test: ## Run the installer test suite with bats

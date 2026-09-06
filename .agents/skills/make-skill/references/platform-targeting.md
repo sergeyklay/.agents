@@ -9,7 +9,7 @@ Which platforms a skill targets, which vendor frontmatter each one accepts, wher
 
 ## Platform targeting
 
-The agentskills.io spec is intentionally minimal: required `name` and `description`; optional `license`, `compatibility`, `metadata`, and experimental `allowed-tools`. Every vendor ships extensions on top.
+The agentskills.io spec is intentionally minimal: required `name` and `description`; optional `license`, `compatibility`, `metadata`, and experimental `allowed-tools`. Those six are the whole spec, and the packaging path enforces them: `package_skill.py`, claude.ai uploads, and the Skills API fail the file on any other key. Every vendor ships extensions on top, and no vendor reads every other vendor's.
 
 **Decide once, up front: cross-platform or single-vendor?**
 
@@ -22,11 +22,12 @@ The agentskills.io spec is intentionally minimal: required `name` and `descripti
 
 **Platform-specific extensions** (full reference in `references/frontmatter-fields.md`):
 
-- **Claude Code**: `disable-model-invocation`, `user-invocable`, `argument-hint`, `arguments`, `when_to_use`, `model`, `effort`, `context`, `agent`, `hooks`, `paths`, `shell`. Slash-command invocation `/skill-name`. Live change detection on `~/.claude/skills/` and `.claude/skills/`.
-- **OpenAI Codex**: `agents/openai.yaml` for UI metadata and `policy.allow_implicit_invocation`. Invocation `$skill-name`. Scans `.agents/skills/` from CWD upward, then `~/.agents/skills/`.
-- **Cursor**: `.cursor/skills/`; spec-compliant frontmatter only.
-- **Gemini CLI**: prefers `.agents/skills/` over `.gemini/skills/` when both exist.
-- **VS Code / Copilot**: `.github/skills/`; spec-compliant frontmatter only.
+- **Claude Code**: twenty frontmatter fields, all optional. Beyond the spec six: `when_to_use`, `argument-hint`, `arguments`, `disable-model-invocation`, `user-invocable`, `disallowed-tools`, `model`, `effort`, `context`, `agent`, `background`, `hooks`, `paths`, `shell`. Slash-command invocation `/skill-name`. Live change detection on `~/.claude/skills/` and `.claude/skills/`.
+- **OpenAI Codex**: reads `name`, `description`, and `metadata.short-description` from the frontmatter and discards the rest. UI metadata, invocation policy, and MCP dependencies live in `agents/openai.yaml` inside the skill directory. Invocation `$skill-name`. Scans `.agents/skills/` from CWD upward, and `$CODEX_HOME/skills/` for user-scope skills, which is `~/.codex/skills/` unless `CODEX_HOME` says otherwise.
+- **Cursor**: `.cursor/skills/`. Adds `paths`, `disable-model-invocation`, `icon`, and `color`; no `allowed-tools`.
+- **Gemini CLI**: prefers `.agents/skills/` over `.gemini/skills/` when both exist. Its frontmatter parser returns `name` and `description` and discards every other field without a diagnostic, so no vendor field, spec field, or `allowed-tools` grant reaches it.
+- **VS Code / Copilot**: `.github/skills/`. The two split. Copilot CLI and the Copilot coding agent honor `allowed-tools`; the VS Code client does not accept it and reports it as unsupported. VS Code accepts `argument-hint`, `user-invocable`, `disable-model-invocation`, and `context`.
+- **Zed**: three fields, `name`, `description`, and `disable-model-invocation`.
 
 **Storage matrix:**
 

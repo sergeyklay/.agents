@@ -28,10 +28,11 @@ skill-name/
 ├── SKILL.md       # required: YAML frontmatter + markdown body
 ├── scripts/       # optional: executable code; output enters context
 ├── references/    # optional: docs loaded on demand
-└── assets/        # optional: templates, schemas, images
+├── assets/        # optional: templates, schemas, images
+└── agents/        # optional: per-vendor sidecars, e.g. Codex's openai.yaml
 ```
 
-Only `SKILL.md` is required. Drop empty directories.
+Only `SKILL.md` is required. Drop empty directories. `agents/` holds vendor sidecar config rather than skill content; its one current occupant is Codex's `agents/openai.yaml`, described in [references/frontmatter-fields.md](references/frontmatter-fields.md).
 
 ## Running scripts bundled with this skill
 
