@@ -1,6 +1,6 @@
 ---
 name: delegate-work
-description: "Brief a background agent, confirm the brief arrived, and verify its report before acting on it. Use when writing the prompt for a subagent or parallel session, when several agents will run against one repository, when an instruction sent to a running agent goes unmentioned in its report, or before relaying a delegate's report onward. Do NOT use to measure a run's cost (audit-agent), to prove a green check could go red (prove-checks), or to check a delegated claim (research-it)."
+description: "Brief a background agent, confirm the brief arrived, and verify its report before acting on it. Use when writing the prompt for a subagent or parallel session, when several agents will run against one repository, when an instruction sent to a running agent goes unmentioned in its report, when a delegated fix has been rejected and another verification round is about to start, or before relaying a delegate's report onward. Do NOT use to measure a run's cost (audit-agent), to prove a green check could go red (prove-checks), or to check a delegated claim (research-it)."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -94,7 +94,19 @@ Run these against the artifacts, in this order. Each is cheaper than the one bel
 
 **When the work is expensive or unrepeatable, verify with a second agent, and do not hand it the first report, unless the orchestrator's own protocol caps its delegations.** An agent given the first report reads it, agrees with it, and returns a confirmation; anchoring is the failure mode, not laziness. Give the second agent the brief and the tree, and ask it to rebuild the checks independently. Two roles that pay for themselves: one reading the run's own transcript for whether cited sources were actually fetched and whether gates ran in the claimed order, and one reconstructing the negative controls from scratch. The second routinely finds defects the first report's own self-check reported clean.
 
-### 6. Decide and record the scope
+### 6. When the verdict is reject, run the next round
+
+A rejected fix starts a loop, and the loop has its own failure mode: each round re-tests the last round's defect and finds nothing new. Round N is worth running only if its verifier could catch something round N-1 structurally could not.
+
+**Steer by defect class, never by findings.** Step 5 forbids handing over the previous report. It does not forbid saying what went wrong in the abstract. Pass the category ("the fix over-blocks legitimate input") and withhold the corpus, the examples and the verdict. The category is one clause and constrains nothing; a worked example silently becomes the next verifier's test plan.
+
+**Make the verifier derive its corpus from the pattern's grammar, not from the conversation.** Cases assembled from what has already been discussed can only rediscover what has already been found. Put the provenance of the corpus in the brief as an instruction: enumerate the forms the pattern itself admits, then test those.
+
+**Spawn the verifier fresh; resume the author.** A verifier that already returned a verdict holds its own corpus and will re-run it, so resuming it buys a second opinion on the first opinion. The author is the party that needs the defect and the party whose context is worth keeping.
+
+**Stop on what the round found, not on a count.** The loop ends on an accept from an independently generated corpus. It is thrashing rather than converging when a round rejects on something the previous round's corpus could already have caught, which means the rounds are re-testing each other instead of widening. A round budget fixed in advance measures neither.
+
+### 7. Decide and record the scope
 
 Close with **accept**, **resend**, or **re-verify**, and record what was checked against artifacts versus what was taken on the report's word. "Steps 1 to 3 verified against the tree; step 4 is the delegate's account" is worth more downstream than "the agent completed the task".
 
@@ -114,6 +126,7 @@ A delegated result is accepted only when all of these hold:
 - [ ] Every number was reproduced by re-running its command.
 - [ ] Any mid-flight instruction whose artifact is missing was resent rather than assumed refused.
 - [ ] The final report distinguishes what was verified from what was taken on the delegate's word.
+- [ ] In a multi-round loop, each round's verifier received the defect class rather than the previous findings, and generated its own corpus.
 
 Any unticked box makes the result unverified, not wrong. Say which.
 
@@ -127,3 +140,4 @@ Any unticked box makes the result unverified, not wrong. Say which.
 - **Retyping the guardrails.** Four copies of a block are four different blocks within a week, and no copy announces that it is the stale one.
 - **Welding your own arithmetic into the brief.** The delegate will build on it, and the error becomes structural rather than local. Give it provenance and standing to disagree.
 - **Re-asking the same agent.** A delegate confirming its own report is the writing path verifying itself. Verify through the tree.
+- **Fixing the round count in advance.** Three rounds is not a budget, it is what convergence cost once. A loop that stops on a number stops mid-defect, or runs past the point where the rounds began re-testing each other.
