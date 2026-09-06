@@ -42,7 +42,7 @@ Keep one file (a shared brief fragment, a section of `AGENTS.md`, or a skill the
 | Negative control | Required before any green counts. Defer to `prove-checks` rather than restating it. |
 | Incremental findings | Findings written to a file as they accumulate. Defer to the working agreement's reporting rule rather than restating it. |
 
-The gate-selection row is the one most often skipped and the most expensive to skip. In this repository every file-selecting `make` gate selects its inputs through `git ls-files`, so a new file that is not yet indexed is silently skipped and the gate still exits 0. A brief that omits this gets a green report about a file nothing read.
+The gate-selection row is the one most often skipped and the most expensive to skip. In this repository every file-selecting `make` gate selects its inputs through `git ls-files`, so a new file that is not yet indexed is silently skipped and the gate can still exit 0. A brief that omits this gets a green report about a file nothing read.
 
 ### 2. Keep your arithmetic out of the brief
 
