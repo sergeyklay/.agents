@@ -3,7 +3,7 @@ import { dirname, join, normalize } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const RELATIVE_IMPORT = /(?:from|import)\s*\(?\s*["'](\.[^"']*)["']/g;
-const EXPORTS_POLICY_LOADER = /\nexport\s*\{[^}]*\bloadPoliciesFromToml\b[^}]*\}/;
+const EXPORTS_POLICY_LOADER = /^export\s*\{[^}]*\bloadPoliciesFromToml\b[^}]*\}/m;
 
 function staticImportClosure(entry) {
   const reached = new Set();
