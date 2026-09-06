@@ -28,6 +28,33 @@ BATS       ?= bats
 RUFF_VERSION         ?= latest
 BASEDPYRIGHT_VERSION ?= 1.39.10
 
+# The model test/gemini-policy.bats calls when a credential is available.  The
+# Gemini CLI does not validate a model identifier locally - only the API does,
+# and only for a request that carries a valid key - so a pinned identifier rots
+# silently until something calls it.  What decides this pin is therefore how
+# long it survives, not its price: the canary sends one word, and every
+# Flash-Lite is "Free of charge" on the free tier.
+#
+# Two Google surfaces disagree about the 2.5 family.  Cloud's lifecycle table
+# retires gemini-2.5-pro, -flash and -flash-lite on October 20, 2026, while the
+# Developer API still reports "No shutdown date announced" for them; the two
+# have agreed exactly wherever both published a date.  This pin sidesteps the
+# dispute.  gemini-3.5-flash-lite is stable, released July 21, 2026, carries no
+# announced shutdown on the Developer API surface, and sits in Cloud's "at
+# least 12 months after release" table as "July 21, 2027 or later".  It is the
+# newest Flash-Lite; 3.6, 3.7 and 3.8 ship none.  It is not the cheapest -
+# $0.30/$2.50 per 1M tokens paid, against $0.10/$0.40 for 2.5 Flash-Lite.
+#
+#   https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/model-versions
+#   https://ai.google.dev/gemini-api/docs/deprecations
+#
+# Not a "-latest" alias: no gemini-flash-lite-latest exists, and such an alias
+# is "hot-swapped with every new release", which is not a pin.
+#
+# Exported because the bats suite reads it from the environment, not from make.
+GEMINI_MODEL ?= gemini-3.5-flash-lite
+export GEMINI_MODEL
+
 # ruff's --output-format: "github" emits GitHub Actions inline annotations and
 # is selected automatically when the CI variable is set (most CI/CD platforms
 # export it); "full" keeps locally readable output.
