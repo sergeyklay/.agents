@@ -80,8 +80,8 @@ fmt-shell: ## Fail if any tracked shell script needs shfmt reformatting
 check: validate typecheck lint lint-shell fmt-shell install-test ## Run every CI gate from ci.yml locally
 
 .PHONY: install-test
-install-test: ## Exercise scripts/install.sh against isolated fake homes
-	sh scripts/install_test.sh
+install-test: ## Run the installer test suite with bats
+	$(BATS) test/
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
 
@@ -116,6 +116,7 @@ endif
 		'BASEDPYRIGHT_VERSION' ' basedpyright version uvx resolves (default: 1.39.10)' \
 		'UV / UVX'              ' uv wrappers used for every Python tool' \
 		'SHELLCHECK'           ' shellcheck binary for lint-shell' \
-		'SHFMT'                ' shfmt binary for fmt-shell (asdf shim, see .tool-versions)' \
+		'SHFMT'                ' shfmt binary for fmt-shell' \
+		'BATS'                 ' bats binary for install-test' \
 		'NO_COLOR'             ' Disable color output (https://no-color.org/)'
 	@printf '\n'

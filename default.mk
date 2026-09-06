@@ -23,6 +23,7 @@ UV         ?= uv
 UVX        ?= uvx
 SHELLCHECK ?= shellcheck
 SHFMT      ?= shfmt
+BATS       ?= bats
 
 RUFF_VERSION         ?= latest
 BASEDPYRIGHT_VERSION ?= 1.39.10

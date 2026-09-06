@@ -1,0 +1,7 @@
+# POSIX tooling (shell scripts, shfmt, CI) requires LF everywhere.
+* text=auto eol=lf
+
+# Shell: better hunk headers in diffs; mark .bats as bash for linguist.
+*.sh diff=bash
+*.bash diff=bash
+*.bats diff=bash linguist-language=bash

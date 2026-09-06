@@ -5,11 +5,11 @@
 ## Commands
 
 - Before finishing any change: `make check` (runs every CI gate from ci.yml locally)
-- After changing `scripts/install.sh` or installer behavior: `sh scripts/install_test.sh`
+- After changing `scripts/install.sh` or installer behavior: `bats test/`
 - Before finishing a shell-script change: `shfmt -d scripts`
-- Before finishing an installer change: `shellcheck scripts/install.sh scripts/install_test.sh`
+- Before finishing an installer change: `shellcheck scripts/install.sh`
 
-Run `asdf install shfmt` when `shfmt` is unavailable.
+Run `asdf install shfmt` or `asdf install bats` when a tool is unavailable.
 
 ## Gotchas
 
