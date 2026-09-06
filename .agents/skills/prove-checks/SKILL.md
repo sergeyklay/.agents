@@ -69,12 +69,15 @@ Grep the job or script for `continue-on-error`, `|| true`, `set +e`, `|| exit 0`
 Break the thing on purpose and confirm the check turns red:
 
 - Revert the fix, or point the check at the pre-fix revision. Copy the file aside before you break it and restore from that copy; never with `git checkout --`, `git restore` or `git reset`, which take every uncommitted change in the tree with them.
+- Run the control in a throwaway `git worktree` rather than in the tree you are working in. An interrupted control then cannot leave a half-broken file where the next command reads it, and a parallel session's uncommitted work is out of reach by construction rather than by care.
 - Blank the secret, delete the fixture, or feed the old value.
 - Corrupt one field the assertion is supposed to notice.
 
 Restore, re-run, confirm green. A check never observed red is an unproven check. This is the inverse of `research-it`'s positive control: that one proves the instrument can see; this one proves the instrument can object.
 
 **When the positive run leaves state behind, run the negative control first.** Files, caches, session history, database rows: anything the positive run writes whose absence the negative control is checking turns that control into a reading of the previous run's litter. A deny-all tool policy was checked by feeding an agent CLI empty stdin and asserting it could not name a secret sentinel; it named the sentinel anyway, having grepped the CLI's own transcripts from the earlier positive run. That measured leftovers, not isolation. Give every run a fresh working directory and a fresh random sentinel, so a hit cannot be a trace of the last one.
+
+**Reap what the red run leaks, and never reap it by pattern.** A control that ends red usually leaves the subprocess tree it was asserting about still running, because the assertion returned before its own cleanup. The next run then reads the survivors of the previous one. Clean up explicitly: kill the process group the check created, or register the teardown with the test framework so a failed assertion still runs it. Do not reach for `pkill -f <pattern>` to do it. The pattern is a substring of the command line of the shell issuing the command, so the shell matches itself and dies mid-command, surfacing as an unexplained non-zero status with no output rather than as anything resembling the mistake it was. Match the exact command line instead, and skip your own process tree.
 
 ### 6. Record the scope, not a verdict
 

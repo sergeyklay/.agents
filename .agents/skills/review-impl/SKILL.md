@@ -64,7 +64,24 @@ For each changed file, assess:
 6. **Completeness** - Is anything missing that the task implies? Migrations, config changes, documentation updates, test coverage?
 7. **Simplicity** - Is the solution the simplest that works, or is there unnecessary complexity, indirection, or premature abstraction?
 
-### Step 6: Produce the Review
+### Step 6: Prove a New Regression Test Can Fail
+
+When the change is a bug fix that ships a test, reading the test is not enough. A test can name the defect, assert on a plausible observable, and still pass against the unfixed code, because something else already on that path produces the same observable. Such a test reads exactly like a real one and locks nothing.
+
+Run the control:
+
+1. Check the change out in a throwaway `git worktree`, so nothing here reaches the tree you work in.
+2. Revert only the production hunk, leaving the new test in place.
+3. Run just the new test.
+4. Restore, re-run, and confirm it is green again.
+
+Green at step 3 is a **High** finding: the test does not lock the fix, and removing the fix later turns nothing red. Say so, and say what the assertion would have to move to - usually the observable only the fixed path can produce, rather than an end state the surrounding code reaches on its own.
+
+The mechanics of the control - what counts as a valid break, restoring without disturbing the tree, cleaning up what a red run leaks - belong to `prove-checks`. Follow it rather than improvising.
+
+When the session cannot run commands, do not skip the step silently. Record in the review that the new test was read but never observed red, so the reader knows that half of the evidence is missing.
+
+### Step 7: Produce the Review
 
 ## Output Format
 
