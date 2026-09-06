@@ -135,7 +135,7 @@ priority = 200
 
 [[rule]]
 toolName = "run_shell_command"
-commandRegex = "(?:rm -rf /|rm -[-A-Za-z0-9_=. ]* /[\\s\"]|mkfs|dd if=|:\\(\\)\\{)"
+commandRegex = "(?:rm -rf /|rm -[-A-Za-z0-9_=./ ]* /[\\s\"]|mkfs|dd if=|:\\(\\)\\{)"
 decision = "deny"
 deny_message = "Blocked: potentially destructive system command"
 priority = 200
