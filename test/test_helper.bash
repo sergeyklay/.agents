@@ -10,10 +10,10 @@ CONTEXT="$ROOT/.agents/AGENTS.md"
 bats_require_minimum_version 1.5.0
 
 # bats-support's `fail` is not bundled; this local equivalent keeps the
-# suite dependency-free.
+# suite dependency-free: print the message and return non-zero.
 fail() {
   printf '%s\n' "$*" >&2
-  exit 1
+  return 1
 }
 
 # writing-specs validator output bands (see skills.bats).
