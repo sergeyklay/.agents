@@ -1,7 +1,7 @@
 load 'test_helper'
 
 POLICY="$ROOT/.gemini/policies/safe-commands.toml"
-DESTRUCTIVE_PATTERN='"command":"(?:rm -rf \/|rm -[-A-Za-z0-9_=. ]* \/[\s"]|mkfs|dd if=|:\(\)\{)'
+DESTRUCTIVE_PATTERN='"command":"(?:rm -rf \/|rm -[-A-Za-z0-9_=./ ]* \/[\s"]|mkfs|dd if=|:\(\)\{)'
 
 gemini_bundle_entry() {
   local candidate
@@ -83,14 +83,17 @@ $output"
   assert_contains "$output" "$(printf 'pattern\t')$DESTRUCTIVE_PATTERN"
 }
 
-@test "rm is denied when its target is root and a flag stands in between" {
+@test "rm is denied when its target is root, whatever operand precedes it" {
   require_gemini
   assert_decisions \
     deny 'rm -rf --no-preserve-root /' \
     deny 'rm --no-preserve-root -rf /' \
     deny 'rm -fr /' \
     deny 'rm -r -f /' \
-    deny 'rm -v build dist /'
+    deny 'rm -v build dist /' \
+    deny 'rm -rf build/dist /' \
+    deny 'rm -rf ./build /' \
+    deny 'rm -rf dist/ /'
 }
 
 @test "the destructive-command rule still denies what it already caught" {
