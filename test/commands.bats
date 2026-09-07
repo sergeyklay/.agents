@@ -51,5 +51,8 @@ load 'test_helper'
     if grep -qF -- '@arch-review' "$toml"; then
       fail "inert bare mention left in $toml"
     fi
+    if grep -q '^name: arch-review$' "$toml"; then
+      fail "agent frontmatter leaked into $toml"
+    fi
   done
 }
