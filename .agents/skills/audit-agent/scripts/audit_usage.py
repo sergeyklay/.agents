@@ -3,16 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Aggregate cumulative per-message counters from JSON event streams.
 
-Use this only after observing that several records share one message id,
-counter values are cumulative snapshots rather than per-event deltas, and
-the terminal record equals each per-message maximum. The reduction is the
-maximum of each field, grouped by (file, id).
-
-No schema is assumed: every path is a caller argument, discoverable with
---probe. Paths are dot-separated, for example "message.usage".
-
-Exit: 0 terminal evidence verified every group, 1 evidence missing or a
-maximum disagreed with its terminal record, 2 usage error.
+Valid only where records share a message id and counters are cumulative
+snapshots, so the reduction is a maximum grouped by (file, id).
 """
 
 from __future__ import annotations

@@ -1,24 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
-"""
-Validate a project context file (AGENTS.md, CLAUDE.md, GEMINI.md) against
-the golden rule and structural best practices.
+"""Validate a context file (AGENTS.md, CLAUDE.md, GEMINI.md).
 
-Usage:
-    validate_context_file.py <path-to-context-file> [--project-dir <path>]
-
-Checks:
-    - Line count (warn >60, error >100 for root files)
-    - Anti-patterns: project structure descriptions, tech stack summaries,
-      framework documentation, linter-enforceable style rules
-    - Section structure (Commands, Gotchas, Boundaries)
-    - Boundary subsections (Always, Ask first, Never)
-    - Stale references to files that do not exist
-    - Empty sections
-    - Forbidden section names (Appendix, Quick Reference, Overview, Cheat Sheet)
-
-Exit codes: 0 = pass (may have warnings), 1 = errors found
+Checks the golden rule and structure: length, anti-patterns, required
+sections and boundary subsections, stale file references.
 """
 
 import re

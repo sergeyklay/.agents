@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
-"""Audit one OpenCode session tree from a consistent read-only DB snapshot.
+"""Audit one OpenCode session tree from a read-only DB snapshot.
 
-The report contains structural metadata, usage totals, and tool/message counts.
-It never emits prompts, text parts, tool inputs, or tool outputs.
-
-Exit: 0 supported versions plus usage and spawn-tree reconciliation passed,
-1 evidence is incomplete, mismatched, or unsupported, 2 usage/schema/database
-error.
+Emits structural metadata, usage totals and counts, never prompts, text
+parts, tool inputs or tool outputs.
 """
 
 from __future__ import annotations

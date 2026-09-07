@@ -3,42 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Collect every reviewer comment for a GitHub pull request.
 
-GitHub serves PR review feedback through three distinct endpoints:
-    1. Inline line-anchored code comments      (/pulls/{N}/comments)
-    2. Review bodies (approve/reject/comment)  (/pulls/{N}/reviews)
-    3. Issue-level conversation comments       (`gh pr view --json comments`)
-
-Missing any one of them silently drops a class of feedback and corrupts
-Step 1 of the babysit-pr protocol. This script wraps all three calls so
-the protocol cannot regress.
-
-A review body is itself a container of findings, not a single finding: a
-bot review collapses findings it decided not to post inline into a
-`### Suppressed comments (N)` block inside the body, and states its
-verdict in the body's first line. The API `state` field cannot carry that
-verdict - a reviewer bot marks every review `COMMENTED` whether it
-recommends changes or recommends approval. This script therefore derives,
-per review, the verdict line and the suppressed findings, and reports the
-count the bot declares in its own heading next to the count actually
-extracted so a parser drift is visible instead of silent.
-
-Usage:
-    fetch_pr_comments.py [PR_NUMBER]
-
-If PR_NUMBER is omitted, the script resolves the PR associated with the
-current branch via `gh pr view --json number`.
-
-Prints one JSON object on stdout: the `inline`, `reviews` and `issue`
-arrays verbatim, plus the `review_digest` and `totals` derived from
-them.
-
-Exit codes:
-    0  success
-    1  prerequisite missing (gh CLI not found, not authenticated)
-    2  no PR resolvable (no PR_NUMBER given and no PR on current branch)
-    3  gh API call failed
-
-Zero runtime dependencies. Works on Python 3.9+.
+Feedback splits across three endpoints plus folded `Suppressed comments`
+blocks; API `state` is always COMMENTED, so the verdict is the body first line.
 """
 
 from __future__ import annotations

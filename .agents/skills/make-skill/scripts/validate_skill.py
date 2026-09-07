@@ -1,23 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
-"""
-Validate an Agent Skill directory against the agentskills.io specification.
+"""Validate an Agent Skill directory against the agentskills.io specification.
 
-Usage:
-    validate_skill.py [--warnings-as-errors] <path-to-skill-directory>
-
-Exit codes:
-    0  validation passed (warnings are allowed unless --warnings-as-errors is set)
-    1  validation failed (one or more errors, or warnings with --warnings-as-errors)
-    2  usage error or unreadable input
-
-The script has zero runtime dependencies and works on Python 3.9+. The
-bundled YAML parser handles the subset of YAML used in skill frontmatter:
-block mappings, block sequences, plain and quoted scalars, and block
-scalars ('>' folded, '|' literal, with optional chomping). Flow style,
-anchors, aliases, tags and multi-document streams are intentionally not
-supported.
+The bundled YAML parser covers the frontmatter subset only: block mappings and
+sequences, plain, quoted and block scalars. Flow style and anchors are not.
 """
 
 from __future__ import annotations

@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """Validate a technical specification produced by the writing-specs skill.
 
-Usage:
-    validate_spec.py <path-to-spec.md>
-
-Errors are structural (missing section, undelivered STOP, banned character) and
-exit 1. Budgets are warnings and never fail the run: gating on size halts specs
-that are correct but long, and teaches the agent to rename headings rather than
-write less. Every budget has a --flag; see --help.
-
-Exit codes: 0 no structural errors, 1 structural errors, 2 usage error.
+Budgets warn and never fail: gating on size halts specs that are correct but
+long, and teaches the agent to rename headings rather than write less.
 """
 
 from __future__ import annotations

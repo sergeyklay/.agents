@@ -3,18 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Reject the comment shapes AGENTS.md "Comments Explain Why" forbids.
 
-Reads every tracked Python and shell file and reports banner separators, step and
-section labels, and files whose comments and docstrings take up more than
-MAX_DENSITY of their lines.
-
-Usage:
-    comment_style.py [REPO_ROOT]
-
-Exit codes:
-    0  every tracked Python file is clean
-    1  at least one violation, one line each on stdout
-
-Zero runtime dependencies. Works on Python 3.9+.
+Reads every tracked Python and shell file. Docstrings count toward the block
+ceiling too, so moving narrative into one does not walk around it.
 """
 
 from __future__ import annotations
@@ -91,8 +81,8 @@ def shell_full_line_comments(source: str) -> list[tuple[int, str]]:
 def docstring_spans(source: str) -> list[tuple[int, int]]:
     spans: list[tuple[int, int]] = []
     for node in ast.walk(ast.parse(source)):
-        if isinstance(node, ast.Module) or not isinstance(
-            node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+        if not isinstance(
+            node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
         ):
             continue
         first = node.body[0] if node.body else None

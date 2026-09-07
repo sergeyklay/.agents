@@ -1,15 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
-"""Validate TODO.md structural integrity against the roadmap format.
-
-Usage:
-    python3 validate_roadmap.py [path/to/TODO.md]
-
-Input:  Path to TODO.md (default: TODO.md in current directory)
-Output: One line per violation, or "OK: N milestones, M tasks, no violations."
-Exit:   0 = valid, 1 = violations found, 2 = file not found / read error
-"""
+"""Validate TODO.md structural integrity against the roadmap format."""
 
 import re
 import sys
