@@ -52,8 +52,7 @@ import sys
 from typing import NamedTuple, cast
 
 SUPPRESSED_HEADING = re.compile(r"^#{1,6}\s+Suppressed comments\s*\((\d+)\)\s*$")
-FINDING_HEADING = re.compile(r"^\*\*(.+)\*\*$")
-FINDING_LOCATION = re.compile(r"^(?P<path>.+):(?P<line>\d+)$")
+FINDING_HEADING = re.compile(r"^\*\*(?P<path>\S+):(?P<line>\d+)\*\*$")
 
 
 def _have_gh() -> bool:
@@ -183,8 +182,8 @@ class Finding(NamedTuple):
     """One entry parsed out of a collapsed `Suppressed comments` block."""
 
     location: str
-    path: str | None
-    line: int | None
+    path: str
+    line: int
     body: str
 
 
@@ -249,29 +248,26 @@ def _block_end(lines: list[str], start: int) -> int:
 
 
 def _parse_findings(lines: list[str]) -> list[Finding]:
-    locations: list[str] = []
+    places: list[tuple[str, int]] = []
     bodies: list[list[str]] = []
     for line in lines:
         stripped = line.strip()
         heading = FINDING_HEADING.match(stripped)
         if heading:
-            locations.append(heading.group(1).strip())
+            places.append((heading.group("path"), int(heading.group("line"))))
             bodies.append([])
         elif bodies:
             bullet = stripped[2:].strip() if stripped.startswith("* ") else stripped
             bodies[-1].append(bullet)
-    findings: list[Finding] = []
-    for location, body in zip(locations, bodies):
-        place = FINDING_LOCATION.match(location)
-        findings.append(
-            Finding(
-                location=location,
-                path=place.group("path") if place else None,
-                line=int(place.group("line")) if place else None,
-                body="\n".join(body).strip(),
-            )
+    return [
+        Finding(
+            location=f"{path}:{line}",
+            path=path,
+            line=line,
+            body="\n".join(body).strip(),
         )
-    return findings
+        for (path, line), body in zip(places, bodies)
+    ]
 
 
 def suppressed_blocks(body: str) -> list[SuppressedBlock]:

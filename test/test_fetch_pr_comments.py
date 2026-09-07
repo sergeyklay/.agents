@@ -278,14 +278,57 @@ class SuppressedBlockTest(unittest.TestCase):
             suppressed_blocks("### Approval recommended\n\nAll good.\n"), []
         )
 
-    def test_a_location_without_a_line_number_is_kept_verbatim(self) -> None:
+    def test_a_bold_line_inside_a_finding_body_is_not_a_heading(self) -> None:
+        body = (
+            "### Suppressed comments (1)\n"
+            "\n"
+            "**src/a.py:10**\n"
+            "* First finding.\n"
+            "**Note:**\n"
+            "Still the first finding.\n"
+            "**Decode-folded configuration keys.**\n"
+        )
+
+        findings = suppressed_blocks(body)[0].findings
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].location, "src/a.py:10")
+        self.assertEqual(findings[0].path, "src/a.py")
+        self.assertEqual(findings[0].line, 10)
+        self.assertIn("**Note:**", findings[0].body)
+
+    def test_every_heading_form_the_corpus_carries_is_recognized(self) -> None:
+        """Forms taken from every review body in sergeyklay/.agents.
+
+        All 59 headings across 38 blocks are `path:line`; the path has
+        neither a guaranteed directory separator nor a file extension.
+        """
+        locations = [
+            "Makefile:52",
+            "AGENTS.md:9",
+            "scripts/install.sh:503",
+            ".agents/skills/audit-agent/scripts/audit_usage.py:326",
+            ".github/workflows/ci.yml:116",
+        ]
+        body = "### Suppressed comments (5)\n\n" + "".join(
+            f"**{location}**\n* A finding.\n" for location in locations
+        )
+
+        findings = suppressed_blocks(body)[0].findings
+
+        self.assertEqual([finding.location for finding in findings], locations)
+        self.assertEqual(findings[0].path, "Makefile")
+        self.assertEqual(findings[0].line, 52)
+
+    def test_a_heading_without_a_line_number_leaves_the_counts_disagreeing(
+        self,
+    ) -> None:
         body = "### Suppressed comments (1)\n\n**README.md**\n* No line anchor.\n"
 
-        finding = suppressed_blocks(body)[0].findings[0]
+        block = suppressed_blocks(body)[0]
 
-        self.assertEqual(finding.location, "README.md")
-        self.assertIsNone(finding.path)
-        self.assertIsNone(finding.line)
+        self.assertEqual(block.findings, [])
+        self.assertEqual(block.declared_count, 1)
 
 
 class MismatchedCountPayloadTest(unittest.TestCase):
