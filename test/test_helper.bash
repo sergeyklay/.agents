@@ -106,23 +106,18 @@ first_body_line() {
        body && NF              { print; exit }' "$1"
 }
 
-# A host overlay continues the canonical body's ordered list, so an overlay
-# written against a shorter list restarts at a number the canonical body
-# already spent and the view ships two items under one number. Blank lines and
-# indented continuations stay inside a list; any other line ends it.
 repeated_list_number() {
   awk '$0 ~ /^[0-9]+\. / {
            number = $0
            sub(/\..*$/, "", number)
-           if (!inside) { block++; inside = 1 }
-           key = block SUBSEP number
-           if (key in seen) { print number; exit }
-           seen[key] = 1
+           if (!in_list) { list_id++; in_list = 1 }
+           if ((list_id, number) in seen_in_list) { print number; exit }
+           seen_in_list[list_id, number] = 1
            next
        }
        $0 ~ /^[[:space:]]*$/ { next }
        $0 ~ /^[[:space:]]/   { next }
-       { inside = 0 }' "$1"
+       { in_list = 0 }' "$1"
 }
 
 assert_unique_list_numbers() {
