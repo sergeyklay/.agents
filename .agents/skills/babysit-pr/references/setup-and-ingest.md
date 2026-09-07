@@ -18,6 +18,8 @@ GitHub scatters one reviewer's findings across three places, and the third one i
 2. **The review body** (`/pulls/{N}/reviews`, field `body`) - free-form Markdown. Its prose is a finding in its own right when it names a concern.
 3. **Collapsed blocks inside that body** - a bot moves the findings it decided not to post inline into a `### Suppressed comments (N)` section, formatted as a `**path:line**` line followed by the finding text. Open every block and read every entry; nothing else surfaces them.
 
+**Three places is the whole of the text, not the whole of the status.** REST carries no thread resolution state, so a resolved or outdated comment arrives indistinguishable from a live one - on PR #57 all three inline comments sit in closed threads and the endpoint returns them with no field that says so. Treat every collected finding as open until the diff or the user says otherwise.
+
 **Check your count against the reviewer's own.** The `N` in the block heading is the number the reviewer claims it suppressed. Compare it with the number of entries you extracted. The fetch script does this for you and reports both: `review_digest[].suppressed_blocks[]` carries `declared_count`, `extracted_count` and `counts_agree`. A `false` means the body's format has moved and the block must be read by hand before anything downstream trusts the list.
 
 **The same finding can appear in more than one block.** A bot repeats a suppressed finding in every later review that still sees it, and rewords it between reviews, so deduplicate by `path:line` rather than by text. `totals.suppressed_distinct_locations` is that deduplicated count.
