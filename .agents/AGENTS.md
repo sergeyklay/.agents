@@ -34,10 +34,14 @@ When you reach for a comment to explain a block, stop. Rewrite the code so it ex
 A comment earns its place in three cases:
 
 - The non-obvious why: a workaround, a protocol requirement, a business rule, or a reference to an issue or RFC.
-- A public contract or docstring: what goes in, what comes out, what it throws.
+- A public contract or docstring: one line for what goes in, what comes out, what it throws. Never redraw the returned structure; the code already carries it and the hand-drawn copy goes stale.
 - A warning the caller cannot infer: required call order, a race, a hidden cost.
 
 Never leave behind step labels ("step 1", "section: validation"), commented-out code, restatements of the obvious ("increment the counter"), banner separators, or TODOs with no owner.
+
+Heavy commenting is a symptom, not a service: code that needs explaining is code written badly.
+
+The best comment is the one you did not have to write.
 
 The test: if there are more comments than code, or the code is unreadable without them, the code is not done. Rewrite it instead of adding explanation.
 
