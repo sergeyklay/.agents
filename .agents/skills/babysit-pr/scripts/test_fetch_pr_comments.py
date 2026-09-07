@@ -225,5 +225,64 @@ class SuppressedBlockTest(unittest.TestCase):
         self.assertIsNone(finding.line)
 
 
+class MismatchedCountPayloadTest(unittest.TestCase):
+    """A block declaring three findings whose body carries only two.
+
+    The PR #57 capture cannot reach this state: both of its blocks agree
+    with their own heading, so a parser that reports its own count in
+    place of the reviewer's stays green against the capture. The
+    disagreement has to be built, and it has to be asserted on the
+    payload, which is the only thing a consumer of this script reads.
+    """
+
+    def setUp(self) -> None:
+        review = {
+            "id": 7,
+            "state": "COMMENTED",
+            "user": {"login": "reviewer[bot]"},
+            "body": (
+                "### Needs a closer look\n"
+                "\n"
+                "### Suppressed comments (3)\n"
+                "\n"
+                "**Previously missed (3)** - in code that hasn't changed.\n"
+                "\n"
+                "**src/a.py:10**\n"
+                "* First finding.\n"
+                "**src/b.py:20**\n"
+                "* Second finding.\n"
+                "\n"
+                "- **Files reviewed:** 2/2 changed files\n"
+            ),
+        }
+        self.payload = build_payload(1, [], [review], [])
+
+    def _only_block(self) -> dict[str, object]:
+        digest = _as_dict(_as_list(self.payload["review_digest"])[0])
+        return _as_dict(_as_list(digest["suppressed_blocks"])[0])
+
+    def test_the_payload_block_keeps_the_declared_count_beside_its_own(self) -> None:
+        block = self._only_block()
+
+        self.assertEqual(block["declared_count"], 3)
+        self.assertEqual(block["extracted_count"], 2)
+        self.assertIs(block["counts_agree"], False)
+
+    def test_the_payload_totals_carry_the_disagreement(self) -> None:
+        self.assertEqual(
+            self.payload["totals"],
+            {
+                "reviews": 1,
+                "inline": 0,
+                "issue": 0,
+                "suppressed_declared": 3,
+                "suppressed_extracted": 2,
+                "suppressed_distinct_locations": 2,
+                "suppressed_counts_agree": False,
+                "distinct_findings": 2,
+            },
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
