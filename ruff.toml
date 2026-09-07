@@ -11,4 +11,7 @@ select = [
   "UP",
   "B",
   "RUF100",
+  "ERA",
+  "TD",
+  "FIX",
 ]
