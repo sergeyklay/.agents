@@ -13,7 +13,8 @@
 ## Doc Comment Formatting
 
 - Use `//` line comments for doc comments, never `/* */` block comments. This matches the standard library and keeps every doc comment in one consistent form.
-- Leave a blank line before a doc comment so it reads as a distinct block. Leave no blank line between the comment and the declaration it documents - godoc only associates a comment with a declaration when they are adjacent, and a blank line there silently turns the doc comment into an ordinary comment.
+- Leave no blank line between a doc comment and the declaration it documents. Godoc associates a comment with a declaration only when they are adjacent, and a blank line there silently turns the doc comment into an ordinary comment.
+- When a doc comment follows other code or a preceding comment block, separate it with a blank line so it reads as a distinct block. A doc comment that opens a file, such as a package comment, needs nothing before it.
 
 ## Exported Symbol Comments
 
