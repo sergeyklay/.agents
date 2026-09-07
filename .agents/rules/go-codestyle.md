@@ -95,6 +95,73 @@ offset := 0
 s = strings.Clone(large[:n])
 ```
 
+### Rewrite the Code Instead of Explaining It
+
+A comment needed to explain what a block inside a function does is a symptom of unclear code, not a documentation gap. Clear is better than clever: if the code requires prose to be understood, rewrite the code rather than add the prose. Extract the block into a function with a name that states its purpose, rename the variables that raised the question, remove nesting with an early return, or split a function that has grown too long. When in doubt, ask whether this comment would appear in `net/http`.
+
+```go
+// ❌ The comment carries meaning the code should carry itself.
+// Only allow the request through if the user is authenticated and has
+// not exceeded their quota for the current billing period.
+if u.Authenticated && u.RequestCount < u.Quota && time.Now().Before(u.QuotaResetAt) {
+    allow(u)
+}
+
+// ✅ The function name carries the meaning; no comment is needed.
+if canProceed(u) {
+    allow(u)
+}
+```
+
+### What Inline Comments May Explain
+
+An inline comment inside a function body is warranted only for something the code cannot say on its own:
+
+- Why a specific algorithm was chosen, or why a simpler one does not work.
+- A workaround for a bug in a dependency, the runtime, or a protocol - see "No Internal References in Comments" above for how to cite the upstream source.
+- A business constraint or specification requirement - external references only, per the same section.
+- A concurrency invariant: what a mutex protects, the order locks must be acquired in, which goroutine owns a channel, or who closes it.
+- A non-obvious consequence: an allocation on a hot path, a required call order, or a context cancellation requirement.
+
+Struct fields protected by a mutex follow the standard library convention of naming the guard in a trailing comment:
+
+```go
+type pool struct {
+    mu    sync.Mutex
+    conns map[string]*conn // guarded by mu
+}
+```
+
+### Other Prohibited Comment Patterns
+
+| Pattern | Examples |
+|---|---|
+| Commented-out code | `// count := oldCounter()` |
+| Name-duplicating comment | `// Name is the name.` |
+| Banner or frame decoration | `// ========`, `/* **** Validation **** */` |
+| Bare TODO | `// TODO` with no owner or issue |
+| Apology comment | `// hack`, `// this is ugly but works` |
+
+Git preserves history, so delete code instead of commenting it out. A name-duplicating comment adds nothing a reader could not already see. Banners and hand-aligned columns are not something gofmt formats, and the reader does not need the decoration. A bare `TODO` has no owner and no way to know if it is still relevant - use `// TODO(username): description` or link an issue. An apology comment admits a problem without fixing it; either fix the code or cite the real constraint.
+
+### Compiler Directives Are Not Comments
+
+`//go:generate`, `//go:embed`, and `//go:build` are instructions to the toolchain, not comments for the reader. Write them with no space after `//`, and separate them from any doc comment above with a blank line so they do not become part of the rendered documentation.
+
+```go
+// ❌ Space after // and no blank line: not recognized as a directive, and
+// it renders as part of the doc comment on pkg.go.dev.
+// Client wraps the upstream API.
+// go:generate mockgen -source=client.go -destination=mock_client.go
+type Client struct{}
+
+// ✅ No space after //, and a blank line keeps it out of the doc comment.
+// Client wraps the upstream API.
+
+//go:generate mockgen -source=client.go -destination=mock_client.go
+type Client struct{}
+```
+
 ## Naming
 
 ### Variables
