@@ -453,7 +453,7 @@ Upstream workaround references (MDN issue numbers, browser bug IDs, `react/issue
 | `@param {string} name` - type in `@param` | TypeScript already documents the type; repeating it creates drift |
 | `@returns {Promise<User>}` - type in `@returns` | Same reason |
 | Comments on every property of a simple DTO | Adds noise; reserve for non-obvious fields only |
-| `// TODO: fix later` without an owner, a ticket, or the condition that closes it | Unactionable; use a tracked issue and state what resolves it |
+| `// TODO: fix later` without an owner, a linked issue, or the condition that closes it | Unactionable; link the issue by URL and state what resolves it |
 | Comments referencing internal docs, ADRs, or sprint numbers | These rot; put the relevant context directly in the comment |
 | Restating what the implementation does (`// calls fetchUser then maps result`) | Implementation is visible; only document the *contract* |
 | Tutorial-style prose in JSDoc (`"This is a helper that helps you..."`) | Unprofessional; use declarative statements |
