@@ -10,6 +10,11 @@
 - Mention key types or functions the caller should start with.
 - Do not reference internal architecture doc sections - package comments are public API surface.
 
+## Doc Comment Formatting
+
+- Use `//` line comments for doc comments, never `/* */` block comments. This matches the standard library and keeps every doc comment in one consistent form.
+- Leave a blank line before a doc comment so it reads as a distinct block. Leave no blank line between the comment and the declaration it documents - godoc only associates a comment with a declaration when they are adjacent, and a blank line there silently turns the doc comment into an ordinary comment.
+
 ## Exported Symbol Comments
 
 ### Structure
@@ -58,8 +63,27 @@ Use declarative, present-tense statements. Name what the symbol does or reports,
 | Behavior on nil or zero input | When non-obvious (e.g., returns nil, panics, uses a default) |
 | Error conditions | When the set of errors is meaningful to the caller |
 | Concurrency safety | Always when relevant ("safe for concurrent use", "must not be called concurrently") |
+| Resource or memory ownership | When the caller must close, release, or free something the function returns |
 | Preconditions and post-conditions | When they are not self-evident from the signature |
 | Implementation details (how it works internally) | Never - belongs in inline comments inside the function body |
+
+For an interface, document the behavior an implementation must provide, not the method signature. A caller reading the interface needs to know what a conforming implementation guarantees, not a restatement of the parameter and return types already visible in the declaration.
+
+### Substance, not restatement
+
+A doc comment that only restates the identifier's name is worse than no comment at all: it looks documented, so nobody adds the sentence that would actually help, and no reader stops to ask the question the comment appears to have already answered.
+
+```go
+// ❌ Restates the name; tells the reader nothing pkg.go.dev could not
+// already show them.
+// User represents a user.
+type User struct {
+
+// ✅ States the contract: what the zero value means and how to build one.
+// User is an authenticated principal. The zero value is not usable;
+// construct it with NewUser.
+type User struct {
+```
 
 ### Cross-references
 
@@ -73,6 +97,8 @@ Use `[Symbol]` bracket syntax (Go 1.19+) to link to related types and functions.
 ### Code examples
 
 Include a short example only when the composition pattern is genuinely non-obvious. Place it in a `// Example:` block or an `_test.go` example function, not inline in the comment prose.
+
+If the explanation would run a full paragraph, it is not a comment anymore - write an example function instead. Name it `Example<Type>_<Method>` (e.g. `ExampleClient_Do`) in the package's `_test.go` file. An example function compiles, runs under `go test`, and renders on pkg.go.dev - an executable example is always more trustworthy than prose making the same claim.
 
 ## What to Avoid
 
@@ -99,6 +125,7 @@ Include a short example only when the composition pattern is genuinely non-obvio
 
 ## Lint Suppression (`//nolint`)
 
+- Write it as `//nolint`, with no space after `//`. A space turns it into an ordinary comment, and the linter no longer recognizes it as a suppression.
 - Always specify the linter name: `//nolint:errcheck`, never bare `//nolint`.
 - Always include a justification on the same line: `//nolint:errcheck // best-effort cleanup in defer`.
 - Prefer fixing the code over suppressing the diagnostic. Suppression is a last resort when the linter is provably wrong or the fix would harm readability.
