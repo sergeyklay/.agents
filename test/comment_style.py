@@ -23,7 +23,7 @@ MAX_BLOCK = 5
 BANNER = re.compile(r"^#\s*[#=*-]\s*(?:[#=*-]\s*){2,}$")
 LABELED_BANNER = re.compile(r"^#\s*[#=*-]{2,}.*[#=*-]{2,}\s*$")
 STEP_LABEL = re.compile(r"^#\s*(?:step\s*\d+|\d+\s*[.):]|section\s*:)", re.IGNORECASE)
-HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
+HEREDOC = re.compile(r"<<(-?)\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
 
 # These files predate the gate. It freezes what each already carries as its
 # ceiling, so anything added to them from now on still fails.
@@ -62,19 +62,22 @@ def shell_full_line_comments(source: str) -> list[tuple[int, str]]:
     """Return (line number, text) for every comment that owns its line."""
     found: list[tuple[int, str]] = []
     terminator: str | None = None
+    tab_stripped = False
     for row, line in enumerate(source.splitlines(), start=1):
         if terminator is not None:
-            if line.strip() == terminator:
+            candidate = line.lstrip("\t") if tab_stripped else line
+            if candidate == terminator:
                 terminator = None
-            continue
-        opener = HEREDOC.search(line)
-        if opener:
-            terminator = opener.group(2)
             continue
         if row == 1 and line.startswith("#!"):
             continue
         if line.lstrip().startswith("#"):
             found.append((row, line.strip()))
+            continue
+        opener = HEREDOC.search(line)
+        if opener:
+            tab_stripped = opener.group(1) == "-"
+            terminator = opener.group(3)
     return found
 
 
@@ -92,22 +95,6 @@ def docstring_spans(source: str) -> list[tuple[int, int]]:
         if isinstance(value, ast.Constant) and isinstance(value.value, str):
             spans.append((value.lineno, (value.end_lineno or value.lineno)))
     return spans
-
-
-def docstring_lines(source: str) -> int:
-    counted = 0
-    for node in ast.walk(ast.parse(source)):
-        if not isinstance(
-            node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
-        ):
-            continue
-        first = node.body[0] if node.body else None
-        if not isinstance(first, ast.Expr):
-            continue
-        value = first.value
-        if isinstance(value, ast.Constant) and isinstance(value.value, str):
-            counted += (value.end_lineno or value.lineno) - value.lineno + 1
-    return counted
 
 
 def banner_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:
@@ -168,9 +155,8 @@ def check(root: Path) -> list[str]:
         if path.endswith(".py"):
             comments = full_line_comments(source)
             docstrings = docstring_spans(source)
-            problems.extend(
-                density_violation(path, source, len(comments) + docstring_lines(source))
-            )
+            prose = len(comments) + sum(end - start + 1 for start, end in docstrings)
+            problems.extend(density_violation(path, source, prose))
         else:
             comments = shell_full_line_comments(source)
             docstrings = []

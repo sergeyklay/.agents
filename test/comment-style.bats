@@ -167,3 +167,36 @@ PROBE
   [ "$status" -eq 1 ]
   assert_contains "$output" '7-line docstring'
 }
+
+@test "the comment gate reads a heredoc opener inside a comment as a comment" {
+  stage_shell_probe <<'PROBE'
+# example: cat <<'EOF'
+# =================================================
+# =================================================
+# =================================================
+# =================================================
+# =================================================
+@test "probe" {
+  run true
+}
+PROBE
+  run python3 "$GATE" "$PROBE"
+  [ "$status" -eq 1 ]
+  assert_contains "$output" 'banner separator'
+  assert_contains "$output" '6-line comment block'
+}
+
+@test "the comment gate ends a heredoc only on an exact terminator" {
+  stage_shell_probe <<'PROBE'
+@test "probe" {
+  cat <<'INNER'
+# =================================================
+  INNER
+# =================================================
+INNER
+}
+PROBE
+  run python3 "$GATE" "$PROBE"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
