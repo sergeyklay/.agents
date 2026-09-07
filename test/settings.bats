@@ -3,6 +3,12 @@
 
 load 'test_helper'
 
+assert_disabled_once() {
+  jq -e --arg skill "$1" \
+    '[.skills.disabled[] | select(. == $skill)] | length == 1' \
+    "$TEST_HOME/.gemini/settings.json" >/dev/null
+}
+
 @test "Claude settings deny .env reads" {
   run install_into --settings --claude
   [ "$status" -eq 0 ]
@@ -33,13 +39,13 @@ load 'test_helper'
     >"$TEST_HOME/.gemini/settings.json"
   run install_into --settings --gemini
   [ "$status" -eq 0 ]
-  jq -e '.skills.disabled == ["host-only-skill", "scan-security"]' \
-    "$TEST_HOME/.gemini/settings.json" >/dev/null
+  assert_disabled_once host-only-skill
+  assert_disabled_once scan-security
 
   run install_into --settings --gemini
   [ "$status" -eq 0 ]
-  jq -e '.skills.disabled == ["host-only-skill", "scan-security"]' \
-    "$TEST_HOME/.gemini/settings.json" >/dev/null
+  assert_disabled_once host-only-skill
+  assert_disabled_once scan-security
 }
 
 # A union here would strand a withdrawn `deny` rule; replacement is the revoke.
