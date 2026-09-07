@@ -50,7 +50,7 @@ export function formatCurrency(amount: number, currency: string): string {
 ```
 
 **Continuation block - conditional.**
-Add a second paragraph only when the first sentence does not fully convey the contract: error behaviour, `null`/`undefined`-input semantics, side effects, or non-obvious preconditions. Limit to 3–4 sentences. A third paragraph is justified only for a separate semantic topic (e.g., a usage example after describing error behaviour).
+Add a second paragraph only when the first sentence does not fully convey the contract: error behaviour, `null`/`undefined`-input semantics, side effects, non-obvious preconditions, call order, complexity, thread-safety, or units of measurement and time zones. Limit to 3–4 sentences. A third paragraph is justified only for a separate semantic topic (e.g., a usage example after describing error behaviour).
 
 ```typescript
 /**
@@ -77,6 +77,15 @@ Use declarative, present-tense statements. Name what the symbol *does or reports
 // Call validate() to check the form values.
 // Use this to check if the plan includes the feature.
 // Returns first matching record.
+```
+
+### Non-Public Exports
+
+Mark a symbol with `@internal` when it must be exported for sibling modules to use but is not part of the feature's public contract. This tells readers and tooling the export is not a stable API.
+
+```typescript
+/** @internal */
+export function normalizeLegacyPayload(raw: unknown): Payload {
 ```
 
 ---
@@ -332,6 +341,16 @@ Document a type alias when it encodes a domain constraint that the structural ty
 export type UtcDateString = string;
 ```
 
+Also document a type alias whose mechanism is non-obvious: a recursive conditional type, distributive conditional behavior, deliberate variance, an `infer` extraction, or a workaround for a compiler limitation. State what the type computes and why the mechanism is necessary.
+
+```typescript
+/**
+ * Recursively unwraps nested Promises. Distributes over unions, so
+ * `UnwrapPromise<A | Promise<B>>` resolves to `A | B`.
+ */
+type UnwrapPromise<T> = T extends Promise<infer U> ? UnwrapPromise<U> : T;
+```
+
 Omit comments on trivial aliases (`type UserId = string` needs no comment if used consistently).
 
 ---
@@ -392,6 +411,8 @@ export function registerGlobalErrorBoundary(options: ErrorBoundaryOptions): void
 
 Reserve inline comments for **why**, not **what**. The code already says what it does; the comment explains the constraint, invariant, or workaround the reader cannot derive from the code alone.
 
+If a block needs a comment to explain what it does, rewrite the block instead of writing the comment: extract it into a function with a name that answers the question, rename the variables that raised it, flatten the nesting, or split a long function into smaller ones.
+
 ```typescript
 // ✅ Explains a non-obvious constraint.
 // Chromium's PDF renderer silently truncates content beyond 14_400 px height;
@@ -417,7 +438,7 @@ for (const item of items) {
 - Label obvious control flow (`// return`, `// if error`).
 - Reference internal ticket numbers, sprint sections, or wiki links - these rot.
 
-Upstream workaround references (MDN issue numbers, browser bug IDs, `react/issues/NNNN`) are permitted **only** when they explain a hack that cannot be fully described in one sentence of prose.
+Upstream workaround references (MDN issue numbers, browser bug IDs, `react/issues/NNNN`) are permitted **only** when they explain a hack that cannot be fully described in one sentence of prose. When the workaround is for a bug in the runtime, a library, or the compiler itself, the comment must link to the issue and state the condition under which the workaround can be removed.
 
 ---
 
@@ -428,11 +449,39 @@ Upstream workaround references (MDN issue numbers, browser bug IDs, `react/issue
 | `@param {string} name` - type in `@param` | TypeScript already documents the type; repeating it creates drift |
 | `@returns {Promise<User>}` - type in `@returns` | Same reason |
 | Comments on every property of a simple DTO | Adds noise; reserve for non-obvious fields only |
-| `// TODO: fix later` without owner or ticket | Unactionable; use a tracked issue |
+| `// TODO: fix later` without an owner, a ticket, or the condition that closes it | Unactionable; use a tracked issue and state what resolves it |
 | Comments referencing internal docs, ADRs, or sprint numbers | These rot; put the relevant context directly in the comment |
 | Restating what the implementation does (`// calls fetchUser then maps result`) | Implementation is visible; only document the *contract* |
 | Tutorial-style prose in JSDoc (`"This is a helper that helps you..."`) | Unprofessional; use declarative statements |
 | Documenting every unexported symbol by default | Only document unexported symbols when the logic is genuinely non-obvious |
+| Section banners or step numbering (`// step 1`, `// --- validation ---`, a row of `#` or `*`), including a banner above every class method | Structure carried by comments rots as steps change; use functions and blank lines instead |
+| Commented-out code | Git preserves history; dead code left in place misleads readers into thinking it might run |
+| A generated JSDoc block with empty `@param` tags, added to satisfy a template or linter | An empty tag is worse than none; write it or omit it |
+| Explaining what `Promise`, `Partial<T>`, or a generic type parameter is | The reader already knows TypeScript; document the project-specific meaning, not the language feature |
+
+---
+
+## Type Assertions and Non-Null Assertions
+
+Every `as`, `as unknown as`, and non-null `!` must carry a comment explaining what the compiler cannot know at this point and what guarantees the assertion holds.
+
+```typescript
+// The webhook route validates this payload with `webhookPayloadSchema`
+// before this handler runs; the compiler cannot see across that boundary.
+const event = payload as WebhookEvent;
+```
+
+---
+
+## TypeScript Suppression Comments
+
+- Every `@ts-expect-error` or `@ts-ignore` must carry a reason on the same line or the line directly above.
+- Prefer `@ts-expect-error` over `@ts-ignore`. `@ts-expect-error` fails the build once the underlying error is fixed, so a stale suppression cannot hide silently; `@ts-ignore` does not.
+
+```typescript
+// @ts-expect-error -- upstream types omit the `experimentalFeature` flag added in v3
+const client = new SdkClient({ experimentalFeature: true });
+```
 
 ---
 
@@ -465,3 +514,7 @@ Before finalizing a change:
 - [ ] Inline comments explain *why*, not *what*.
 - [ ] No comments referencing ticket numbers, ADR sections, or internal doc links.
 - [ ] ESLint suppressions name the rule and include a justification.
+- [ ] Every `as`, `as unknown as`, and non-null `!` carries a comment explaining what the compiler cannot know.
+- [ ] `@ts-expect-error`, not `@ts-ignore`, is used wherever both would apply, each with a reason.
+- [ ] Removing every comment except JSDoc on public exports and suppression justifications still leaves the code understandable.
+- [ ] Comments are noticeably fewer than code.
