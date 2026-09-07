@@ -38,3 +38,25 @@ load 'test_helper'
     fi
   done
 }
+
+# A bare `@arch-review` in a TOML prompt is inert: Gemini expands a slash
+# command without ever reaching the at-mention resolver that would bind the
+# name to an agent, so the mention arrives at the model as literal text and any
+# delegation is the model's own choice. Both review commands inline the
+# canonical body through the same `agent:` key the orchestrators use.
+@test "Gemini review command TOML inlines the arch-review body" {
+  run install_into --commands --gemini
+  [ "$status" -eq 0 ]
+  for command in vet-impl vet-spec; do
+    toml="$TEST_HOME/.gemini/commands/$command.toml"
+    assert_file "$toml"
+    assert_toml_parses "$toml"
+    # Derived from the canonical file so it cannot drift; distinct from every
+    # other agent, so inlining the wrong body still fails.
+    assert_file_contains "$toml" "$(first_body_line "$ROOT/.agents/agents/arch-review.md")"
+    assert_file_contains "$toml" '{{args}}'
+    if grep -qF -- '@arch-review' "$toml"; then
+      fail "inert bare mention left in $toml"
+    fi
+  done
+}

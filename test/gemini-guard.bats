@@ -68,15 +68,17 @@ assert_guard_rejects() {
   done
 }
 
-# The bare `@arch-review` in the live preambles is not the `@{` sigil; a guard
-# matching a lone `@` would break both commands.
-@test "a bare @arch-review in the preambles still installs" {
-  run install_into --commands --gemini
-  [ "$status" -eq 0 ]
-  for command in vet-impl vet-spec; do
-    assert_file "$TEST_HOME/.gemini/commands/$command.toml"
-    assert_file_contains "$TEST_HOME/.gemini/commands/$command.toml" '@arch-review'
-  done
+# A lone `@` is not the `@{` sigil; a guard matching it would reject prose that
+# names an agent. No shipped fragment carries one now that the review commands
+# inline through `agent:`, so the case is planted rather than read off the tree.
+@test "a bare @mention is not the @{ sigil" {
+  new_guard_repo
+  printf -- 'Findings go to @arch-review.\n' \
+    >>"$GUARD_REPO/templates/.gemini/commands/vet-impl.preamble.md"
+  new_guard_home bare-mention vet-impl
+  run install_from "$GUARD_REPO" --commands --gemini
+  [ "$status" -eq 0 ] || fail "installer rejected a bare @mention"
+  assert_file_contains "$TEST_HOME/.gemini/commands/vet-impl.toml" '@arch-review'
 }
 
 # A traversing agent value resolves to an existing file outside the canonical
