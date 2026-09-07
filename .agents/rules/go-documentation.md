@@ -78,12 +78,14 @@ A doc comment that only restates the identifier's name is worse than no comment 
 // ❌ Restates the name; tells the reader nothing pkg.go.dev could not
 // already show them.
 // User represents a user.
-type User struct {
+type User struct{}
+```
 
+```go
 // ✅ States the contract: what the zero value means and how to build one.
 // User is an authenticated principal. The zero value is not usable;
 // construct it with NewUser.
-type User struct {
+type User struct{}
 ```
 
 ### Cross-references
