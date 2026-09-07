@@ -132,24 +132,19 @@ LEGACY_BLOCKS = {
 
 
 def block_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:
-    problems: list[str] = []
-    rows = [row for row, _ in comments]
-    start = previous = None
-    for row in rows + [None]:
-        if start is None:
-            start = previous = row
-            continue
-        if row is not None and row == previous + 1:
-            previous = row
-            continue
-        length = previous - start + 1
-        if length > max(MAX_BLOCK, LEGACY_BLOCKS.get(path, 0)):
-            problems.append(
-                f"{path}:{start}: {length}-line comment block, ceiling {MAX_BLOCK}; "
-                "a block this long is narrative, not a why"
-            )
-        start = previous = row
-    return problems
+    ceiling = max(MAX_BLOCK, LEGACY_BLOCKS.get(path, 0))
+    blocks: list[list[int]] = []
+    for row, _ in comments:
+        if blocks and row == blocks[-1][-1] + 1:
+            blocks[-1].append(row)
+        else:
+            blocks.append([row])
+    return [
+        f"{path}:{block[0]}: {len(block)}-line comment block, ceiling {MAX_BLOCK}; "
+        "a block this long is narrative, not a why"
+        for block in blocks
+        if len(block) > ceiling
+    ]
 
 
 def density_violation(path: str, source: str, prose: int) -> list[str]:
