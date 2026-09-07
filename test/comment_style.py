@@ -88,6 +88,22 @@ def shell_full_line_comments(source: str) -> list[tuple[int, str]]:
     return found
 
 
+def docstring_spans(source: str) -> list[tuple[int, int]]:
+    spans: list[tuple[int, int]] = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Module) or not isinstance(
+            node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+        ):
+            continue
+        first = node.body[0] if node.body else None
+        if not isinstance(first, ast.Expr):
+            continue
+        value = first.value
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            spans.append((value.lineno, (value.end_lineno or value.lineno)))
+    return spans
+
+
 def docstring_lines(source: str) -> int:
     counted = 0
     for node in ast.walk(ast.parse(source)):
@@ -123,18 +139,22 @@ def label_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:
     ]
 
 
-def block_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:
+def block_violations(
+    path: str, comments: list[tuple[int, str]], docstrings: list[tuple[int, int]]
+) -> list[str]:
     blocks: list[list[int]] = []
     for row, _ in comments:
         if blocks and row == blocks[-1][-1] + 1:
             blocks[-1].append(row)
         else:
             blocks.append([row])
+    spans = [(block[0], len(block), "comment block") for block in blocks]
+    spans += [(start, end - start + 1, "docstring") for start, end in docstrings]
     return [
-        f"{path}:{block[0]}: {len(block)}-line comment block, ceiling {MAX_BLOCK}; "
+        f"{path}:{row}: {length}-line {kind}, ceiling {MAX_BLOCK}; "
         "a block this long is narrative, not a why"
-        for block in blocks
-        if len(block) > MAX_BLOCK
+        for row, length, kind in sorted(spans)
+        if length > MAX_BLOCK
     ]
 
 
@@ -157,13 +177,16 @@ def check(root: Path) -> list[str]:
         source = (root / path).read_text(encoding="utf-8")
         if path.endswith(".py"):
             comments = full_line_comments(source)
-            prose = len(comments) + docstring_lines(source)
-            problems.extend(density_violation(path, source, prose))
+            docstrings = docstring_spans(source)
+            problems.extend(
+                density_violation(path, source, len(comments) + docstring_lines(source))
+            )
         else:
             comments = shell_full_line_comments(source)
+            docstrings = []
         problems.extend(banner_violations(path, comments))
         problems.extend(label_violations(path, comments))
-        problems.extend(block_violations(path, comments))
+        problems.extend(block_violations(path, comments, docstrings))
     return problems
 
 

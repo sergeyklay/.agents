@@ -74,12 +74,10 @@ class BodyByteCeilingTest(unittest.TestCase):
 
 
 class BodyByteCeilingValueTest(unittest.TestCase):
-    """Pins MAX_BODY_BYTES to its derivation of 5000 tokens x 3.5 bytes.
+    """Pin MAX_BODY_BYTES to its derivation: 5000 tokens x 3.5 bytes.
 
-    The body budget comes from <https://agentskills.io/specification> and from
-    make-skill's own SKILL.md under "Progressive Disclosure"; the bytes-per-token
-    figure from Anthropic's glossary. Every other test here builds its fixture
-    from the constant, so they stay green whatever it is changed to.
+    Budget from <https://agentskills.io/specification>; bytes per token from
+    Anthropic's glossary. Every other test builds its fixture from it.
     """
 
     def test_the_ceiling_matches_its_documented_derivation(self) -> None:

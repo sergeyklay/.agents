@@ -519,10 +519,8 @@ def _check_name(fm: dict[str, YamlValue], skill_dir: Path) -> Iterable[Issue]:
 def _is_user_invoked_only(fm: dict[str, YamlValue]) -> bool:
     """Detect frontmatter that prevents model invocation.
 
-    Recognizes Claude Code's `disable-model-invocation: true`.
-    Codex's `policy.allow_implicit_invocation: false` lives in a sibling
-    `agents/openai.yaml`, not in the SKILL.md frontmatter, so it is not
-    detected here.
+    Recognizes Claude Code's `disable-model-invocation`. Codex's equivalent
+    lives in a sibling `agents/openai.yaml`, so it is not detected here.
     """
     val = fm.get("disable-model-invocation")
     if isinstance(val, bool):
@@ -602,9 +600,7 @@ def _check_compatibility(fm: dict[str, YamlValue]) -> Iterable[Issue]:
 def _check_allowed_tools(fm: dict[str, YamlValue]) -> Iterable[Issue]:
     """Check that allowed-tools is a string, as the spec types it.
 
-    The spec calls it "a space-separated string of tools that are pre-approved
-    to run" and the reference validator types it Optional[str]. A YAML list
-    parses on Claude Code but fails everywhere the spec is enforced.
+    A YAML list parses on Claude Code and fails wherever the spec is enforced.
     """
     if "allowed-tools" not in fm:
         return
@@ -726,10 +722,8 @@ def _without_code_examples(text: str) -> str:
 def _resolve_within(base: Path, relative: str) -> Path | None:
     """Resolve a Markdown link target under ``base``, or None if it escapes.
 
-    ``Path.__truediv__`` discards the left operand for an absolute right
-    operand, and ".." segments can walk out of ``base``. Resolve first, then
-    require containment, so a SKILL.md cannot point the validator at files
-    outside the validated skill directory.
+    ``Path.__truediv__`` drops the left operand for an absolute right one,
+    and ".." can walk out, so resolve first and require containment after.
     """
     candidate = (base / relative).resolve()
     try:

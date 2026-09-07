@@ -124,3 +124,45 @@ PROBE
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
+
+@test "the comment gate rejects a docstring over the ceiling" {
+  stage_probe <<'PROBE'
+def probe() -> int:
+    """Summary.
+
+    one
+    two
+    three
+    """
+    return 1
+PROBE
+  run python3 "$GATE" "$PROBE"
+  [ "$status" -eq 1 ]
+  assert_contains "$output" '6-line docstring'
+}
+
+@test "the comment gate exempts a module docstring" {
+  stage_probe <<'PROBE'
+"""Module summary.
+
+one
+two
+three
+"""
+
+
+def probe() -> int:
+    total = 1
+    total = total + 1
+    total = total + 1
+    total = total + 1
+    total = total + 1
+    total = total + 1
+    total = total + 1
+    total = total + 1
+    return total
+PROBE
+  run python3 "$GATE" "$PROBE"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}

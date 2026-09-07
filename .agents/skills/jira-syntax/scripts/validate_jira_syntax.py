@@ -182,9 +182,8 @@ def _check_heading_spacing(text: str) -> Iterable[Issue]:
 def _check_code_block_language(text: str) -> Iterable[Issue]:
     """Warn when at least one code block opens without a language identifier.
 
-    Closing tags are also bare ``{code}``, so a balanced file with two
-    language-tagged openings has ``bare == lang``. ``bare > lang`` means at
-    least one opening is missing a language.
+    Closing tags are bare ``{code}`` too, so a balanced tagged file has
+    ``bare == lang``, and ``bare > lang`` means an opening is missing one.
     """
     bare_openings = len(RE_CODE_OPENING_BARE.findall(text))
     lang_openings = len(RE_CODE_OPENING_LANG.findall(text))

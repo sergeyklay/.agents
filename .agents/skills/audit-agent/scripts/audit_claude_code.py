@@ -262,12 +262,10 @@ def _block_ids(records: list[dict[str, object]], kind: str, key: str) -> set[str
 
 
 def _meta(transcript: Path) -> tuple[dict[str, object], bool]:
-    """Read a child's *.meta.json sibling.
+    """Read a child's *.meta.json sibling, with whether it was readable.
 
-    Returns the metadata and whether it was readable. A sidecar that is
-    absent is normal and reads as readable-and-empty; one that exists but
-    cannot be parsed is not, because delegation mode is derived from it
-    and a silent empty dict would score the child as a fork.
+    An absent sidecar reads as readable-and-empty; an unparsable one does not,
+    because delegation mode comes from it and an empty dict scores it a fork.
     """
     sidecar = transcript.with_suffix(".meta.json")
     if not sidecar.exists():

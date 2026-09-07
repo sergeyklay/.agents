@@ -41,9 +41,8 @@ def _as_dict(value: object) -> dict[str, object]:
 class Pr57PayloadTest(unittest.TestCase):
     """Assertions against a frozen capture of sergeyklay/.agents PR #57.
 
-    The capture keeps the fields the script reads, review bodies
-    verbatim, so the test exercises the real shape a reviewer bot emits
-    without reaching the network.
+    Review bodies are kept verbatim, so the real shape a reviewer bot emits
+    is exercised without reaching the network.
     """
 
     def setUp(self) -> None:
@@ -334,11 +333,8 @@ class SuppressedBlockTest(unittest.TestCase):
 class MismatchedCountPayloadTest(unittest.TestCase):
     """A block declaring three findings whose body carries only two.
 
-    The PR #57 capture cannot reach this state: both of its blocks agree
-    with their own heading, so a parser that reports its own count in
-    place of the reviewer's stays green against the capture. The
-    disagreement has to be built, and it has to be asserted on the
-    payload, which is the only thing a consumer of this script reads.
+    The PR #57 capture cannot reach this state, so a parser that reports
+    its own count in place of the reviewer's stays green against it.
     """
 
     def setUp(self) -> None:

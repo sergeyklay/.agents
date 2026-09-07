@@ -107,10 +107,8 @@ def _gh_repo() -> str:
 def _gh_api_paginated(endpoint: str, label: str) -> list[object]:
     """Fetch a paginated `gh api` endpoint and concatenate the pages.
 
-    `gh api --paginate` for array-returning endpoints emits successive
-    JSON arrays back-to-back on the same stream — not a single wrapping
-    array. ``json.JSONDecoder.raw_decode`` lets us walk one value at a
-    time and merge them.
+    For array endpoints `--paginate` emits successive JSON arrays back to
+    back rather than one wrapping array, so pages are walked with ``raw_decode``.
     """
     result = subprocess.run(
         ["gh", "api", endpoint, "--paginate"],
@@ -221,11 +219,8 @@ def _as_int(value: object) -> int | None:
 def verdict_from_body(body: str) -> str | None:
     """Return the reviewer's verdict: the body's first non-empty line.
 
-    A bot reviewer submits every review with the same API `state` and puts
-    its verdict ("Changes recommended", "Needs a closer look", "Approval
-    recommended") in the first line of the body, as a Markdown heading.
-    Reading `state` instead cannot tell an approval from a request for a
-    second pair of eyes.
+    A bot submits every review under the same API `state` and puts the verdict
+    in the body's opening heading, so `state` cannot tell approval from doubt.
     """
     for line in body.splitlines():
         stripped = line.strip()

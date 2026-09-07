@@ -153,11 +153,9 @@ FRONTMATTER_DELIMITER: str = "---"
 
 
 class Scope(enum.Enum):
-    """Where a skill was discovered.
+    """Where a skill was discovered; serialized as the ``type`` field.
 
-    Output field name is ``type`` (per agent-facing contract); the value is
-    ``project`` when the skill lives under the project root and ``user``
-    when it lives in the home directory.
+    ``project`` when it lives under the project root, ``user`` when in home.
     """
 
     PROJECT = "project"
@@ -165,12 +163,10 @@ class Scope(enum.Enum):
 
 
 def _abbreviate_home(path: Path, home: Path | None = None) -> str:
-    """Return ``path`` with the user's home directory collapsed to ``~``.
+    """Return ``path`` with the home directory collapsed to ``~``, else as-is.
 
-    Keeps the agent-facing output free of the literal home-directory name
-    (e.g. ``/home/alice``) without losing the ability to round-trip into
-    a shell: every supported shell expands a leading ``~`` to ``$HOME``.
-    Paths that do not sit under the user's home are returned as-is.
+    Keeps the literal home name out of the output while staying pasteable
+    into a shell, which expands a leading ``~``.
     """
     home = home or Path.home()
     try:
@@ -184,14 +180,8 @@ def _abbreviate_home(path: Path, home: Path | None = None) -> str:
 class SkillEntry:
     """A successfully-discovered skill.
 
-    Internal field names (``vendor``, ``scope``) are mapped to the
-    agent-facing field names (``agent``, ``type``) at serialization time.
-
-    ``project_root`` is populated for project-scope entries so the path
-    field of the output can be rendered relative to the project root
-    (``.claude/skills/foo/SKILL.md``) instead of an absolute or
-    home-abbreviated path. The ``type`` field already disambiguates
-    project from user, so a relative project path remains unambiguous.
+    ``vendor`` and ``scope`` serialize as ``agent`` and ``type``.
+    ``project_root`` lets a project-scope path render relative to it.
     """
 
     vendor: str
@@ -241,13 +231,8 @@ class FrontmatterError(ValueError):
 def read_frontmatter_fields(skill_md: Path) -> tuple[str, str, str]:
     """Return ``(name, description, category)`` from a SKILL.md frontmatter.
 
-    ``name`` and ``description`` are required (top-level keys); raises
-    ``FrontmatterError`` if either is missing or the file cannot be read.
-
-    ``category`` is read from the project convention ``metadata.category``
-    and falls back to a top-level ``category:`` for skills that omit the
-    ``metadata`` block. Returns the empty string if neither is present —
-    category is an optional taxonomy field, not a required one.
+    Raises ``FrontmatterError`` when a required key is missing or unreadable.
+    ``category`` is optional: ``metadata.category``, then top-level, then "".
     """
     try:
         text = skill_md.read_text(encoding="utf-8-sig", errors="replace")
@@ -297,12 +282,9 @@ def _extract_scalar(block: str, key: str) -> str:
 
 
 def _extract_nested_scalar(block: str, parent: str, child: str) -> str:
-    """Find ``child:`` nested one level under top-level ``parent:`` and return its value.
+    """Return the value of ``child:`` nested one level under ``parent:``.
 
-    Walks lines after a zero-indent ``parent:`` header, accepts the first
-    indented ``child:`` it finds at consistent indentation, and stops at the
-    next zero-indent key. Returns an empty string if either the parent
-    block or the nested key is absent.
+    Stops at the next zero-indent key. Empty string when either is absent.
     """
     lines = block.splitlines()
     parent_prefix = f"{parent}:"
@@ -339,11 +321,8 @@ def _extract_nested_scalar(block: str, parent: str, child: str) -> str:
 def _read_block_scalar(lines: Sequence[str], start: int) -> str:
     """Collect indented continuation lines and fold them for display.
 
-    The discovery script always folds (whitespace-collapses) regardless of
-    YAML block style (`>`, `|`, or implicit nested mapping value) because
-    the output is intended for visual scanning by the agent, not for
-    round-tripping the YAML. Literal vs folded semantics do not affect
-    that use case.
+    Folds whatever the YAML block style, because the output is for scanning
+    rather than round-tripping.
     """
     collected: list[str] = []
     base_indent: int | None = None
@@ -436,17 +415,10 @@ def sort_entries(
     entries: Sequence[SkillEntry],
     order_by: str,
 ) -> list[SkillEntry]:
-    """Return ``entries`` sorted alphabetically by ``order_by``.
+    """Return ``entries`` sorted by ``order_by``, then by name.
 
-    The agent treats every returned skill with equal priority, so a
-    deterministic, easy-to-scan order is more useful than discovery order.
-    ``name`` is used as a stable secondary key — Python's ``sorted`` is
-    stable, so when the primary key matches (e.g. two skills in the same
-    category), entries fall back to alphabetical name order.
-
-    ``order_by`` must be a key produced by ``SkillEntry.as_record()``;
-    callers (the CLI parser via ``choices``) are expected to validate it
-    before calling this function.
+    ``sorted`` is stable, so equal primary keys fall back to name order.
+    ``order_by`` must be a key of ``as_record()``; the CLI validates it.
     """
     return sorted(
         entries,
@@ -455,23 +427,10 @@ def sort_entries(
 
 
 def resolve_precedence(entries: Sequence[SkillEntry]) -> list[SkillEntry]:
-    """Apply 'user scope wins over project scope on name collisions'.
+    """Drop project-scope entries whose name also exists at user scope.
 
-    When the same skill ``name`` appears in both the user's home and the
-    project, the home version takes precedence because that is what every
-    supported agent actually loads when both are present. Emitting both
-    would mislead the agent into believing the project version is also
-    visible at runtime.
-
-    Rule, applied per unique ``name``:
-
-    * If at least one entry has ``scope=USER``, keep only the USER entries
-      and drop every PROJECT entry that shares that name.
-    * Otherwise keep all entries for that name (typically just one, but
-      multi-vendor project installs are preserved as-is).
-
-    The original discovery order is preserved among the kept entries so
-    downstream formatters render deterministic output.
+    Home wins because that is what the agents load when both are present, and
+    emitting both would imply the project copy is live too. Order survives.
     """
     grouped: dict[str, list[SkillEntry]] = {}
     for entry in entries:
@@ -560,9 +519,8 @@ def _xml_escape(text: str) -> str:
 def format_xml(entries: Sequence[SkillEntry], fields: Sequence[str]) -> str:
     """Render entries as ``<skills><skill>…</skill></skills>``.
 
-    XML is the default agent-facing format because it tolerates freeform
-    description text without escaping headaches, is unambiguous to parse,
-    and matches Anthropic's published guidance on structured prompt inputs.
+    The default format: freeform description text needs no escaping, and it
+    matches Anthropic's guidance on structured prompt inputs.
     """
     if not entries:
         return "<skills/>"
@@ -606,10 +564,8 @@ def format_markdown(entries: Sequence[SkillEntry], fields: Sequence[str]) -> str
 def format_csv(entries: Sequence[SkillEntry], fields: Sequence[str]) -> str:
     """Render entries as RFC 4180 CSV with a header row.
 
-    Delegates quoting and escaping to the standard library's ``csv``
-    module (``QUOTE_MINIMAL`` — only fields containing a comma, quote, or
-    newline are quoted; embedded quotes are doubled). On empty input the
-    header row is still emitted so the schema is communicated.
+    Quoting is the standard library's ``QUOTE_MINIMAL``. The header is
+    emitted even for empty input so the schema still reaches the caller.
     """
     buf = io.StringIO()
     writer = csv.DictWriter(
