@@ -1,6 +1,6 @@
 ---
 name: delegate-work
-description: "Brief a background agent, confirm the brief arrived, and verify its report before acting on it. Use when writing the prompt for a subagent or parallel session, when several agents will run against one repository, when an instruction sent to a running agent goes unmentioned in its report, when a delegated fix has been rejected and another verification round is about to start, or before relaying a delegate's report onward. Do NOT use to measure a run's cost (audit-agent), to prove a green check could go red (prove-checks), or to check a delegated claim (research-it)."
+description: "Brief a background agent, confirm the brief arrived, and verify its report before acting on it. Use when writing the prompt for a subagent or parallel session, when several agents will run against one repository, when an instruction sent to a running agent goes unmentioned in its report, when a delegated fix has been rejected and another verification round is about to start, or before relaying a delegate's report onward. Also use when a delegate's final report arrives as a fragment or refers to a message that never reached you. Do NOT use to measure a run's cost (audit-agent), to prove a green check could go red (prove-checks), or to check a delegated claim (research-it)."
 metadata:
   author: Serghei Iakovlev
   version: "1.0"
@@ -70,7 +70,7 @@ Generalize the pattern this repository already uses in its own pipelines: gate o
 
 Instructions with no artifact are the ones that vanish without trace. Sort your brief by that test before sending it.
 
-### 4. Confirm a mid-flight message arrived
+### 4. Confirm the message arrived, in both directions
 
 A message to an already-running agent can fail to deliver in silence. The send returns without error, the agent never sees it, and its final report describes everything it *did* receive as complete. Nothing in the report marks the hole.
 
@@ -82,6 +82,10 @@ Confirm against the artifact from step 3, never against an acknowledgment:
 4. Record the resend. An instruction delivered on the second attempt was executed with different surrounding context than the first batch.
 
 This check is cheap and it is the only one that catches a dropped message. It costs one grep per mid-flight instruction.
+
+The return leg fails the same way and reads worse. A final report can reach you as a fragment, an appendix, a closing section, one of several messages, while the delegate's own record shows it sent the whole thing. The fragment is well-formed and confident, so it presents as a short report rather than as the tail of a long one. Two markers give it away: a reference to a message you never received, and a step-3 artifact missing from a fragment that never claims to have skipped it.
+
+A fragment is a transport failure, not a thin report and not work left undone. Ask for the missing part to be resent, and settle the substance from the artifacts while you wait, because the tree already holds what the missing prose would have told you. Do not re-run the work and do not re-brief the agent; both spend a full run to recover text that already exists.
 
 ### 5. Verify the report in cost order
 
@@ -125,6 +129,7 @@ A delegated result is accepted only when all of these hold:
 - [ ] Every quoted string was found in the file it was attributed to.
 - [ ] Every number was reproduced by re-running its command.
 - [ ] Any mid-flight instruction whose artifact is missing was resent rather than assumed refused.
+- [ ] A report that referred to a message that never arrived was treated as truncated and resent, not read as complete.
 - [ ] The final report distinguishes what was verified from what was taken on the delegate's word.
 - [ ] In a multi-round loop, each round's verifier received the defect class rather than the previous findings, and generated its own corpus.
 
@@ -135,6 +140,7 @@ Any unticked box makes the result unverified, not wrong. Say which.
 - **Reading the report for plausibility.** A coherent, well-structured, confident report is the expected output of a delegate that went wrong, not a signal that it did not. Coherence is the one property the delegate optimizes for and the one property that carries no information.
 - **Checking completion from the report's own outline.** The report enumerates what it did. The brief enumerates what was asked. Only the second finds the missing item.
 - **Treating an acknowledgment as delivery.** A send that returns without error and an agent that received the message are different facts, and only one of them is observable from the tree.
+- **Reading a fragment as the report.** A tail section that arrives alone is coherent on its own terms and carries no marker of what preceded it. A dangling reference to an earlier message is the report telling you it is incomplete; the artifacts, not the prose, settle what was actually done.
 - **Accepting a self-audit.** "I verified X" inside a report is part of the report, written by the party under audit, and inherits none of the independence the word "verified" implies.
 - **Anchoring the second opinion.** Handing the re-verifier the first report converts an independent check into a review of someone else's conclusions, which is a different and much weaker thing.
 - **Retyping the guardrails.** Four copies of a block are four different blocks within a week, and no copy announces that it is the stale one.
