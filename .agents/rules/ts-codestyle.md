@@ -5,7 +5,7 @@ Core TS/React rules that apply broadly.
 
 ## TypeScript Core
 
-- `strict: true` is non-negotiable. Enable `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` alongside it; the code must compile under all three without suppression.
+- `strict: true` is non-negotiable. Enable `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` alongside it; the code must compile under all three with no `@ts-ignore` or `@ts-expect-error`.
 - Prefer `unknown` over `any`. Use `any` only at third-party boundaries with an ESLint suppression comment.
 - Use `undefined` for absent values. Use `null` only for ORM columns or external API contracts that require it.
 - Use `interface` for component props, domain model shapes, and service contracts.
@@ -217,7 +217,7 @@ import type { OrderModel } from '@db/models/Order';
 
 ## Checklist
 
-- [ ] Code compiles under `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` with no suppressions
+- [ ] Code compiles under `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` with no `@ts-ignore` or `@ts-expect-error`
 - [ ] Information that could be a type (a branded type, a discriminated union, `readonly`/`as const`, `satisfies`, a type predicate, `assertNever`) is a type, not a comment
 - [ ] No `any` without a justified third-party boundary
 - [ ] `undefined` for absence; `null` only for external contracts
