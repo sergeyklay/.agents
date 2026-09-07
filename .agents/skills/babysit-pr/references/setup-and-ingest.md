@@ -49,4 +49,4 @@ gh api "repos/{owner}/{repo}/pulls/${PR}/reviews"  --paginate
 gh pr view "$PR" --json comments --jq '.comments'
 ```
 
-These return the raw objects and nothing derived. Apply "Reading a review body" and "Reading the verdict" above to the `reviews` output by hand: open each collapsed block, count its entries against the declared `N`, and take each verdict from the body's first line.
+These return the raw objects and nothing derived. Apply "Reading a review body" and "Reading the verdict" above to the `reviews` output by hand.

@@ -28,48 +28,9 @@ Usage:
 If PR_NUMBER is omitted, the script resolves the PR associated with the
 current branch via `gh pr view --json number`.
 
-Output (single JSON object on stdout):
-    {
-        "pr":      <number>,
-        "inline":  [...],   # /pulls/{N}/comments, verbatim
-        "reviews": [...],   # /pulls/{N}/reviews, verbatim
-        "issue":   [...],   # issue-level conversation comments, verbatim
-        "review_digest": [  # one entry per review, same order as "reviews"
-            {
-                "review_id": <number>,
-                "author":    <login>,
-                "state":     <API state, e.g. "COMMENTED">,
-                "verdict":   <first non-empty body line, heading marks
-                              stripped; null when the body is empty>,
-                "suppressed_blocks": [
-                    {
-                        "declared_count":  <N from the block heading>,
-                        "extracted_count": <findings this script parsed>,
-                        "counts_agree":    <bool>,
-                        "findings": [
-                            {
-                                "location": "path:line",
-                                "path":     <path or null>,
-                                "line":     <line or null>,
-                                "body":     <finding text>
-                            }
-                        ]
-                    }
-                ]
-            }
-        ],
-        "totals": {
-            "reviews":  <count>,
-            "inline":   <count>,
-            "issue":    <count>,
-            "suppressed_declared":           <sum of declared_count>,
-            "suppressed_extracted":          <sum of extracted_count>,
-            "suppressed_distinct_locations": <deduplicated by location>,
-            "suppressed_counts_agree":       <bool>,
-            "distinct_findings":             <inline + issue +
-                                              suppressed_distinct_locations>
-        }
-    }
+Prints one JSON object on stdout: the `inline`, `reviews` and `issue`
+arrays verbatim, plus the `review_digest` and `totals` derived from
+them.
 
 Exit codes:
     0  success
