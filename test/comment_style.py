@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Reject the comment shapes AGENTS.md "Comments Explain Why" forbids.
 
-Reads every tracked Python file and reports banner separators, step and
+Reads every tracked Python and shell file and reports banner separators, step and
 section labels, and files whose comments and docstrings take up more than
 MAX_DENSITY of their lines.
 
@@ -28,14 +28,15 @@ import tokenize
 from pathlib import Path
 
 MAX_DENSITY = 0.35
+MAX_BLOCK = 5
 
 BANNER = re.compile(r"^#\s*[#=*-]\s*(?:[#=*-]\s*){2,}$")
 LABELED_BANNER = re.compile(r"^#\s*[#=*-]{2,}.*[#=*-]{2,}\s*$")
 STEP_LABEL = re.compile(r"^#\s*(?:step\s*\d+|\d+\s*[.):]|section\s*:)", re.IGNORECASE)
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
 
-# These files predate the gate and already carry section banners. Rewriting
-# them is a separate task, so the gate freezes what each one has as its
-# ceiling: a banner added to them from now on still fails.
+# These files predate the gate. It freezes what each already carries as its
+# ceiling, so anything added to them from now on still fails.
 LEGACY_BANNERS = {
     ".agents/skills/context-files/scripts/validate_context_file.py": 9,
     ".agents/skills/improve-self/scripts/discover_skills.py": 7,
@@ -44,9 +45,9 @@ LEGACY_BANNERS = {
 }
 
 
-def tracked_python_files(root: Path) -> list[str]:
+def tracked_sources(root: Path) -> list[str]:
     result = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "--", "*.py"],
+        ["git", "-C", str(root), "ls-files", "--", "*.py", "*.sh", "*.bats"],
         capture_output=True,
         text=True,
         check=True,
@@ -64,6 +65,26 @@ def full_line_comments(source: str) -> list[tuple[int, str]]:
         row = token.start[0]
         if lines[row - 1].lstrip().startswith("#"):
             found.append((row, token.string.strip()))
+    return found
+
+
+def shell_full_line_comments(source: str) -> list[tuple[int, str]]:
+    """Return (line number, text) for every comment that owns its line."""
+    found: list[tuple[int, str]] = []
+    terminator: str | None = None
+    for row, line in enumerate(source.splitlines(), start=1):
+        if terminator is not None:
+            if line.strip() == terminator:
+                terminator = None
+            continue
+        opener = HEREDOC.search(line)
+        if opener:
+            terminator = opener.group(2)
+            continue
+        if row == 1 and line.startswith("#!"):
+            continue
+        if line.lstrip().startswith("#"):
+            found.append((row, line.strip()))
     return found
 
 
@@ -102,11 +123,40 @@ def label_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:
     ]
 
 
-def density_violation(path: str, source: str, comments: int) -> list[str]:
+LEGACY_BLOCKS = {
+    ".agents/skills/improve-self/scripts/discover_skills.py": 10,
+    ".agents/skills/manage-issues/scripts/get_taxonomy.sh": 23,
+    ".agents/skills/writing-specs/scripts/validate_spec.py": 7,
+    "test/test_validate_skill.py": 8,
+}
+
+
+def block_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:
+    problems: list[str] = []
+    rows = [row for row, _ in comments]
+    start = previous = None
+    for row in rows + [None]:
+        if start is None:
+            start = previous = row
+            continue
+        if row is not None and row == previous + 1:
+            previous = row
+            continue
+        length = previous - start + 1
+        if length > max(MAX_BLOCK, LEGACY_BLOCKS.get(path, 0)):
+            problems.append(
+                f"{path}:{start}: {length}-line comment block, ceiling {MAX_BLOCK}; "
+                "a block this long is narrative, not a why"
+            )
+        start = previous = row
+    return problems
+
+
+def density_violation(path: str, source: str, prose: int) -> list[str]:
     total = len(source.splitlines())
     if total == 0:
         return []
-    density = (comments + docstring_lines(source)) / total
+    density = prose / total
     if density <= MAX_DENSITY:
         return []
     return [
@@ -117,12 +167,17 @@ def density_violation(path: str, source: str, comments: int) -> list[str]:
 
 def check(root: Path) -> list[str]:
     problems: list[str] = []
-    for path in tracked_python_files(root):
+    for path in tracked_sources(root):
         source = (root / path).read_text(encoding="utf-8")
-        comments = full_line_comments(source)
+        if path.endswith(".py"):
+            comments = full_line_comments(source)
+            prose = len(comments) + docstring_lines(source)
+            problems.extend(density_violation(path, source, prose))
+        else:
+            comments = shell_full_line_comments(source)
         problems.extend(banner_violations(path, comments))
         problems.extend(label_violations(path, comments))
-        problems.extend(density_violation(path, source, len(comments)))
+        problems.extend(block_violations(path, comments))
     return problems
 
 

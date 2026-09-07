@@ -12,7 +12,15 @@ stage_probe() {
   git -C "$PROBE" add probe.py
 }
 
-@test "every tracked Python file passes the comment gate" {
+stage_shell_probe() {
+  PROBE="$BATS_TEST_TMPDIR/shell-probe"
+  mkdir -p "$PROBE"
+  git -C "$PROBE" init -q
+  cat >"$PROBE/probe.bats"
+  git -C "$PROBE" add probe.bats
+}
+
+@test "every tracked source file passes the comment gate" {
   run python3 "$GATE" "$ROOT"
   [ -z "$output" ] || fail "comment-style violations:"$'\n'"$output"
   [ "$status" -eq 0 ]
@@ -56,4 +64,63 @@ EOF
   run python3 "$GATE" "$PROBE"
   [ "$status" -eq 1 ]
   assert_contains "$output" 'ceiling 35%'
+}
+
+@test "the comment gate rejects a banner separator in a bats file" {
+  stage_shell_probe <<'PROBE'
+# =================================================
+@test "probe" {
+  run true
+}
+PROBE
+  run python3 "$GATE" "$PROBE"
+  [ "$status" -eq 1 ]
+  assert_contains "$output" 'banner separator'
+}
+
+@test "the comment gate reads no comment out of a heredoc body" {
+  stage_shell_probe <<'PROBE'
+@test "probe" {
+  cat <<'INNER'
+# ===============================
+# step 1: this is data, not code
+INNER
+}
+PROBE
+  run python3 "$GATE" "$PROBE"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "the comment gate rejects a comment block over the ceiling" {
+  stage_shell_probe <<'PROBE'
+# one
+# two
+# three
+# four
+# five
+# six
+@test "probe" {
+  run true
+}
+PROBE
+  run python3 "$GATE" "$PROBE"
+  [ "$status" -eq 1 ]
+  assert_contains "$output" '6-line comment block'
+}
+
+@test "the comment gate allows a block at the ceiling" {
+  stage_shell_probe <<'PROBE'
+# one
+# two
+# three
+# four
+# five
+@test "probe" {
+  run true
+}
+PROBE
+  run python3 "$GATE" "$PROBE"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
 }
