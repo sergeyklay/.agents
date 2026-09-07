@@ -81,10 +81,14 @@ Use declarative, present-tense statements. Name what the symbol *does or reports
 
 ### Non-Public Exports
 
-Mark a symbol with `@internal` when it must be exported for sibling modules to use but is not part of the feature's public contract. This tells readers and tooling the export is not a stable API.
+Mark a symbol with `@internal` when it must be exported for sibling modules to use but is not part of the feature's public contract. This tells readers and tooling the export is not a stable API. The tag joins a normal doc comment; it does not replace the mandatory summary line.
 
 ```typescript
-/** @internal */
+/**
+ * Converts a pre-v2 webhook body into the current payload shape.
+ *
+ * @internal
+ */
 export function normalizeLegacyPayload(raw: unknown): Payload {
 ```
 
