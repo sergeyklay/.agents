@@ -81,6 +81,18 @@ load 'test_helper'
   done
 }
 
+@test "agent views spend each list number once" {
+  run install_into --agents
+  [ "$status" -eq 0 ]
+  for view in "$TEST_HOME"/.claude/agents/*.md \
+    "$TEST_HOME"/.copilot/agents/*.agent.md \
+    "$TEST_HOME"/.gemini/agents/*.md \
+    "$TEST_HOME"/.config/opencode/agents/*.md; do
+    assert_file "$view"
+    assert_unique_list_numbers "$view"
+  done
+}
+
 # The workflow's last step is the agent's final output. While that step was
 # the improve-self check, the agent closed on its own self-assessment and the
 # deliverable needed a second run. The report must end the list; the
