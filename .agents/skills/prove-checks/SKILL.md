@@ -1,9 +1,9 @@
 ---
 name: prove-checks
-description: "Prove a passing check was capable of failing before recording it as evidence. Use when a test, CI job, build-and-diff, smoke test or rehearsal comes back green and that green is about to be treated as proof - especially when the check depends on a setup mutation (a sed/awk rewrite, an env var, a secret, a fixture file, a branch or working-copy state), when a job passes under continue-on-error, `|| true`, `set +e` or warning-only output, when an event-driven workflow is hand-run while nothing has changed, or when simulating a future input such as the next release. Covers asserting the precondition actually took effect, confirming the subject rather than the receiver was exercised, stripping failure suppressors, and running a negative control. Do NOT use for zero-hit searches or absence claims (that is research-it), or for authoring unit tests in a specific language (that is test-go or test-ts)."
+description: "Prove a passing check was capable of failing before recording it as evidence. Use when a test, CI job, build-and-diff, smoke test or rehearsal comes back green and that green is about to be treated as proof - especially when the check depends on a setup mutation (a sed/awk rewrite, an env var, a secret, a fixture file, a branch or working-copy state), when a job passes under continue-on-error, `|| true`, `set +e` or warning-only output, when an event-driven workflow is hand-run while nothing has changed, when simulating a future input such as the next release, or when a flaky or racy fix is about to be called verified. Covers asserting the precondition actually took effect, confirming the subject rather than the receiver was exercised, stripping failure suppressors, and running a negative control, which a race needs forced, not reverted. Do NOT use for zero-hit searches or absence claims (that is research-it), or for authoring unit tests in a specific language (that is test-go or test-ts)."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: testing
 ---
 
@@ -83,6 +83,12 @@ Restore, re-run, confirm green. A check never observed red is an unproven check.
 
 **Reap what the red run leaks, and never reap it by pattern.** A control that ends red usually leaves the subprocess tree it was asserting about still running, because the assertion returned before its own cleanup. The next run then reads the survivors of the previous one. Clean up explicitly: kill the process group the check created, or register the teardown with the test framework so a failed assertion still runs it. Do not reach for `pkill -f <pattern>` to do it. The pattern is a substring of the command line of the shell issuing the command, so the shell matches itself and dies mid-command, surfacing as an unexplained non-zero status with no output rather than as anything resembling the mistake it was. Match the exact command line instead, and skip your own process tree.
 
+**When the defect is intermittent, reverting the fix is not a control.** A deterministic bug turns the reverted check red every run; a race turns it red only on the losing interleaving, so the control can come up green by luck and be recorded as proof the check never caught anything. Restore the losing order instead of the old code: hold the concurrent work until after the assertion reads, remove the synchronisation the fix introduced and pin the scheduling, or make the racing call settle late. Two conditions bind that control. It must go red on the assertion the race itself produces, because a sabotage that trips a compile error or an unrelated throw turns the check red for a reason the defect never causes. And a race with two losing orders needs one control per order, since fixing the side that was observed tends to relocate the failure to the side that was not.
+
+**A repeat run confirms nothing until its length is derived from the measured rate.** Zero failures in N runs bounds the true rate at roughly `3/N`, so a green series excludes a rate `p` only once N reaches `3/p`. Measure `p` before the fix, over a loop long enough to see failures, and report the bound rather than the count: a rate observed at one in six is not excluded by twelve green runs, which bound it only at one in four and which the unfixed code itself would produce about one time in nine. Group the failures by which assertion they land on, too — failures that alternate between opposite assertions are the two halves of one race, not two unrelated flakes.
+
+**Take a repeat loop's command from the project's own runner, and make it count itself.** A hand-rolled invocation drops whatever the real runner supplies — the gate variable that turns a suite on, its concurrency limit, its reporter — and each omission fails silently: a suite whose gate is unset skips by design and exits 0, so every iteration is green having executed nothing. Then require the number of iterations that produced a parsable result to equal the number requested, and abort when it is short. Without that guard a runner that rejected its own arguments, and so exited before doing any work, yields empty output that a tally reads as an unbroken series of passes.
+
 ### 6. Record the scope, not a verdict
 
 Write down what was exercised and what was not: "the receiver's no-op path ran; the sender is unverified" beats "release notification works". Verdicts outlive their evidence.
@@ -97,6 +103,8 @@ Green counts as evidence only when all of these hold:
 - [ ] No suppressor sits between the failure and the exit status, or the assertion targets a required log line instead.
 - [ ] The check has been observed red at least once for the defect it claims to catch.
 - [ ] Where the subject is a guard, the control broke the guard's decision rather than deleting the guard, on a fixture that reaches the defect.
+- [ ] Where the defect is intermittent, the control forced the losing order rather than reverting the fix, once per losing order.
+- [ ] Any green series offered as evidence states the rate bound it buys, not the run count alone.
 
 Any unticked box downgrades the result from "verified" to "not contradicted".
 
@@ -109,4 +117,6 @@ Any unticked box downgrades the result from "verified" to "not contradicted".
 - **Treating repetition as confirmation.** Re-running the same vacuous check with different parameters returns the same green. Setup-level failures are perfectly correlated across runs, exactly like instrument-level failures are across queries.
 - **Accepting another agent's account of the tree.** A subagent reporting that it restored, reverted or reconstructed files is reporting its intent and its memory, not the filesystem. The tree is a different path; hash it.
 - **Controlling a guard by deleting it.** Removal takes the guard's message and its side effects with it, so the check can go red on any of those while the behavior the guard protects stays untested. Break the decision, keep the mechanism.
+- **Reverting a probabilistic fix and calling the result a control.** The reverted check is a coin flip; when it lands green the conclusion drawn is that the check never caught the defect, which is exactly backwards.
+- **Quoting the repeat count instead of the bound.** The number of green runs is an input. What it buys is an upper bound on the failure rate, and below `3/p` it does not even exclude the rate measured before the fix.
 - **Skipping the negative control because it is inconvenient.** It is one revert and one re-run, and it is the only step that distinguishes a check from a ritual.
