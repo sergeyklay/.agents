@@ -36,8 +36,7 @@ function findPolicyEngineChunk(bundleEntry) {
   throw new Error(`no reachable chunk of ${bundleEntry} exports loadPoliciesFromToml`);
 }
 
-async function policyEngineFor(bundleEntry, policyPath) {
-  const engineModule = await import(pathToFileURL(findPolicyEngineChunk(bundleEntry)).href);
+async function policyEngineFor(engineModule, policyPath) {
   console.debug = () => {};
   const { rules, errors } = await engineModule.loadPoliciesFromToml(
     [policyPath],
@@ -56,32 +55,44 @@ async function policyEngineFor(bundleEntry, policyPath) {
   });
 }
 
-function compiledRuleLines(engine) {
+function compiledRuleLines(engineModule, engine) {
   const lines = [`rules\t${engine.rules.length}`];
   for (const rule of engine.rules) {
     if (rule.argsPattern) {
       lines.push(`pattern\t${rule.argsPattern.source}`);
     }
+    if (rule.decision === engineModule.PolicyDecision.DENY) {
+      const { errorMessage } = engineModule.getPolicyDenialError(null, rule);
+      lines.push(`denial\t${errorMessage}`);
+    }
   }
   return lines;
 }
 
-async function decisionLines(engine, commands) {
+// The dotenv rule covers two tools whose arguments are not a single string, so a
+// spec starting with `{` is a whole JSON tool call rather than a shell command.
+function toToolCall(spec) {
+  return spec.startsWith('{')
+    ? JSON.parse(spec)
+    : { name: 'run_shell_command', args: { command: spec } };
+}
+
+async function decisionLines(engine, specs) {
   const lines = [];
-  for (const command of commands) {
-    const { decision } = await engine.check({
-      name: 'run_shell_command',
-      args: { command },
-    });
-    lines.push(`${decision}\t${command}`);
+  for (const spec of specs) {
+    const { decision } = await engine.check(toToolCall(spec));
+    lines.push(`${decision}\t${spec}`);
   }
   return lines;
 }
 
-const [bundleEntry, policyPath, ...commands] = process.argv.slice(2);
-const engine = await policyEngineFor(bundleEntry, policyPath);
+const [bundleEntry, policyPath, ...specs] = process.argv.slice(2);
+const engineModule = await import(
+  pathToFileURL(findPolicyEngineChunk(bundleEntry)).href
+);
+const engine = await policyEngineFor(engineModule, policyPath);
 const lines =
-  commands[0] === '--rules'
-    ? compiledRuleLines(engine)
-    : await decisionLines(engine, commands);
+  specs[0] === '--rules'
+    ? compiledRuleLines(engineModule, engine)
+    : await decisionLines(engine, specs);
 process.stdout.write(`${lines.join('\n')}\n`);
