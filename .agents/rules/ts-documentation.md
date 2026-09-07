@@ -467,7 +467,7 @@ Upstream workaround references (MDN issue numbers, browser bug IDs, `react/issue
 
 ## Type Assertions and Non-Null Assertions
 
-Every `as`, `as unknown as`, and non-null `!` must carry a comment explaining what the compiler cannot know at this point and what guarantees the assertion holds.
+An assertion that overrides the compiler must carry a comment explaining what the compiler cannot know at this point and what guarantees the assertion holds: a cast between unrelated types, a double assertion through `unknown`, and a non-null `!`. A const assertion (`as const`) narrows rather than overrides and needs no comment.
 
 ```typescript
 // The webhook route validates this payload with `webhookPayloadSchema`
@@ -518,7 +518,7 @@ Before finalizing a change:
 - [ ] Inline comments explain *why*, not *what*.
 - [ ] No comments referencing ticket numbers, ADR sections, or internal doc links.
 - [ ] ESLint suppressions name the rule and include a justification.
-- [ ] Every `as`, `as unknown as`, and non-null `!` carries a comment explaining what the compiler cannot know.
+- [ ] Every overriding assertion (unrelated-type cast, double assertion, non-null `!`) carries a comment explaining what the compiler cannot know.
 - [ ] `@ts-expect-error`, not `@ts-ignore`, is used wherever both would apply, each with a reason.
-- [ ] Removing every comment except JSDoc on public exports and suppression justifications still leaves the code understandable.
+- [ ] Removing every comment except JSDoc on public exports, assertion justifications, and suppression justifications still leaves the code understandable.
 - [ ] Comments are noticeably fewer than code.
