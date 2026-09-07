@@ -85,6 +85,14 @@ assert_frontmatter() {
   frontmatter_of "$1" | grep -qxF "$2" || fail "expected frontmatter line in $1: $2"
 }
 
+# Line-exact: a substring test would let `  - Task` match `  - TaskStop`.
+assert_no_frontmatter() {
+  have_needle "$2" "the frontmatter lines of $1" || return 1
+  if frontmatter_of "$1" | grep -qxF "$2"; then
+    fail "unexpected frontmatter line in $1: $2"
+  fi
+}
+
 assert_no_frontmatter_key() {
   have_needle "$2" "the frontmatter keys of $1" || return 1
   if frontmatter_of "$1" | grep -q "^$2:"; then
