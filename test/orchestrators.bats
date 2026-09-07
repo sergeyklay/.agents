@@ -81,6 +81,26 @@ load 'test_helper'
   done
 }
 
+# A view is a canonical body followed by a host overlay, and the overlay
+# resumes the canonical numbering rather than opening a list of its own. An
+# overlay written against a shorter canonical list therefore reuses a number,
+# and the blank line the installer puts between them does not end the list:
+# both items render under one number. Assert the property over every view so a
+# canonical list that grows again is caught on whichever host it collides on.
+@test "agent views spend each list number once" {
+  run install_into --agents
+  [ "$status" -eq 0 ]
+  for view in "$TEST_HOME"/.claude/agents/*.md \
+    "$TEST_HOME"/.copilot/agents/*.agent.md \
+    "$TEST_HOME"/.gemini/agents/*.md \
+    "$TEST_HOME"/.config/opencode/agents/*.md; do
+    # An unexpanded glob reaches awk as a missing path, which reports no
+    # repeat and passes the assertion vacuously.
+    assert_file "$view"
+    assert_unique_list_numbers "$view"
+  done
+}
+
 # The workflow's last step is the agent's final output. While that step was
 # the improve-self check, the agent closed on its own self-assessment and the
 # deliverable needed a second run. The report must end the list; the

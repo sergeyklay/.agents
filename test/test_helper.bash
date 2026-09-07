@@ -106,6 +106,31 @@ first_body_line() {
        body && NF              { print; exit }' "$1"
 }
 
+# A host overlay continues the canonical body's ordered list, so an overlay
+# written against a shorter list restarts at a number the canonical body
+# already spent and the view ships two items under one number. Blank lines and
+# indented continuations stay inside a list; any other line ends it.
+repeated_list_number() {
+  awk '$0 ~ /^[0-9]+\. / {
+           number = $0
+           sub(/\..*$/, "", number)
+           if (!inside) { block++; inside = 1 }
+           key = block SUBSEP number
+           if (key in seen) { print number; exit }
+           seen[key] = 1
+           next
+       }
+       $0 ~ /^[[:space:]]*$/ { next }
+       $0 ~ /^[[:space:]]/   { next }
+       { inside = 0 }' "$1"
+}
+
+assert_unique_list_numbers() {
+  local repeat
+  repeat=$(repeated_list_number "$1")
+  [ -z "$repeat" ] || fail "expected one item per list number in $1: $repeat. is used twice"
+}
+
 # tomllib is stdlib only from Python 3.11 and CI sets up no interpreter, so a
 # missing tomllib is reachable. Probe python3 and tomllib separately so the
 # message names the real cause instead of a traceback blaming a valid file.
