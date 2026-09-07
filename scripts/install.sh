@@ -13,6 +13,22 @@ ALL_HOSTS='claude codex copilot gemini opencode'
 # as a Gemini agent cannot delegate. The protocol ships as a top-level command.
 GEMINI_SKIPPED_AGENTS='composer conductor'
 
+# Gemini merges these keys across settings scopes by union
+# (settingsSchema.ts 0.58.0, `mergeStrategy: "union"`), so replacing one drops
+# a hand-added entry. Its `concat` keys stay out: this merge writes back to the
+# file it read, and concatenating there would grow it on every install.
+GEMINI_UNION_KEYS='[
+  "policyPaths",
+  "adminPolicyPaths",
+  "context.fileFiltering.customIgnoreFilePaths",
+  "tools.exclude",
+  "advanced.excludedEnvVars",
+  "extensions.disabled",
+  "extensions.workspacesWithMigrationNudge",
+  "skills.disabled",
+  "hooksConfig.disabled"
+]'
+
 setup_formatting() {
   if [ -t 1 ] && [ "${TERM-}" != "dumb" ] && [ -z "${NO_COLOR-}" ]; then
     ESC=$(printf '\033')
@@ -672,10 +688,13 @@ sync_skills() {
   for_host opencode sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills"
 }
 
-# Repository values win conflicts; without jq, skip existing host-local files.
+# Repository values win conflicts, except under $3, a JSON array of dotted key
+# paths whose arrays keep host-local entries. Without jq, skip existing
+# host-local files.
 merge_settings() {
   src=$1
   dst=$2
+  union_keys=${3:-[]}
   if [ ! -f "$dst" ]; then
     sync_to "$src" "$dst"
     return 0
@@ -685,7 +704,21 @@ merge_settings() {
     return 0
   fi
   tmp=$(mktemp) || die "mktemp failed"
-  jq -s '.[0] * .[1]' "$dst" "$src" >"$tmp" || die "settings merge failed: $src onto $dst"
+  # A host key whose value is not an object makes getpath throw; catching it
+  # leaves that key to the wholesale merge, as before this union existed.
+  jq -s --argjson union_keys "$union_keys" '
+    def keep_first_occurrence:
+      reduce .[] as $item ([]; if index([$item]) then . else . + [$item] end);
+    . as [$host, $repo]
+    | reduce ($union_keys[] | split(".")) as $path
+        ($host * $repo;
+          ($host | try getpath($path) catch null) as $host_array
+          | ($repo | try getpath($path) catch null) as $repo_array
+          | if ($host_array | type) == "array" and ($repo_array | type) == "array"
+            then setpath($path; ($host_array + $repo_array) | keep_first_occurrence)
+            else .
+            end)
+  ' "$dst" "$src" >"$tmp" || die "settings merge failed: $src onto $dst"
   SYNC_TO_LABEL=$src
   sync_to "$tmp" "$dst"
   unset SYNC_TO_LABEL
@@ -698,7 +731,8 @@ sync_settings() {
 
   for_host claude merge_settings "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
   for_host claude sync_to "$REPO_ROOT/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
-  for_host gemini merge_settings "$REPO_ROOT/.gemini/settings.json" "$HOME/.gemini/settings.json"
+  for_host gemini merge_settings "$REPO_ROOT/.gemini/settings.json" \
+    "$HOME/.gemini/settings.json" "$GEMINI_UNION_KEYS"
   for_host gemini sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
   for_host opencode sync_to "$REPO_ROOT/.opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
   for_host opencode sync_to "$REPO_ROOT/.opencode/tui.json" "$HOME/.config/opencode/tui.json"
