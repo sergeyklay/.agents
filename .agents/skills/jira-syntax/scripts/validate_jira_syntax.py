@@ -1,26 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
-"""
-Validate Jira wiki markup syntax.
+"""Validate Jira wiki markup syntax.
 
-Checks files for common Markdown-in-Jira mistakes (headings, bold, code
-fences, links, bullets) and structural problems (unclosed block macros,
-code blocks without a language identifier, tables missing a header row).
-
-Usage:
-    validate_jira_syntax.py <file> [<file> ...]
-
-Exit codes:
-    0  validation passed (warnings are allowed)
-    1  one or more errors found
-    2  usage error or unreadable input
-
-Zero runtime dependencies. Works on Python 3.9+.
-
-Coloured output is emitted only when stdout is a TTY and the ``NO_COLOR``
-environment variable is unset; ``--color`` and ``--no-color`` override
-this detection.
+Catches Markdown-in-Jira mistakes and structural problems: unclosed block
+macros, code blocks with no language, tables missing a header row.
 """
 
 from __future__ import annotations
@@ -182,9 +166,8 @@ def _check_heading_spacing(text: str) -> Iterable[Issue]:
 def _check_code_block_language(text: str) -> Iterable[Issue]:
     """Warn when at least one code block opens without a language identifier.
 
-    Closing tags are also bare ``{code}``, so a balanced file with two
-    language-tagged openings has ``bare == lang``. ``bare > lang`` means at
-    least one opening is missing a language.
+    Closing tags are bare ``{code}`` too, so a balanced tagged file has
+    ``bare == lang``, and ``bare > lang`` means an opening is missing one.
     """
     bare_openings = len(RE_CODE_OPENING_BARE.findall(text))
     lang_openings = len(RE_CODE_OPENING_LANG.findall(text))

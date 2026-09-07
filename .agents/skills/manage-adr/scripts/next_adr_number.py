@@ -3,21 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Output the next available ADR number(s) in docs/decisions/.
 
-By default, resolves docs/decisions/ relative to this script's own
-location, so it works regardless of the current working directory. Pass
---decision-dir to override and scan a different directory.
-
-Usage:
-    next_adr_number.py                          # prints one number, e.g. 0004
-    next_adr_number.py --count 3                # prints three numbers
-    next_adr_number.py --decision-dir path/to   # scan a custom directory
-
-Exit codes:
-    0  success
-    1  decisions directory not found
-    2  usage error (e.g. --count < 1)
-
-Zero runtime dependencies. Works on Python 3.9+.
+Resolves the directory relative to this script rather than the working
+directory, so it works from anywhere; --decision-dir overrides.
 """
 
 from __future__ import annotations

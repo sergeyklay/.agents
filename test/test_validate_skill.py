@@ -74,14 +74,12 @@ class BodyByteCeilingTest(unittest.TestCase):
 
 
 class BodyByteCeilingValueTest(unittest.TestCase):
-    # The ceiling is derived, not chosen. The agentskills.io specification
-    # <https://agentskills.io/specification> and make-skill's own SKILL.md
-    # (section "Progressive Disclosure") both put the SKILL.md body budget at
-    # under 5000 tokens, and Anthropic's glossary puts a token at roughly 3.5
-    # English characters, so 5000 x 3.5 = 17500 bytes. Pinning the value keeps
-    # the gate honest: the other tests here fix the comparison as strict, but
-    # every one of them derives its fixture from MAX_BODY_BYTES, so they stay
-    # green no matter what the constant is changed to.
+    """Pin MAX_BODY_BYTES to its derivation: 5000 tokens x 3.5 bytes.
+
+    Budget from <https://agentskills.io/specification>; bytes per token from
+    Anthropic's glossary. Every other test builds its fixture from it.
+    """
+
     def test_the_ceiling_matches_its_documented_derivation(self) -> None:
         self.assertEqual(
             MAX_BODY_BYTES,
@@ -92,7 +90,7 @@ class BodyByteCeilingValueTest(unittest.TestCase):
                 "that oversized bodies keep being caught after the cleanup "
                 "that introduced it, and a ceiling that can be loosened "
                 "silently catches nothing. Re-derive the value from the token "
-                "budget and update the comment above it; do not edit this "
+                "budget and update the docstring above it; do not edit this "
                 "number to match a new constant."
             ),
         )

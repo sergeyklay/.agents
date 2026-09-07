@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 """Validate an implementation plan produced by the writing-plans skill.
 
-Usage:
-    validate_plan.py <path-to-plan.md>
-
-Errors are structural (missing section, phase ordering, missing verify gate,
-leaked philosophy checklist, banned character) and exit 1. Budgets are warnings
-and never fail the run. See --help for the budget flags.
-
-Exit codes: 0 no structural errors, 1 structural errors, 2 usage error.
+Structural problems exit 1; budgets warn and never fail, for the reason
+validate_spec.py gives.
 """
 
 from __future__ import annotations

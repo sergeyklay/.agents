@@ -1,17 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
-"""
-Initialize a new Agent Skill directory from template.
-
-Usage:
-    init_skill.py <skill-name> --path <output-directory>
-
-Examples:
-    init_skill.py processing-pdfs --path .claude/skills
-    init_skill.py analyzing-data --path ~/.cursor/skills
-    init_skill.py my-workflow --path .codex/skills
-"""
+"""Initialize a new Agent Skill directory from template."""
 
 import re
 import sys

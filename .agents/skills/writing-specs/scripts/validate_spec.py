@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """Validate a technical specification produced by the writing-specs skill.
 
-Usage:
-    validate_spec.py <path-to-spec.md>
-
-Errors are structural (missing section, undelivered STOP, banned character) and
-exit 1. Budgets are warnings and never fail the run: gating on size halts specs
-that are correct but long, and teaches the agent to rename headings rather than
-write less. Every budget has a --flag; see --help.
-
-Exit codes: 0 no structural errors, 1 structural errors, 2 usage error.
+Budgets warn and never fail: gating on size halts specs that are correct but
+long, and teaches the agent to rename headings rather than write less.
 """
 
 from __future__ import annotations
@@ -28,13 +21,11 @@ REQUIRED_SECTIONS: list[tuple[str, str]] = [
     (r"^##\s+7\.\s+Acceptance criteria\s*$", "7. Acceptance criteria"),
 ]
 
-# Overrun at which the document budget stops reading as a writing problem.
-# Rules 11 to 13 of the skill (drop recap, point instead of restate, cut
-# hedging) trim a dense spec by a fraction of itself; they cannot recover a
-# third of the document. Past this ratio the length is structural, so the
-# question to ask is about scope rather than about prose. A ratio rather than
-# a fixed word margin, because --document-word-limit is configurable and
-# "significantly over" has to mean the same thing at every setting of it.
+# Past this overrun the length is structural rather than a prose problem: the
+# skill's trimming rules recover a fraction of a dense spec, not a third of it,
+# so the question becomes scope. A ratio rather than a word margin, because
+# --document-word-limit is configurable and "significantly over" has to mean
+# the same at every setting of it.
 SPLIT_GUIDANCE_RATIO = 1.3
 
 EM_OR_EN_DASH = re.compile(r"[–—]")

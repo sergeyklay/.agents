@@ -1,22 +1,8 @@
 #!/usr/bin/env python3
-"""Semantic audit of a Dependabot config against the repository's real manifests.
+"""Semantic audit of a Dependabot config against the repository manifests.
 
-Schema validation proves the file parses and its keys are spelled correctly. It
-cannot tell that a group pattern matches nothing, or that two groups claim the
-same package. This script does that half: it resolves every `patterns`,
-`exclude-patterns` and `ignore.dependency-name` entry against the dependency
-names the repository actually declares.
-
-Findings:
-  dead-pattern        a patterns entry matching zero declared dependencies
-  dead-exclude        an exclude-patterns entry excluding nothing its group matched
-  dead-ignore         an ignore.dependency-name matching zero declared dependencies
-  double-claim        one dependency claimed by two groups with overlapping scope
-  missing-directory   an update entry whose directory does not exist
-  missing-manifest    an update entry whose ecosystem manifest is absent
-  ungrouped           (info) declared dependency no group claims
-
-Exit codes: 0 clean or informational only, 1 findings present, 2 usage or parse error.
+Schema validation proves the keys are spelled right; it cannot tell that a
+pattern matches nothing or that two groups claim the same package.
 """
 
 from __future__ import annotations

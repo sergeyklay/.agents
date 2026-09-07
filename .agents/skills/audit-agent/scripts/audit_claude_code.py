@@ -3,28 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Audit one Claude Code session tree from its JSONL transcripts.
 
-Reconstructs the run described in references/claude-code.md: the root
-transcript, every child under <session-id>/subagents/, and the delegation
-edges recorded in the sibling *.meta.json files. Usage is reduced per
-(file, message id) by maximum, which is the documented reduction for this
-layout.
-
-Two things this reports that a plain usage sum does not. Children are split
-into spawned and forked populations, because a fork carries no spawning
-tool-call id and does not behave like a spawn. And --counters tests whether
-output_tokens is trustworthy at all, rather than assuming a passing
-maximum-versus-terminal comparison settled it.
-
-Transcripts are split on newlines only. str.splitlines() also breaks on
-U+2028, U+2029 and the C0 separators, which JSON string literals carry
-raw, so it tears single valid records into unparsable fragments. Lines
-that still fail to parse are counted and reported rather than dropped
-in silence, because a discarded record takes its usage numbers with it.
-
-Nothing is written and no session store is modified.
-
-Exit: 0 evidence reconciled, 1 evidence missing or disagreeing, 2 usage
-error or session unavailable.
+Children split into spawned and forked; a fork carries no spawning tool-call id.
+Split on newlines only: splitlines() tears records on U+2028 and C0 separators.
 """
 
 from __future__ import annotations
@@ -262,12 +242,10 @@ def _block_ids(records: list[dict[str, object]], kind: str, key: str) -> set[str
 
 
 def _meta(transcript: Path) -> tuple[dict[str, object], bool]:
-    """Read a child's *.meta.json sibling.
+    """Read a child's *.meta.json sibling, with whether it was readable.
 
-    Returns the metadata and whether it was readable. A sidecar that is
-    absent is normal and reads as readable-and-empty; one that exists but
-    cannot be parsed is not, because delegation mode is derived from it
-    and a silent empty dict would score the child as a fork.
+    An absent sidecar reads as readable-and-empty; an unparsable one does not,
+    because delegation mode comes from it and an empty dict scores it a fork.
     """
     sidecar = transcript.with_suffix(".meta.json")
     if not sidecar.exists():
