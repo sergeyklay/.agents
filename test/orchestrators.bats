@@ -42,14 +42,8 @@ load 'test_helper'
   assert_file_contains "$TEST_HOME/.config/opencode/opencode.json" '"subagent_depth": 2'
 }
 
-# OpenCode ships its own `external_directory` allow-list: agent.ts builds one
-# entry per discovered skill directory and merges it BEFORE the user's rules.
-# `Permission.merge` is a plain concat and `evaluate` takes the LAST match, so a
-# user-side `"*": "ask"` shadows every built-in allow. That is what parked a
-# `/specify` turn for two hours: the prompt it revived came from a session two
-# levels down, and the TUI draws prompts for the focused session and its direct
-# children only. The catch-all is redundant besides, since the defaults already
-# carry one. Skills are scanned under two roots and neither sits in a project.
+# A `"*"` here outranks OpenCode's built-in skill allow-list: merge concats and
+# evaluate takes the last match.
 @test "OpenCode settings keep the built-in external_directory allow-list" {
   run install_into --settings --skills --opencode
   [ "$status" -eq 0 ]
