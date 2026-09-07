@@ -26,6 +26,7 @@
     "external_directory": {
       "*": "ask",
       "~/work/**": "allow",
+      "~/.config/opencode/skills/**": "allow",
       "/tmp/opencode/**": "allow"
     },
     "doom_loop": "deny"
