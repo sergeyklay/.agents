@@ -42,23 +42,23 @@ load 'test_helper'
   assert_file_contains "$TEST_HOME/.config/opencode/opencode.json" '"subagent_depth": 2'
 }
 
-# Skills install outside every project, so reading one costs an
-# `external_directory` prompt. OpenCode 1.18.29 draws that prompt for the
-# focused session and its direct children only (tui/src/routes/session/index.tsx
-# filters on `x.parentID === parentID`, where the headless runner instead walks
-# the tree transitively at cli/cmd/run.ts:699-704). An orchestrator runs the
-# worker two levels down, so its prompt is never drawn, never answered, and the
-# turn parks on `Deferred.await` until the process dies. `Permission.evaluate`
-# takes the LAST matching rule, so the allow has to follow the catch-all.
-@test "OpenCode reads the installed skills tree without a prompt" {
+# OpenCode ships its own `external_directory` allow-list: agent.ts builds one
+# entry per discovered skill directory and merges it BEFORE the user's rules.
+# `Permission.merge` is a plain concat and `evaluate` takes the LAST match, so a
+# user-side `"*": "ask"` shadows every built-in allow. That is what parked a
+# `/specify` turn for two hours: the prompt it revived came from a session two
+# levels down, and the TUI draws prompts for the focused session and its direct
+# children only. The catch-all is redundant besides, since the defaults already
+# carry one. Skills are scanned under two roots and neither sits in a project.
+@test "OpenCode settings keep the built-in external_directory allow-list" {
   run install_into --settings --skills --opencode
   [ "$status" -eq 0 ]
   assert_file "$TEST_HOME/.config/opencode/skills/writing-specs/references/authoring-procedure.md"
   jq -e '
     .permission.external_directory as $rules
-    | ($rules["~/.config/opencode/skills/**"] == "allow")
-      and (($rules | keys_unsorted | index("~/.config/opencode/skills/**"))
-           > ($rules | keys_unsorted | index("*")))
+    | ($rules | has("*") | not)
+      and ($rules["~/.config/opencode/**"] == "allow")
+      and ($rules["~/.claude/skills/**"] == "allow")
   ' "$TEST_HOME/.config/opencode/opencode.json" >/dev/null
 }
 
