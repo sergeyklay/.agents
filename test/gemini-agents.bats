@@ -49,3 +49,18 @@ load 'test_helper'
   assert_absent "$TEST_HOME/.gemini/agents/conductor.md"
   assert_file "$TEST_HOME/.gemini/agents/architect.md"
 }
+
+# A frontmatter mcp_servers block is registered straight into the subagent's
+# tool registry, ahead of the Kind.Agent filter that is Gemini's only guard
+# against agent recursion (local-executor.ts:177-197, 0.58.0), and nothing else
+# counts nesting depth. The docs spell the key mcpServers, which the strict
+# loader rejects onto stderr while the run still exits 0.
+@test "no Gemini agent declares an inline MCP server" {
+  run install_into --agents --gemini
+  [ "$status" -eq 0 ]
+  assert_file "$TEST_HOME/.gemini/agents/architect.md"
+  for view in "$TEST_HOME"/.gemini/agents/*.md; do
+    assert_no_frontmatter_key "$view" mcp_servers
+    assert_no_frontmatter_key "$view" mcpServers
+  done
+}
