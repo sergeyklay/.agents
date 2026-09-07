@@ -123,16 +123,7 @@ def label_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:
     ]
 
 
-LEGACY_BLOCKS = {
-    ".agents/skills/improve-self/scripts/discover_skills.py": 10,
-    ".agents/skills/manage-issues/scripts/get_taxonomy.sh": 23,
-    ".agents/skills/writing-specs/scripts/validate_spec.py": 7,
-    "test/test_validate_skill.py": 8,
-}
-
-
 def block_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:
-    ceiling = max(MAX_BLOCK, LEGACY_BLOCKS.get(path, 0))
     blocks: list[list[int]] = []
     for row, _ in comments:
         if blocks and row == blocks[-1][-1] + 1:
@@ -143,7 +134,7 @@ def block_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:
         f"{path}:{block[0]}: {len(block)}-line comment block, ceiling {MAX_BLOCK}; "
         "a block this long is narrative, not a why"
         for block in blocks
-        if len(block) > ceiling
+        if len(block) > MAX_BLOCK
     ]
 
 

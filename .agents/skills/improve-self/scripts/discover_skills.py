@@ -502,16 +502,8 @@ ALL_FIELDS: tuple[str, ...] = (
     "path",
 )
 
-# Fields that are omitted from the default output and emitted only when the
-# matching ``--with-<field>`` flag is set. The default record answers the
-# common "what skills exist, classified how, doing what?" question with
-# nothing more than name + category + description; the entries below are
-# extra detail the caller asks for explicitly.
-#
-# Maps each opt-in field name to the help string of its CLI flag. Adding a
-# new opt-in field is a single-line addition here plus a placement in
-# ALL_FIELDS for canonical ordering; the CLI parser and the main runtime
-# pick it up automatically.
+# The CLI parser and the runtime both read this map, so a new opt-in field
+# needs an entry here and a placement in ALL_FIELDS for ordering.
 OPT_IN_FIELDS: dict[str, str] = {
     "type": (
         "Include the <type> field (project|user scope) in the output. "

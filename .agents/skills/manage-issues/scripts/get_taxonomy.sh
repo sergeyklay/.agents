@@ -1,27 +1,7 @@
 #!/bin/sh
-# get_taxonomy.sh - Fetch live issue taxonomy for the current GitHub repository.
-#
-# Project-agnostic: emits only what the repo actually has. Sections with no
-# data are reported as "(none)" so the agent can branch on absence.
-#
-# Usage:
-#   sh scripts/get_taxonomy.sh             Force a fresh fetch (overwrites cache).
-#   sh scripts/get_taxonomy.sh --cached    Use the 24h file cache if fresh.
-#
-# Output sections (always in this order):
-#   CACHED_AT          ISO-8601 UTC timestamp of this fetch
-#   REPO               owner/name
-#   ISSUES_ENABLED     true | false  (script stops emitting further sections if false)
-#   ISSUE_TYPES        org-level types, or "(none)" if the org has none configured
-#   LABEL_PREFIXES     detected colon prefixes, "(none; repo uses flat labels)", or "(none)"
-#   LABELS             every label with description
-#   MILESTONES         open milestones with open/closed issue counts
-#   PROJECT_BOARDS     visible org-level project boards
-#
-# Exit codes:
-#   0  success (including ISSUES_ENABLED: false)
-#   1  gh missing, not authenticated, or CWD is not a GitHub repository
-#   2  unknown flag
+# Fetch the live issue taxonomy for the current GitHub repository. A section
+# with no data prints "(none)" rather than being omitted, so the agent reading
+# this can branch on absence.
 
 set -eu
 
