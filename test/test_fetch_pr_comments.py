@@ -10,8 +10,10 @@ import unittest
 from pathlib import Path
 from typing import cast
 
-SKILL_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SKILL_ROOT / "scripts"))
+# Tests live outside .agents/skills so they never ship to a host; the
+# module under test is imported from the skill it belongs to.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / ".agents/skills/babysit-pr/scripts"))
 
 from fetch_pr_comments import (  # noqa: E402
     build_payload,
@@ -20,7 +22,7 @@ from fetch_pr_comments import (  # noqa: E402
     verdict_from_body,
 )
 
-FIXTURE = Path(__file__).resolve().parent / "testdata" / "pr57.json"
+FIXTURE = Path(__file__).resolve().parent / "testdata" / "babysit-pr-pr57.json"
 
 
 def _load_fixture() -> dict[str, object]:
@@ -39,8 +41,8 @@ def _as_dict(value: object) -> dict[str, object]:
 class Pr57PayloadTest(unittest.TestCase):
     """Assertions against a frozen capture of sergeyklay/.agents PR #57.
 
-    The capture is the raw response of the three endpoints the script
-    wraps, so the test exercises the real shape a reviewer bot emits
+    The capture keeps the fields the script reads, review bodies
+    verbatim, so the test exercises the real shape a reviewer bot emits
     without reaching the network.
     """
 

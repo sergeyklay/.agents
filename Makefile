@@ -30,7 +30,7 @@ validate: ## Validate every tracked Agent Skill
 test: ## Run every tracked unittest suite
 	@tmp=$$(mktemp "$${TMPDIR:-/tmp}/tests.XXXXXX") || exit 1; \
 	trap 'rm -f "$$tmp"' 0; \
-	git ls-files -- '*/test_*.py' 'test_*.py' > "$$tmp"; \
+	git ls-files -- 'test/test_*.py' > "$$tmp"; \
 	if [ ! -s "$$tmp" ]; then \
 		printf '$(RED)No tracked unit tests found$(RESET)\n' >&2; \
 		exit 1; \
