@@ -13,11 +13,7 @@ ALL_HOSTS='claude codex copilot gemini opencode'
 # as a Gemini agent cannot delegate. The protocol ships as a top-level command.
 GEMINI_SKIPPED_AGENTS='composer conductor'
 
-# Gemini merges these keys across settings scopes by union
-# (settingsSchema.ts 0.58.0, `mergeStrategy: "union"`), so replacing one drops
-# a hand-added entry. Union dedupes, so re-merging the file it wrote changes
-# nothing. Its `concat` keys stay out for want of that: this merge writes back
-# to the file it read, and concatenating there would grow it on every install.
+# Gemini's own `mergeStrategy: "union"` keys (settingsSchema.ts 0.58.0).
 GEMINI_UNION_KEYS='[
   "policyPaths",
   "adminPolicyPaths",
@@ -689,9 +685,8 @@ sync_skills() {
   for_host opencode sync_to "$REPO_ROOT/.agents/skills" "$HOME/.config/opencode/skills"
 }
 
-# Repository values win conflicts, except under $3, a JSON array of dotted key
-# paths whose arrays keep host-local entries. Without jq, skip existing
-# host-local files.
+# Repository values win conflicts, except for arrays at the $3 key paths, which
+# keep host-local entries. Without jq, skip existing host-local files.
 merge_settings() {
   src=$1
   dst=$2
@@ -705,8 +700,7 @@ merge_settings() {
     return 0
   fi
   tmp=$(mktemp) || die "mktemp failed"
-  # A host key whose value is not an object makes getpath throw; catching it
-  # leaves that key to the wholesale merge, as before this union existed.
+  # getpath throws when a parent is not an object; that key falls back to `*`.
   jq -s --argjson union_keys "$union_keys" '
     def keep_first_occurrence:
       reduce .[] as $item ([]; if index([$item]) then . else . + [$item] end);
