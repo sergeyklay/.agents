@@ -50,6 +50,7 @@ Reference this section from an agent brief. Do not retype it into the brief; `de
 - Treat every other checkout of this repository as read-only, including the one the brief was written from.
 - Keep scratch files out of the repository, in a per-agent subdirectory of the session scratch directory.
 - Stage a new file with `git add <path>` before running any gate, for the reason under Gotchas: the file-selecting gates read `git ls-files`, skip an untracked file, and still exit 0.
+- A deliverable git does not track is absent from every worktree. `/.tasks`, `/.plans`, `/.specs`, `/.reviews`, `/.findings`, and `/.issues` are listed in `.git/info/exclude`, so an agent assigned a change to one of them cannot commit it and must not reach into the main checkout for it. Write the change as a patch under the session scratch directory, name that path in the report, and leave applying it to the orchestrator.
 - Paste real command output as evidence: a gate's final line and its exit status, never a summary of them.
 - Run a negative control before reporting any green. `prove-checks` owns what that requires.
 - Write findings to a file as they accumulate, per the Working Agreement under "Reporting".
