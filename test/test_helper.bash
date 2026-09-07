@@ -93,9 +93,13 @@ assert_no_frontmatter() {
   fi
 }
 
+# Both overlay paths pass a quoted, tagged or anchored key through unchanged,
+# and the host YAML parsers bind every such spelling as the same key.
 assert_no_frontmatter_key() {
   have_needle "$2" "the frontmatter keys of $1" || return 1
-  if frontmatter_of "$1" | grep -q "^$2:"; then
+  local key
+  key=$(printf '%s' "$2" | sed 's/[][(){}.*+?|^$\\]/\\&/g')
+  if frontmatter_of "$1" | grep -qE "^([!&][^[:space:]]*[[:space:]]+)*['\"]?${key}['\"]?[[:space:]]*:"; then
     fail "unexpected frontmatter key in $1: $2"
   fi
 }
