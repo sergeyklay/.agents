@@ -27,8 +27,20 @@ validate: ## Validate every tracked Agent Skill
 	exit $$failed
 
 .PHONY: test
-test: ## Run the skill validator unit tests with unittest
-	$(UV) run --no-project python $(SKILL_VALIDATOR_TEST)
+test: ## Run every tracked unittest suite
+	@tmp=$$(mktemp "$${TMPDIR:-/tmp}/tests.XXXXXX") || exit 1; \
+	trap 'rm -f "$$tmp"' 0; \
+	git ls-files -- '*/test_*.py' 'test_*.py' > "$$tmp"; \
+	if [ ! -s "$$tmp" ]; then \
+		printf '$(RED)No tracked unit tests found$(RESET)\n' >&2; \
+		exit 1; \
+	fi; \
+	failed=0; \
+	while IFS= read -r suite; do \
+		printf '$(BOLD)%s$(RESET)\n' "$$suite"; \
+		$(UV) run --no-project python "$$suite" || failed=1; \
+	done < "$$tmp"; \
+	exit $$failed
 
 .PHONY: typecheck
 typecheck: ## Type-check every tracked Python script with basedpyright

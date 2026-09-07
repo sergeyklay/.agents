@@ -1,0 +1,415 @@
+{
+  "inline": [
+    {
+      "_links": {
+        "html": {
+          "href": "https://github.com/sergeyklay/.agents/pull/57#discussion_r3942169364"
+        },
+        "pull_request": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/57"
+        },
+        "self": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/comments/3942169364"
+        }
+      },
+      "author_association": "NONE",
+      "body": "The `agent` frontmatter value is interpolated into a filesystem path (`$REPO_ROOT/.agents/agents/$agent.md`) without validating that it’s a safe identifier. If the template/frontmatter is malformed (e.g. contains `/` or `..`), the installer could read and inline unintended files. Consider rejecting any agent name that isn’t a simple `[A-Za-z0-9-]+` token before building the path.",
+      "commit_id": "595a4ea69f7d05e1b9d61feecc9357973aa7191b",
+      "created_at": "2026-09-05T21:51:24Z",
+      "diff_hunk": "@@ -451,17 +484,21 @@ sync_view_toml() {\n   frontmatter_overlay \"$src\" \"$tmpl\" \"$merged\"\n   split_frontmatter \"$merged\" \"$fm\" \"$body\"\n \n-  description=$(awk '\n-        /^description:/ {\n-            sub(/^description:[[:space:]]*/, \"\")\n-            if (sub(/^\"/, \"\")) sub(/\"$/, \"\")\n-            else if (sub(/^\\047/, \"\")) sub(/\\047$/, \"\")\n-            print\n-            exit\n-        }\n-    ' \"$fm\")\n+  description=$(frontmatter_value \"$fm\" description)\n   description_escaped=$(printf '%s' \"$description\" | sed 's/\\\\/\\\\\\\\/g; s/\"/\\\\\"/g')\n \n+  agent=$(frontmatter_value \"$fm\" agent)\n+  agent_body=\n+  if [ -n \"$agent\" ]; then\n+    agent_src=\"$REPO_ROOT/.agents/agents/$agent.md\"\n+    [ -f \"$agent_src\" ] || die \"agent source missing: $agent_src\"",
+      "html_url": "https://github.com/sergeyklay/.agents/pull/57#discussion_r3942169364",
+      "id": 3942169364,
+      "line": 503,
+      "node_id": "PRRC_kwDOSJaLQ87q-LsU",
+      "original_commit_id": "00112340b07ea9306e6dfa1149f70769da45d08f",
+      "original_line": 494,
+      "original_position": 81,
+      "original_start_line": 490,
+      "path": "scripts/install.sh",
+      "position": 1,
+      "pull_request_review_id": 5123158345,
+      "pull_request_url": "https://api.github.com/repos/sergeyklay/.agents/pulls/57",
+      "reactions": {
+        "+1": 0,
+        "-1": 0,
+        "confused": 0,
+        "eyes": 0,
+        "heart": 0,
+        "hooray": 0,
+        "laugh": 0,
+        "rocket": 0,
+        "total_count": 0,
+        "url": "https://api.github.com/repos/sergeyklay/.agents/pulls/comments/3942169364/reactions"
+      },
+      "side": "RIGHT",
+      "start_line": 490,
+      "start_side": "RIGHT",
+      "subject_type": "line",
+      "updated_at": "2026-09-05T21:51:25Z",
+      "url": "https://api.github.com/repos/sergeyklay/.agents/pulls/comments/3942169364",
+      "user": {
+        "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+        "events_url": "https://api.github.com/users/Copilot/events{/privacy}",
+        "followers_url": "https://api.github.com/users/Copilot/followers",
+        "following_url": "https://api.github.com/users/Copilot/following{/other_user}",
+        "gists_url": "https://api.github.com/users/Copilot/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+        "id": 175728472,
+        "login": "Copilot",
+        "node_id": "BOT_kgDOCnlnWA",
+        "organizations_url": "https://api.github.com/users/Copilot/orgs",
+        "received_events_url": "https://api.github.com/users/Copilot/received_events",
+        "repos_url": "https://api.github.com/users/Copilot/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/Copilot/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/Copilot/subscriptions",
+        "type": "Bot",
+        "url": "https://api.github.com/users/Copilot",
+        "user_view_type": "public"
+      }
+    },
+    {
+      "_links": {
+        "html": {
+          "href": "https://github.com/sergeyklay/.agents/pull/57#discussion_r3943131305"
+        },
+        "pull_request": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/57"
+        },
+        "self": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/comments/3943131305"
+        }
+      },
+      "author_association": "NONE",
+      "body": "`assert_prompt_safe` only runs against the inlined agent body, but `$body` (the command body) plus optional `$preamble`/`$suffix` are also inserted into the same Gemini TOML literal prompt and can therefore trigger the same expansion hazards (`'''`, `!{`, `@{`). Adding a safety check for those fragments here prevents accidentally introducing an expansion sequence via command/template content.",
+      "commit_id": "6d1182e7f3cac298704f272de18e728b5d4b435f",
+      "created_at": "2026-09-06T05:56:34Z",
+      "diff_hunk": "@@ -451,17 +484,30 @@ sync_view_toml() {\n   frontmatter_overlay \"$src\" \"$tmpl\" \"$merged\"\n   split_frontmatter \"$merged\" \"$fm\" \"$body\"",
+      "html_url": "https://github.com/sergeyklay/.agents/pull/57#discussion_r3943131305",
+      "id": 3943131305,
+      "line": 485,
+      "node_id": "PRRC_kwDOSJaLQ87rB2ip",
+      "original_commit_id": "15a4a5ac7e340a0e0042998d419d69f9d940a69d",
+      "original_line": 485,
+      "original_position": 63,
+      "original_start_line": 484,
+      "path": "scripts/install.sh",
+      "position": 63,
+      "pull_request_review_id": 5124397557,
+      "pull_request_url": "https://api.github.com/repos/sergeyklay/.agents/pulls/57",
+      "reactions": {
+        "+1": 0,
+        "-1": 0,
+        "confused": 0,
+        "eyes": 0,
+        "heart": 0,
+        "hooray": 0,
+        "laugh": 0,
+        "rocket": 0,
+        "total_count": 0,
+        "url": "https://api.github.com/repos/sergeyklay/.agents/pulls/comments/3943131305/reactions"
+      },
+      "side": "RIGHT",
+      "start_line": 484,
+      "start_side": "RIGHT",
+      "subject_type": "line",
+      "updated_at": "2026-09-06T05:56:35Z",
+      "url": "https://api.github.com/repos/sergeyklay/.agents/pulls/comments/3943131305",
+      "user": {
+        "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+        "events_url": "https://api.github.com/users/Copilot/events{/privacy}",
+        "followers_url": "https://api.github.com/users/Copilot/followers",
+        "following_url": "https://api.github.com/users/Copilot/following{/other_user}",
+        "gists_url": "https://api.github.com/users/Copilot/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+        "id": 175728472,
+        "login": "Copilot",
+        "node_id": "BOT_kgDOCnlnWA",
+        "organizations_url": "https://api.github.com/users/Copilot/orgs",
+        "received_events_url": "https://api.github.com/users/Copilot/received_events",
+        "repos_url": "https://api.github.com/users/Copilot/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/Copilot/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/Copilot/subscriptions",
+        "type": "Bot",
+        "url": "https://api.github.com/users/Copilot",
+        "user_view_type": "public"
+      }
+    },
+    {
+      "_links": {
+        "html": {
+          "href": "https://github.com/sergeyklay/.agents/pull/57#discussion_r3943131322"
+        },
+        "pull_request": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/57"
+        },
+        "self": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/comments/3943131322"
+        }
+      },
+      "author_association": "NONE",
+      "body": "`assert_toml_parses` uses `$(python3 -V ...)` inside a `set -e` script; if `python3` is missing (or otherwise fails), the command substitution can terminate the test before printing the intended diagnostic. Guard `python3` presence (and make the version capture non-fatal) so the failure mode stays readable.",
+      "commit_id": "6d1182e7f3cac298704f272de18e728b5d4b435f",
+      "created_at": "2026-09-06T05:56:35Z",
+      "diff_hunk": "@@ -91,6 +99,34 @@ filler_spec() {\n   awk -v n=\"$1\" 'BEGIN { for (i = 0; i < n; i++) print \"word\" }' >\"$2\"\n }\n \n+# First non-empty line of a Markdown body, past any YAML frontmatter. The\n+# frontmatter is optional: a file that does not open with `---` is body from\n+# line 1. Without that case the function returns nothing for such a file, and\n+# an empty result fed to an assertion is a pass that could never have failed.\n+first_body_line() {\n+  awk 'NR == 1 && $0 == \"---\" { inside = 1; next }\n+       NR == 1                 { body = 1 }\n+       inside && $0 == \"---\"   { inside = 0; body = 1; next }\n+       body && NF              { print; exit }' \"$1\"\n+}\n+\n+# tomllib is standard library only from Python 3.11, and the Install CI job\n+# runs this file with the runner image's own python3 and sets up no interpreter,\n+# so a missing tomllib is reachable. Probe for it first: without the probe the\n+# ImportError traceback is followed by \"expected valid TOML\", which blames a\n+# file that parses perfectly well.\n+assert_toml_parses() {\n+  if ! python3 -c 'import tomllib' 2>/dev/null; then\n+    printf 'need python3 3.11+ with tomllib to validate %s; found %s\\n' \\\n+      \"$1\" \"$(python3 -V 2>&1)\" >&2\n+    exit 1\n+  fi\n+  if ! python3 -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], \"rb\"))' \"$1\"; then\n+    printf 'expected valid TOML: %s\\n' \"$1\" >&2\n+    exit 1\n+  fi\n+}",
+      "html_url": "https://github.com/sergeyklay/.agents/pull/57#discussion_r3943131322",
+      "id": 3943131322,
+      "line": 138,
+      "node_id": "PRRC_kwDOSJaLQ87rB2i6",
+      "original_commit_id": "15a4a5ac7e340a0e0042998d419d69f9d940a69d",
+      "original_line": 128,
+      "original_position": 46,
+      "original_start_line": 118,
+      "path": "scripts/install_test.sh",
+      "position": 56,
+      "pull_request_review_id": 5124397557,
+      "pull_request_url": "https://api.github.com/repos/sergeyklay/.agents/pulls/57",
+      "reactions": {
+        "+1": 0,
+        "-1": 0,
+        "confused": 0,
+        "eyes": 0,
+        "heart": 0,
+        "hooray": 0,
+        "laugh": 0,
+        "rocket": 0,
+        "total_count": 0,
+        "url": "https://api.github.com/repos/sergeyklay/.agents/pulls/comments/3943131322/reactions"
+      },
+      "side": "RIGHT",
+      "start_line": 123,
+      "start_side": "RIGHT",
+      "subject_type": "line",
+      "updated_at": "2026-09-06T05:56:35Z",
+      "url": "https://api.github.com/repos/sergeyklay/.agents/pulls/comments/3943131322",
+      "user": {
+        "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+        "events_url": "https://api.github.com/users/Copilot/events{/privacy}",
+        "followers_url": "https://api.github.com/users/Copilot/followers",
+        "following_url": "https://api.github.com/users/Copilot/following{/other_user}",
+        "gists_url": "https://api.github.com/users/Copilot/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+        "id": 175728472,
+        "login": "Copilot",
+        "node_id": "BOT_kgDOCnlnWA",
+        "organizations_url": "https://api.github.com/users/Copilot/orgs",
+        "received_events_url": "https://api.github.com/users/Copilot/received_events",
+        "repos_url": "https://api.github.com/users/Copilot/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/Copilot/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/Copilot/subscriptions",
+        "type": "Bot",
+        "url": "https://api.github.com/users/Copilot",
+        "user_view_type": "public"
+      }
+    }
+  ],
+  "issue": [],
+  "pr": 57,
+  "reviews": [
+    {
+      "_links": {
+        "html": {
+          "href": "https://github.com/sergeyklay/.agents/pull/57#pullrequestreview-5123158345"
+        },
+        "pull_request": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/57"
+        }
+      },
+      "author_association": "NONE",
+      "body": "### 🟡 Changes recommended\n\nThe installer currently interpolates the `agent` frontmatter value into a path without validating it as a safe identifier, which can lead to unintended file reads/inlining if templates/frontmatter are malformed.\n\n*Once you've addressed the issues Copilot identified, you can request another Copilot review.*\n\n<details>\n<summary>Pull request overview</summary>\n\nAdjusts the Gemini CLI installation so the two orchestrators (`composer`, `conductor`) work reliably by reaching Gemini as top-level commands (instead of Gemini agents), and mitigates Gemini’s default approval-mode tool stripping by pinning `general.defaultApprovalMode` to `auto_edit`.\n\n**Changes:**\n- Add an `agent: <name>` key for Gemini command templates and update the installer to inline the canonical agent body into the generated Gemini command TOML prompt.\n- Stop installing `composer`/`conductor` as Gemini agents and add installer cleanup to remove stale previously-installed copies.\n- Extend installer tests to validate TOML generation/parsing, inlining behavior, prompt-safety guardrails, stale-file cleanup, and settings merge behavior.\n</details>\n\n<details>\n<summary>File summaries</summary>\n\n| File | Description |\r\n| ---- | ----------- |\r\n| templates/.gemini/commands/specify.yaml | Adds `agent: composer` so `/specify` can inline the orchestrator body into the command prompt. |\r\n| templates/.gemini/commands/specify.preamble.md | Adds Gemini-specific runtime notes for `/specify` (session context, approval mode, stream-json, trust). |\r\n| templates/.gemini/commands/implement.yaml | Adds `agent: conductor` so `/implement` can inline the orchestrator body into the command prompt. |\r\n| templates/.gemini/commands/implement.preamble.md | Adds Gemini-specific runtime notes for `/implement` (session context, approval mode, stream-json, trust). |\r\n| scripts/install.sh | Implements agent-body inlining for Gemini command prompts, prompt-safety checks, and removal of skipped Gemini orchestrator agents. |\r\n| scripts/install_test.sh | Adds regression coverage for Gemini command inlining, TOML validity, safety guard, stale-agent cleanup, and settings merge. |\r\n| .gemini/settings.user.json | Pins `general.defaultApprovalMode` to `auto_edit` in the repository-provided Gemini settings. |\n</details>\n\n<details>\n<summary>Review details</summary>\n\n- **Files reviewed:** 7/7 changed files\n- **Comments generated:** 1\n- **Review effort level:** Lite\n</details>\n\n---\n\n💡 <a href=\"/sergeyklay/.agents/new/main?filename=.github/skills/code-review/SKILL.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add a `code-review` agent skill</a> or configure MCP servers for context-aware, tailored reviews. <a href=\"https://docs.github.com/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review?tool=webui#mcp-servers-and-agent-skills\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more in the docs.</a>",
+      "commit_id": "00112340b07ea9306e6dfa1149f70769da45d08f",
+      "html_url": "https://github.com/sergeyklay/.agents/pull/57#pullrequestreview-5123158345",
+      "id": 5123158345,
+      "node_id": "PRR_kwDOSJaLQ88AAAABMV0xSQ",
+      "pull_request_url": "https://api.github.com/repos/sergeyklay/.agents/pulls/57",
+      "state": "COMMENTED",
+      "submitted_at": "2026-09-05T21:51:24Z",
+      "user": {
+        "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+        "events_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/events{/privacy}",
+        "followers_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/followers",
+        "following_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/following{/other_user}",
+        "gists_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+        "id": 175728472,
+        "login": "copilot-pull-request-reviewer[bot]",
+        "node_id": "BOT_kgDOCnlnWA",
+        "organizations_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/orgs",
+        "received_events_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/received_events",
+        "repos_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/subscriptions",
+        "type": "Bot",
+        "url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D",
+        "user_view_type": "public"
+      }
+    },
+    {
+      "_links": {
+        "html": {
+          "href": "https://github.com/sergeyklay/.agents/pull/57#pullrequestreview-5123236259"
+        },
+        "pull_request": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/57"
+        }
+      },
+      "author_association": "NONE",
+      "body": "### 🔵 Needs a closer look\n\nThe new prompt-safety guard is not applied to all prompt fragments, and the test TOML parser currently hard-depends on Python 3.11’s tomllib without a clear fallback/error path.\n\n<details>\n<summary>Review details</summary>\n\n### Suppressed comments (2)\n\n**Previously missed (2)** — in code that hasn't changed since the last review.\n\n**scripts/install.sh:503**\n* assert_prompt_safe is only applied to the inlined agent body. The Gemini TOML prompt also concatenates the command body and optional preamble/suffix, so a future change could introduce \"'''\", \"!{\", or \"@{\" in those fragments and the installer would still generate an unsafe command prompt.\n**scripts/install_test.sh:106**\n* assert_toml_parses imports tomllib, which only exists on Python 3.11+. On systems with older python3, this fails with a stack trace and makes install_test.sh non-portable; it would be better to provide a clear error (and optionally fall back to tomli when installed).\n\n- **Files reviewed:** 5/5 changed files\n- **Comments generated:** 0 new\n- **Review effort level:** Lite\n</details>",
+      "commit_id": "fdaa877c707f23abb991b127bd666623e164440a",
+      "html_url": "https://github.com/sergeyklay/.agents/pull/57#pullrequestreview-5123236259",
+      "id": 5123236259,
+      "node_id": "PRR_kwDOSJaLQ88AAAABMV5how",
+      "pull_request_url": "https://api.github.com/repos/sergeyklay/.agents/pulls/57",
+      "state": "COMMENTED",
+      "submitted_at": "2026-09-05T22:21:54Z",
+      "user": {
+        "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+        "events_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/events{/privacy}",
+        "followers_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/followers",
+        "following_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/following{/other_user}",
+        "gists_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+        "id": 175728472,
+        "login": "copilot-pull-request-reviewer[bot]",
+        "node_id": "BOT_kgDOCnlnWA",
+        "organizations_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/orgs",
+        "received_events_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/received_events",
+        "repos_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/subscriptions",
+        "type": "Bot",
+        "url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D",
+        "user_view_type": "public"
+      }
+    },
+    {
+      "_links": {
+        "html": {
+          "href": "https://github.com/sergeyklay/.agents/pull/57#pullrequestreview-5124332198"
+        },
+        "pull_request": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/57"
+        }
+      },
+      "author_association": "NONE",
+      "body": "### 🔵 Needs a closer look\n\nThe installer cleanup path can abort under `set -e` for non-regular stale paths, and the test TOML parser currently hard-requires Python 3.11 (`tomllib`) without fallback.\n\n<details>\n<summary>Review details</summary>\n\n### Suppressed comments (3)\n\n**Previously missed (3)** — in code that hasn't changed since the last review.\n\n**scripts/install.sh:561**\n* `cleanup_skipped_gemini_agents` treats any existing path (`-e`) as removable, but `rm -f` will error on a directory; with `set -e` that would abort the installer. Restrict deletion to regular files/symlinks (or handle non-regular paths explicitly).\n**scripts/install_test.sh:99**\n* `first_body_line` returns an empty string when the Markdown file has no YAML frontmatter, which can make downstream `assert_file_contains \"$(first_body_line ...)\"` pass trivially. Consider treating files without frontmatter as body starting at line 1.\n**scripts/install_test.sh:106**\n* `assert_toml_parses` relies on `tomllib`, which requires Python 3.11+. Other repo scripts (e.g. the spec validator) don't appear to require 3.11, so this can make `scripts/install_test.sh` fail on environments with older `python3`. Add a fallback to `tomli` (if installed) or emit a clear error about the requirement.\n\n- **Files reviewed:** 5/5 changed files\n- **Comments generated:** 0 new\n- **Review effort level:** Lite\n</details>",
+      "commit_id": "595a4ea69f7d05e1b9d61feecc9357973aa7191b",
+      "html_url": "https://github.com/sergeyklay/.agents/pull/57#pullrequestreview-5124332198",
+      "id": 5124332198,
+      "node_id": "PRR_kwDOSJaLQ88AAAABMW8apg",
+      "pull_request_url": "https://api.github.com/repos/sergeyklay/.agents/pulls/57",
+      "state": "COMMENTED",
+      "submitted_at": "2026-09-06T05:41:09Z",
+      "user": {
+        "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+        "events_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/events{/privacy}",
+        "followers_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/followers",
+        "following_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/following{/other_user}",
+        "gists_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+        "id": 175728472,
+        "login": "copilot-pull-request-reviewer[bot]",
+        "node_id": "BOT_kgDOCnlnWA",
+        "organizations_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/orgs",
+        "received_events_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/received_events",
+        "repos_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/subscriptions",
+        "type": "Bot",
+        "url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D",
+        "user_view_type": "public"
+      }
+    },
+    {
+      "_links": {
+        "html": {
+          "href": "https://github.com/sergeyklay/.agents/pull/57#pullrequestreview-5124397557"
+        },
+        "pull_request": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/57"
+        }
+      },
+      "author_association": "NONE",
+      "body": "### 🟡 Changes recommended\n\nTwo correctness/safety gaps were found in the installer/test changes that should be addressed before approving.\n\n*Once you've addressed the issues Copilot identified, you can request another Copilot review.*\n\n<details>\n<summary>Review details</summary>\n\n- **Files reviewed:** 5/5 changed files\n- **Comments generated:** 2\n- **Review effort level:** Lite\n</details>",
+      "commit_id": "15a4a5ac7e340a0e0042998d419d69f9d940a69d",
+      "html_url": "https://github.com/sergeyklay/.agents/pull/57#pullrequestreview-5124397557",
+      "id": 5124397557,
+      "node_id": "PRR_kwDOSJaLQ88AAAABMXAZ9Q",
+      "pull_request_url": "https://api.github.com/repos/sergeyklay/.agents/pulls/57",
+      "state": "COMMENTED",
+      "submitted_at": "2026-09-06T05:56:35Z",
+      "user": {
+        "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+        "events_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/events{/privacy}",
+        "followers_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/followers",
+        "following_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/following{/other_user}",
+        "gists_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+        "id": 175728472,
+        "login": "copilot-pull-request-reviewer[bot]",
+        "node_id": "BOT_kgDOCnlnWA",
+        "organizations_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/orgs",
+        "received_events_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/received_events",
+        "repos_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/subscriptions",
+        "type": "Bot",
+        "url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D",
+        "user_view_type": "public"
+      }
+    },
+    {
+      "_links": {
+        "html": {
+          "href": "https://github.com/sergeyklay/.agents/pull/57#pullrequestreview-5124452662"
+        },
+        "pull_request": {
+          "href": "https://api.github.com/repos/sergeyklay/.agents/pulls/57"
+        }
+      },
+      "author_association": "NONE",
+      "body": "### 🔵 Needs a closer look\n\nIt changes security-sensitive installer behavior (prompt inlining guards and `$HOME` file deletion/cleanup paths) and should receive final human validation despite strong test coverage.\n\n<details>\n<summary>Review details</summary>\n\n- **Files reviewed:** 5/5 changed files\n- **Comments generated:** 0 new\n- **Review effort level:** Lite\n</details>",
+      "commit_id": "6d1182e7f3cac298704f272de18e728b5d4b435f",
+      "html_url": "https://github.com/sergeyklay/.agents/pull/57#pullrequestreview-5124452662",
+      "id": 5124452662,
+      "node_id": "PRR_kwDOSJaLQ88AAAABMXDxNg",
+      "pull_request_url": "https://api.github.com/repos/sergeyklay/.agents/pulls/57",
+      "state": "COMMENTED",
+      "submitted_at": "2026-09-06T06:29:27Z",
+      "user": {
+        "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+        "events_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/events{/privacy}",
+        "followers_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/followers",
+        "following_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/following{/other_user}",
+        "gists_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+        "id": 175728472,
+        "login": "copilot-pull-request-reviewer[bot]",
+        "node_id": "BOT_kgDOCnlnWA",
+        "organizations_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/orgs",
+        "received_events_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/received_events",
+        "repos_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D/subscriptions",
+        "type": "Bot",
+        "url": "https://api.github.com/users/copilot-pull-request-reviewer%5Bbot%5D",
+        "user_view_type": "public"
+      }
+    }
+  ]
+}
