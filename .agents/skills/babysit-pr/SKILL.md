@@ -48,7 +48,7 @@ Examine the input the user provided.
 
 **Source B - GitHub PR.** The user provided a PR number or URL, or the input is empty and a PR exists on the current branch. Run the fetch script to collect every kind of comment: `python3 scripts/fetch_pr_comments.py [PR_NUMBER]`. The script emits a single JSON object on stdout with `pr`, `inline`, `reviews` and `issue` fields, plus the `review_digest` and `totals` it derives from them.
 
-**A review body is a container of findings, not one finding.** Read all three places: the `inline` comments, the body's own prose, and every collapsed `### Suppressed comments (N)` block inside that body, where each `**path:line**` entry is a separate finding. Compare what you extracted against the `N` the reviewer declares in its own heading; `counts_agree: false` in `review_digest` means the format moved and you must read the body by hand.
+**A review body is a container of findings, not one finding.** Read all three places: the `inline` comments, the body's own prose, and every collapsed `### Suppressed comments (N)` block inside that body, where each `**path:line**` entry is a separate finding. Compare what you extracted against the `N` the reviewer declares in its own heading; `counts_agree: false` on a `review_digest[].suppressed_blocks[]` entry, or `totals.suppressed_counts_agree: false` across every block, means the format moved and you must read the body by hand.
 
 **Take each review's verdict from the first line of its body, never from `state`.** A bot submits every review as `COMMENTED` and puts the verdict in the body's opening heading (`### 🟢 Approval recommended`, `### 🟡 Changes recommended`, `### 🔵 Needs a closer look`); `review_digest[].verdict` carries it.
 
