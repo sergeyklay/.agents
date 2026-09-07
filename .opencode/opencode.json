@@ -24,10 +24,9 @@
       ".env.dist": "allow"
     },
     "external_directory": {
-      "*": "ask",
       "~/work/**": "allow",
-      "~/.config/opencode/skills/**": "allow",
-      "/tmp/opencode/**": "allow"
+      "~/.config/opencode/**": "allow",
+      "~/.claude/skills/**": "allow"
     },
     "doom_loop": "deny"
   },
