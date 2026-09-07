@@ -212,6 +212,32 @@ class SuppressedBlockTest(unittest.TestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].body, "Only finding.")
 
+    def test_a_bullet_inside_a_finding_does_not_end_the_block(self) -> None:
+        body = (
+            "### Suppressed comments (2)\n"
+            "\n"
+            "**src/a.py:10**\n"
+            "* First finding.\n"
+            "```\n"
+            "- [ ] a quoted checklist item\n"
+            "- **Quoted bold bullet.** Still the first finding.\n"
+            "```\n"
+            "**src/b.py:20**\n"
+            "* Second finding.\n"
+            "\n"
+            "- **Files reviewed:** 2/2 changed files\n"
+            "- **Comments generated:** 2\n"
+        )
+
+        findings = suppressed_blocks(body)[0].findings
+
+        self.assertEqual(
+            [finding.location for finding in findings],
+            ["src/a.py:10", "src/b.py:20"],
+        )
+        self.assertIn("- [ ] a quoted checklist item", findings[0].body)
+        self.assertIn("- **Quoted bold bullet.**", findings[0].body)
+
     def test_a_body_without_a_block_yields_nothing(self) -> None:
         self.assertEqual(
             suppressed_blocks("### Approval recommended\n\nAll good.\n"), []
