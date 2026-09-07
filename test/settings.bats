@@ -42,9 +42,14 @@ load 'test_helper'
     "$TEST_HOME/.gemini/settings.json" >/dev/null
 }
 
-# Gemini declares no strategy for `context.fileName`, and Claude Code ships no
-# per-key strategy at all, so the repository array still replaces the host's.
-# Withdrawing an entry from the repository file is how it revokes one.
+# Gemini declares no union strategy for `context.fileName`, so the repository
+# array replaces the host's. Claude Code does combine a list key across its
+# settings files, but this installer owns ~/.claude/settings.json outright, so
+# rewriting that file is the repository's only way to withdraw an entry, and a
+# `deny` a union stranded there could not be lifted anywhere: deny is evaluated
+# before allow at every level. A host-local entry belongs in a file the
+# installer never writes, such as .claude/settings.local.json, where Claude
+# Code's own cross-file merge already keeps it.
 @test "the settings merge replaces an array with no union strategy" {
   printf '{"context": {"fileName": ["HOST.md"]}}\n' \
     >"$TEST_HOME/.gemini/settings.json"

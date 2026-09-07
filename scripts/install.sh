@@ -15,8 +15,9 @@ GEMINI_SKIPPED_AGENTS='composer conductor'
 
 # Gemini merges these keys across settings scopes by union
 # (settingsSchema.ts 0.58.0, `mergeStrategy: "union"`), so replacing one drops
-# a hand-added entry. Its `concat` keys stay out: this merge writes back to the
-# file it read, and concatenating there would grow it on every install.
+# a hand-added entry. Union dedupes, so re-merging the file it wrote changes
+# nothing. Its `concat` keys stay out for want of that: this merge writes back
+# to the file it read, and concatenating there would grow it on every install.
 GEMINI_UNION_KEYS='[
   "policyPaths",
   "adminPolicyPaths",
