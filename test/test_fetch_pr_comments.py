@@ -255,6 +255,24 @@ class SuppressedBlockTest(unittest.TestCase):
         self.assertIn("- [ ] a quoted checklist item", findings[0].body)
         self.assertIn("- **Quoted bold bullet.**", findings[0].body)
 
+    def test_a_blank_line_inside_a_finding_survives(self) -> None:
+        body = (
+            "### Suppressed comments (1)\n"
+            "\n"
+            "**src/a.py:10**\n"
+            "\n"
+            "* First paragraph.\n"
+            "\n"
+            "Second paragraph.\n"
+            "\n"
+            "\n"
+            "- **Files reviewed:** 1/1 changed files\n"
+        )
+
+        finding = suppressed_blocks(body)[0].findings[0]
+
+        self.assertEqual(finding.body, "First paragraph.\n\nSecond paragraph.")
+
     def test_a_body_without_a_block_yields_nothing(self) -> None:
         self.assertEqual(
             suppressed_blocks("### Approval recommended\n\nAll good.\n"), []

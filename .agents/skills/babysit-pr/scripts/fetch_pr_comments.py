@@ -257,7 +257,7 @@ def _parse_findings(lines: list[str]) -> list[Finding]:
         if heading:
             locations.append(heading.group(1).strip())
             bodies.append([])
-        elif stripped and bodies:
+        elif bodies:
             bullet = stripped[2:].strip() if stripped.startswith("* ") else stripped
             bodies[-1].append(bullet)
     findings: list[Finding] = []
