@@ -136,9 +136,26 @@ class Pr57PayloadTest(unittest.TestCase):
                 "suppressed_extracted": 5,
                 "suppressed_distinct_locations": 4,
                 "suppressed_counts_agree": True,
-                "distinct_findings": 7,
+                "findings_upper_bound": 7,
             },
         )
+
+    def test_the_upper_bound_counts_a_shared_location_twice(self) -> None:
+        inline = {
+            f"{_as_dict(item)['path']}:{_as_dict(item)['line']}"
+            for item in _as_list(self.payload["inline"])
+        }
+        suppressed = {
+            _as_dict(finding)["location"]
+            for entry in self.digest
+            for block in _as_list(entry["suppressed_blocks"])
+            for finding in _as_list(_as_dict(block)["findings"])
+        }
+        totals = _as_dict(self.payload["totals"])
+
+        self.assertEqual(inline & suppressed, {"scripts/install.sh:503"})
+        self.assertEqual(len(inline | suppressed), 6)
+        self.assertEqual(totals["findings_upper_bound"], 7)
 
     def test_the_raw_endpoint_arrays_are_passed_through_unchanged(self) -> None:
         fixture = _load_fixture()
@@ -307,7 +324,7 @@ class MismatchedCountPayloadTest(unittest.TestCase):
                 "suppressed_extracted": 2,
                 "suppressed_distinct_locations": 2,
                 "suppressed_counts_agree": False,
-                "distinct_findings": 2,
+                "findings_upper_bound": 2,
             },
         )
 

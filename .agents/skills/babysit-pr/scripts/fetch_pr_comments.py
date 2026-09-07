@@ -367,7 +367,7 @@ def build_payload(
             "suppressed_extracted": extracted,
             "suppressed_distinct_locations": len(locations),
             "suppressed_counts_agree": declared == extracted,
-            "distinct_findings": len(inline) + len(issue) + len(locations),
+            "findings_upper_bound": len(inline) + len(issue) + len(locations),
         },
     }
 
