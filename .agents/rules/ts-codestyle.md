@@ -5,7 +5,7 @@ Core TS/React rules that apply broadly.
 
 ## TypeScript Core
 
-- `strict: true` is non-negotiable.
+- `strict: true` is non-negotiable. Enable `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` alongside it; the code must compile under all three without suppression.
 - Prefer `unknown` over `any`. Use `any` only at third-party boundaries with an ESLint suppression comment.
 - Use `undefined` for absent values. Use `null` only for ORM columns or external API contracts that require it.
 - Use `interface` for component props, domain model shapes, and service contracts.
@@ -13,6 +13,42 @@ Core TS/React rules that apply broadly.
 - Use `import type` for every type-only import.
 - Avoid `!` non-null assertions. Narrow with a guard or throw.
 - Use `const` unless reassignment is required. Never use `var`.
+
+## Prefer Types to Comments
+
+Before writing a comment, ask whether the same information can be expressed as a type. When it can, strengthen the type instead of writing prose - the compiler enforces a type; nothing enforces a comment.
+
+| Instead of a comment saying... | Express it as... |
+|---|---|
+| "must be non-empty" or "must be a valid order id" | A branded type: `type OrderId = string & { readonly __brand: unique symbol }` |
+| "can only be one of three values" | A union of literals or a discriminated union |
+| "this field only exists when `kind === 'error'`" | A discriminated union with separate variants, not optional fields with caveats |
+| "do not mutate this" | `readonly`, `readonly T[]`, or `as const` |
+| "must match the shape of the config" | `satisfies` |
+| "may not return a value" | An explicit `T \| undefined`, or a Result type |
+| "this narrows the type" | A type predicate: `function isFoo(x: unknown): x is Foo` |
+| "all cases are covered" | `default: assertNever(x)` inside the `switch` |
+
+```typescript
+function assertNever(value: never): never {
+  throw new Error(`Unhandled case: ${value}`);
+}
+
+type Shape =
+  | { kind: 'circle'; radius: number }
+  | { kind: 'square'; side: number };
+
+function area(shape: Shape): number {
+  switch (shape.kind) {
+    case 'circle':
+      return Math.PI * shape.radius ** 2;
+    case 'square':
+      return shape.side ** 2;
+    default:
+      return assertNever(shape);
+  }
+}
+```
 
 ## Naming
 
@@ -181,6 +217,8 @@ import type { OrderModel } from '@db/models/Order';
 
 ## Checklist
 
+- [ ] Code compiles under `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` with no suppressions
+- [ ] Information that could be a type (a branded type, a discriminated union, `readonly`/`as const`, `satisfies`, a type predicate, `assertNever`) is a type, not a comment
 - [ ] No `any` without a justified third-party boundary
 - [ ] `undefined` for absence; `null` only for external contracts
 - [ ] `import type` used for type-only imports
