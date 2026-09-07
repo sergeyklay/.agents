@@ -107,13 +107,18 @@ first_body_line() {
 }
 
 repeated_list_number() {
-  awk '$0 ~ /^[0-9]+\. / {
-           number = $0
-           sub(/\..*$/, "", number)
-           if (!in_list) { list_id++; in_list = 1 }
-           if ((list_id, number) in seen_in_list) { print number; exit }
-           seen_in_list[list_id, number] = 1
-           next
+  # CommonMark 0.31.2: a marker indented four spaces is a code block, and a
+  # sublist carries its own numbering, so depth is part of the identity.
+  awk '$0 ~ /^ *[0-9]+\. / {
+           depth = match($0, /[^ ]/) - 1
+           if (depth <= 3) {
+               number = $1
+               sub(/\./, "", number)
+               if (!in_list) { list_id++; in_list = 1 }
+               if ((list_id, depth, number) in seen_in_list) { print number; exit }
+               seen_in_list[list_id, depth, number] = 1
+               next
+           }
        }
        $0 ~ /^[[:space:]]*$/ { next }
        $0 ~ /^[[:space:]]/   { next }
