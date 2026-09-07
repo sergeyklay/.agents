@@ -128,3 +128,39 @@ assert_disabled_once() {
   [ "$status" -eq 0 ]
   assert_file_contains "$TEST_HOME/.gemini/policies/secrets.toml" 'decision = "deny"'
 }
+
+# Reading a key back out of a file this repository wrote proves only that it
+# wrote it: on 0.58.0 an invented key merges with `errors: []` and nobody reads
+# it (settings-validation.ts builds the settings object with `.passthrough()`).
+# This asks the host instead, over every installed key at once, so a ninth key
+# cannot arrive unguarded.
+settings_key_verdicts() {
+  HOME="$TEST_HOME" "$NODE" "$ROOT/test/settings_keys.mjs" \
+    "$BUNDLE" "$TEST_HOME/.gemini/settings.json" "$BATS_TEST_TMPDIR/workspace"
+}
+
+@test "every installed Gemini settings key is one the host acts on" {
+  require_gemini
+  run install_into --settings --gemini
+  [ "$status" -eq 0 ]
+  mkdir -p "$BATS_TEST_TMPDIR/workspace"
+
+  run settings_key_verdicts
+  [ "$status" -eq 0 ] || fail "the settings schema walk failed:
+$output"
+
+  # A walk that reached nothing reports nothing, and an all-`known` report of
+  # zero lines passes vacuously. Every top-level key yields at least one line,
+  # so the installed file's own key count is a floor that rises with it.
+  local walked floor
+  walked=$(printf '%s\n' "$output" | grep -c '^known') || true
+  floor=$(jq 'keys | length' "$TEST_HOME/.gemini/settings.json")
+  [ "$walked" -ge "$floor" ] ||
+    fail "walked $walked key paths under $floor top-level keys:
+$output"
+
+  local unrecognized
+  unrecognized=$(printf '%s\n' "$output" | grep -v '^known') || true
+  [ -z "$unrecognized" ] || fail "the host acts on none of these:
+$unrecognized"
+}

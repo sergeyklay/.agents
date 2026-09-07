@@ -3,45 +3,6 @@ load 'test_helper'
 POLICY="$ROOT/.gemini/policies/safe-commands.toml"
 DESTRUCTIVE_PATTERN='"command":"(?:rm -rf \/|rm -[-A-Za-z0-9_=./ ]* \/[\s"]|mkfs|dd if=|:\(\)\{)'
 
-gemini_bundle_entry() {
-  local candidate
-  for candidate in "$(command -v gemini 2>/dev/null)" \
-    "$(asdf which gemini 2>/dev/null)"; do
-    [ -n "$candidate" ] || continue
-    candidate=$(readlink -f -- "$candidate" 2>/dev/null) || continue
-    case $candidate in
-    *.js)
-      printf '%s\n' "$candidate"
-      return 0
-      ;;
-    esac
-  done
-  return 1
-}
-
-node_beside_bundle() {
-  local prefix=${1%/lib/node_modules/*}
-  if [ "$prefix" != "$1" ] && [ -x "$prefix/bin/node" ]; then
-    printf '%s\n' "$prefix/bin/node"
-    return 0
-  fi
-  command -v node
-}
-
-fail_on_ci_else_skip() {
-  if [ -n "${CI:-}" ]; then
-    fail "$1 (CI is set, and the workflow installs the Gemini CLI)"
-  fi
-  skip "$1"
-}
-
-require_gemini() {
-  BUNDLE=$(gemini_bundle_entry) ||
-    fail_on_ci_else_skip 'no Gemini CLI bundle on PATH; it carries the policy engine under test'
-  NODE=$(node_beside_bundle "$BUNDLE") ||
-    fail_on_ci_else_skip 'no node to load the Gemini CLI bundle with'
-}
-
 gemini_cli() {
   (
     cd "$TEST_HOME" &&
