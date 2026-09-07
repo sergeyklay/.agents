@@ -69,10 +69,12 @@ function compiledRuleLines(engineModule, engine) {
   return lines;
 }
 
-// The dotenv rule covers two tools whose arguments are not a single string, so a
-// spec starting with `{` is a whole JSON tool call rather than a shell command.
+// Bash needs a blank after `{` to open a group, so a brace-group command cannot
+// start `{"`. Keying on the quote rather than the brace keeps such a command
+// readable as one, and leaves a malformed tool call to throw instead of being
+// re-read as a shell command whose name is broken JSON.
 function toToolCall(spec) {
-  return spec.startsWith('{')
+  return spec.startsWith('{"')
     ? JSON.parse(spec)
     : { name: 'run_shell_command', args: { command: spec } };
 }

@@ -72,7 +72,8 @@ $output"
     deny 'dd if=/dev/zero of=/dev/sda' \
     deny ':(){ :|:& };:' \
     deny 'sudo rm foo' \
-    deny 'cd /tmp && rm -rf /'
+    deny 'cd /tmp && rm -rf /' \
+    deny '{ rm -rf /; }'
 }
 
 @test "a flagged relative path with a slash keeps its decision" {
