@@ -28,6 +28,36 @@ load 'test_helper'
   jq -e '.general.vimMode == true' "$TEST_HOME/.gemini/settings.json" >/dev/null
 }
 
+# Gemini declares `mergeStrategy: "union"` for `skills.disabled`
+# (settingsSchema.ts, 0.58.0), so a hand-added entry must survive the merge
+# instead of being replaced by the repository array.
+@test "Gemini settings merge unions a host-local skills.disabled entry" {
+  printf '{"skills": {"disabled": ["host-only-skill"]}}\n' \
+    >"$TEST_HOME/.gemini/settings.json"
+  run install_into --settings --gemini
+  [ "$status" -eq 0 ]
+  jq -e '.skills.disabled | index("host-only-skill") != null' \
+    "$TEST_HOME/.gemini/settings.json" >/dev/null
+  jq -e '.skills.disabled | index("scan-security") != null' \
+    "$TEST_HOME/.gemini/settings.json" >/dev/null
+}
+
+# Gemini declares no strategy for `context.fileName`, and Claude Code ships no
+# per-key strategy at all, so the repository array still replaces the host's.
+# Withdrawing an entry from the repository file is how it revokes one.
+@test "the settings merge replaces an array with no union strategy" {
+  printf '{"context": {"fileName": ["HOST.md"]}}\n' \
+    >"$TEST_HOME/.gemini/settings.json"
+  printf '{"permissions": {"deny": ["Read(**/.env.*)"]}}\n' \
+    >"$TEST_HOME/.claude/settings.json"
+  run install_into --settings --claude --gemini
+  [ "$status" -eq 0 ]
+  jq -e '.context.fileName | index("HOST.md") == null' \
+    "$TEST_HOME/.gemini/settings.json" >/dev/null
+  jq -e '.permissions.deny | index("Read(**/.env.*)") == null' \
+    "$TEST_HOME/.claude/settings.json" >/dev/null
+}
+
 # The policy engine honors a singular `[[rule]]` table with a `decision`
 # field; the plural table and the `action` field are discarded without
 # diagnostic.
