@@ -243,7 +243,7 @@ def _block_end(lines: list[str], start: int) -> int:
     """
     for index in range(start, len(lines)):
         stripped = lines[index].strip()
-        if stripped.startswith(("#", "- ", "<details", "</details")):
+        if stripped.startswith(("#", "- **Files reviewed", "<details", "</details")):
             return index
     return len(lines)
 
