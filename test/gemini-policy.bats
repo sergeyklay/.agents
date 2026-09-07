@@ -3,6 +3,12 @@ load 'test_helper'
 POLICY="$ROOT/.gemini/policies/safe-commands.toml"
 DESTRUCTIVE_PATTERN='"command":"(?:rm -rf \/|rm -[-A-Za-z0-9_=./ ]* \/[\s"]|mkfs|dd if=|:\(\)\{)'
 
+# Every @test runs in its own subshell, so a dotenv test may point $POLICY here
+# without disturbing the safe-commands cases.
+SECRETS_POLICY="$ROOT/.gemini/policies/secrets.toml"
+DOTENV_PATTERN='\.env(?![a-zA-Z])(?![^"]*\.(example|sample|template|dist)")'
+DOTENV_DENIAL='Tool execution denied by policy. Reading dotenv files is denied by policy. Read the .env.example instead.'
+
 gemini_cli() {
   (
     cd "$TEST_HOME" &&
@@ -16,14 +22,14 @@ policy_decisions() {
 }
 
 assert_decisions() {
-  local expected lines=() commands=()
+  local expected lines=() specs=()
   while [ "$#" -gt 0 ]; do
     lines+=("$(printf '%s\t%s' "$1" "$2")")
-    commands+=("$2")
+    specs+=("$2")
     shift 2
   done
   expected=$(printf '%s\n' "${lines[@]}")
-  run policy_decisions "${commands[@]}"
+  run policy_decisions "${specs[@]}"
   [ "$status" -eq 0 ] || fail "policy engine run failed:
 $output"
   [ "$output" = "$expected" ] || fail "expected:
@@ -66,7 +72,8 @@ $output"
     deny 'dd if=/dev/zero of=/dev/sda' \
     deny ':(){ :|:& };:' \
     deny 'sudo rm foo' \
-    deny 'cd /tmp && rm -rf /'
+    deny 'cd /tmp && rm -rf /' \
+    deny '{ rm -rf /; }'
 }
 
 @test "a flagged relative path with a slash keeps its decision" {
@@ -149,4 +156,97 @@ cd /'
   [ "$status" -eq 0 ] || fail "$GEMINI_MODEL did not answer:
 $output"
   [ -n "$output" ] || fail "$GEMINI_MODEL answered with nothing"
+}
+
+# The engine matches the serialized arguments and never opens the file, so any
+# absolute path stands in for a workspace.
+read_file_in_repo() {
+  printf '{"name":"read_file","args":{"file_path":"/repo/%s"}}' "$1"
+}
+
+# The loader expands the rule's two-name toolName list into one rule per name.
+@test "the dotenv rule reaches the engine compiled, not dropped" {
+  require_gemini
+  POLICY=$SECRETS_POLICY
+  run policy_decisions --rules
+  [ "$status" -eq 0 ] || fail "policy load failed:
+$output"
+  count=$(printf '%s\n' "$output" | sed -n 's/^rules'"$(printf '\t')"'//p')
+  [ "$count" = 2 ] || fail "the dotenv policy compiled $count rules:
+$output"
+  assert_contains "$output" "$(printf 'pattern\t')$DOTENV_PATTERN"
+  assert_contains "$output" "$(printf 'denial\t')$DOTENV_DENIAL"
+}
+
+# WorkspaceContext.isPathWithinWorkspace already refuses a bare `.env` segment
+# with no configuration, so `.env` here is depth; the rest is what the rule buys.
+@test "the dotenv family the built-in guard misses is denied" {
+  require_gemini
+  POLICY=$SECRETS_POLICY
+  assert_decisions \
+    deny "$(read_file_in_repo .env)" \
+    deny "$(read_file_in_repo .env.local)" \
+    deny "$(read_file_in_repo .env.production)" \
+    deny "$(read_file_in_repo app.env)" \
+    deny "$(read_file_in_repo .env_backup)" \
+    deny "$(read_file_in_repo .env-prod)" \
+    deny "$(read_file_in_repo .env2)"
+}
+
+@test "the checked-in example files stay readable" {
+  require_gemini
+  POLICY=$SECRETS_POLICY
+  assert_decisions \
+    ask_user "$(read_file_in_repo .env.example)" \
+    ask_user "$(read_file_in_repo .env.sample)" \
+    ask_user "$(read_file_in_repo .env.template)" \
+    ask_user "$(read_file_in_repo .env.dist)"
+}
+
+# The `(?![a-zA-Z])` lookahead draws this line, and `.envrc` lands on the
+# permitted side, so direnv secrets stay open. `.ENV.local` is reached by
+# neither guard: the pattern is case-sensitive and the built-in one only
+# lowercases a whole segment.
+@test "a name the dotenv rule cannot reach keeps its decision" {
+  require_gemini
+  POLICY=$SECRETS_POLICY
+  assert_decisions \
+    ask_user "$(read_file_in_repo .environment)" \
+    ask_user "$(read_file_in_repo config.environment.json)" \
+    ask_user "$(read_file_in_repo .envrc)" \
+    ask_user "$(read_file_in_repo .ENV.local)" \
+    ask_user "$(read_file_in_repo README.md)"
+}
+
+# The exemption lookahead scans forward from the match to the closing quote, so
+# an example suffix exempts and an example directory further up the path cannot.
+@test "the example exemption is read forward from the match" {
+  require_gemini
+  POLICY=$SECRETS_POLICY
+  assert_decisions \
+    ask_user "$(read_file_in_repo .env.local.example)" \
+    deny "$(read_file_in_repo config.example/.env.local)"
+}
+
+# Shell and bats quoting both indent a wrapped argument.
+@test "leading whitespace does not change which tool a spec names" {
+  require_gemini
+  assert_decisions deny '  { rm -rf /; }'
+  POLICY=$SECRETS_POLICY
+  assert_decisions deny "  $(read_file_in_repo .env.local)"
+}
+
+# That closing quote also separates array elements, so one dotenv entry denies
+# the whole call. `exclude` is matched too, though a call excluding a dotenv
+# path would never read it.
+@test "read_many_files is covered element by element" {
+  require_gemini
+  POLICY=$SECRETS_POLICY
+  assert_decisions \
+    ask_user '{"name":"read_many_files","args":{"include":["src/**/*.ts"]}}' \
+    ask_user '{"name":"read_many_files","args":{"include":[".env.example"]}}' \
+    deny '{"name":"read_many_files","args":{"include":[".env.local"]}}' \
+    deny '{"name":"read_many_files","args":{"include":["src/**/*.ts",".env.local"]}}' \
+    deny '{"name":"read_many_files","args":{"include":[".env.local","docs/x.example"]}}' \
+    deny '{"name":"read_many_files","args":{"include":["**/*.ts"],"exclude":[".env"]}}'
 }
