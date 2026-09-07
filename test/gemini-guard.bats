@@ -69,8 +69,7 @@ assert_guard_rejects() {
 }
 
 # A lone `@` is not the `@{` sigil; a guard matching it would reject prose that
-# names an agent. No shipped fragment carries one now that the review commands
-# inline through `agent:`, so the case is planted rather than read off the tree.
+# names an agent. No shipped fragment carries one, so the case is planted.
 @test "a bare @mention is not the @{ sigil" {
   new_guard_repo
   printf -- 'Findings go to @arch-review.\n' \
