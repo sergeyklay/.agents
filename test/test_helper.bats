@@ -39,3 +39,10 @@ setup() {
   assert_contains "$output" \
     "refusing to match the frontmatter lines of $FIXTURE against an empty needle"
 }
+
+@test "assert_no_frontmatter matches a needle that starts with a dash" {
+  printf '%s\n' '---' 'tools:' '- Task' '' '---' '' 'Body.' >"$FIXTURE"
+  run assert_no_frontmatter "$FIXTURE" '- Task'
+  [ "$status" -ne 0 ] || fail "assert_no_frontmatter missed a dash-leading needle"
+  assert_contains "$output" "unexpected frontmatter line in $FIXTURE: - Task"
+}
