@@ -228,6 +228,14 @@ $output"
     deny "$(read_file_in_repo config.example/.env.local)"
 }
 
+# Shell and bats quoting both indent a wrapped argument.
+@test "leading whitespace does not change which tool a spec names" {
+  require_gemini
+  assert_decisions deny '  { rm -rf /; }'
+  POLICY=$SECRETS_POLICY
+  assert_decisions deny "  $(read_file_in_repo .env.local)"
+}
+
 # That closing quote also separates array elements, so one dotenv entry denies
 # the whole call. `exclude` is matched too, though a call excluding a dotenv
 # path would never read it.

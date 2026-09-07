@@ -74,8 +74,9 @@ function compiledRuleLines(engineModule, engine) {
 // readable as one, and leaves a malformed tool call to throw instead of being
 // re-read as a shell command whose name is broken JSON.
 function toToolCall(spec) {
-  return spec.startsWith('{"')
-    ? JSON.parse(spec)
+  const trimmed = spec.trimStart();
+  return trimmed.startsWith('{"')
+    ? JSON.parse(trimmed)
     : { name: 'run_shell_command', args: { command: spec } };
 }
 
