@@ -28,28 +28,21 @@ load 'test_helper'
   jq -e '.general.vimMode == true' "$TEST_HOME/.gemini/settings.json" >/dev/null
 }
 
-# Gemini declares `mergeStrategy: "union"` for `skills.disabled`
-# (settingsSchema.ts, 0.58.0), so a hand-added entry must survive the merge
-# instead of being replaced by the repository array.
-@test "Gemini settings merge unions a host-local skills.disabled entry" {
-  printf '{"skills": {"disabled": ["host-only-skill"]}}\n' \
+@test "Gemini settings merge unions skills.disabled and dedupes on reinstall" {
+  printf '{"skills": {"disabled": ["host-only-skill", "scan-security"]}}\n' \
     >"$TEST_HOME/.gemini/settings.json"
   run install_into --settings --gemini
   [ "$status" -eq 0 ]
-  jq -e '.skills.disabled | index("host-only-skill") != null' \
+  jq -e '.skills.disabled == ["host-only-skill", "scan-security"]' \
     "$TEST_HOME/.gemini/settings.json" >/dev/null
-  jq -e '.skills.disabled | index("scan-security") != null' \
+
+  run install_into --settings --gemini
+  [ "$status" -eq 0 ]
+  jq -e '.skills.disabled == ["host-only-skill", "scan-security"]' \
     "$TEST_HOME/.gemini/settings.json" >/dev/null
 }
 
-# Gemini declares no union strategy for `context.fileName`, so the repository
-# array replaces the host's. Claude Code does combine a list key across its
-# settings files, but this installer owns ~/.claude/settings.json outright, so
-# rewriting that file is the repository's only way to withdraw an entry, and a
-# `deny` a union stranded there could not be lifted anywhere: deny is evaluated
-# before allow at every level. A host-local entry belongs in a file the
-# installer never writes, such as .claude/settings.local.json, where Claude
-# Code's own cross-file merge already keeps it.
+# A union here would strand a withdrawn `deny` rule; replacement is the revoke.
 @test "the settings merge replaces an array with no union strategy" {
   printf '{"context": {"fileName": ["HOST.md"]}}\n' \
     >"$TEST_HOME/.gemini/settings.json"
