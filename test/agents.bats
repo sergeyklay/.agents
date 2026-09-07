@@ -1,6 +1,5 @@
-# Agent definition placement. The orchestrator content rules live in
-# orchestrators.bats, the Gemini skip logic in gemini-agents.bats.
-
+# Orchestrator content rules live in orchestrators.bats, the Gemini skip
+# logic in gemini-agents.bats.
 load 'test_helper'
 
 @test "--agents installs agent views on every host" {

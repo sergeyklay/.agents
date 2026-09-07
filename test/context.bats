@@ -1,5 +1,3 @@
-# Global context installation and legacy Working Agreement cleanup.
-
 load 'test_helper'
 
 @test "--context installs the canonical context on every host" {

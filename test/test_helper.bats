@@ -1,5 +1,3 @@
-# The assert helpers themselves; every other .bats file asserts through them.
-
 load 'test_helper'
 
 setup() {

@@ -1,6 +1,4 @@
-# Command placement and the orchestrator command protocol. The Gemini prompt
-# sigil and path traversal guards live in gemini-guard.bats.
-
+# The Gemini prompt sigil and path traversal guards live in gemini-guard.bats.
 load 'test_helper'
 
 # Orchestrator commands must fork, and the fork must survive past the invoking

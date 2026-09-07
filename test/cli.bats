@@ -1,5 +1,3 @@
-# CLI behavior: help, argument handling, plan reporting, host selection.
-
 load 'test_helper'
 
 @test "--help documents usage, assets, hosts, and examples" {

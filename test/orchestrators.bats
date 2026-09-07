@@ -1,6 +1,3 @@
-# Content rules for the two orchestrator agents (composer, conductor) and
-# the sleuth workflow structure.
-
 load 'test_helper'
 
 # Orchestrators inspect artifacts they never write; every host with a tool
@@ -18,8 +15,7 @@ load 'test_helper'
     # config load on OpenCode 1.18.27.
     assert_no_frontmatter_key "$TEST_HOME/.config/opencode/agents/$agent.md" 'tools'
   done
-  # Gemini receives no orchestrator; the eight agents it does get are
-  # asserted here.
+  # Gemini receives no orchestrator; see gemini-agents.bats.
   for agent in architect arch-review planner sleuth \
     go-coder go-tester ts-coder ts-tester; do
     assert_frontmatter "$TEST_HOME/.gemini/agents/$agent.md" '  - grep_search'

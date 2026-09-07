@@ -1,5 +1,3 @@
-# Rules installation. `--rules` does not remove stale destination files.
-
 load 'test_helper'
 
 @test "--rules installs rules without the global context" {

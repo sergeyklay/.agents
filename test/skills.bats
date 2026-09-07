@@ -1,5 +1,3 @@
-# Skill placement and the writing-specs validator behavior.
-
 load 'test_helper'
 
 @test "--skills installs skills on every host" {

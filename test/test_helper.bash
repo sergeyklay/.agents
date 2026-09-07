@@ -1,6 +1,3 @@
-# Shared helpers for the installer test suite. Loaded by every .bats file
-# via `load 'test_helper'`.
-
 ROOT=$(CDPATH="" cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 INSTALLER="$ROOT/scripts/install.sh"
 # Consumed by the .bats files via `load`; shellcheck cannot follow that.

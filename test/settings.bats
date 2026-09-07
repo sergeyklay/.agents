@@ -1,6 +1,5 @@
-# Settings merges and the Gemini policy engine. Repository values win
-# conflicts; without jq, existing host-local files are skipped.
-
+# Repository values win merge conflicts; without jq, existing host-local
+# files are skipped.
 load 'test_helper'
 
 assert_disabled_once() {
@@ -123,7 +122,7 @@ assert_disabled_once() {
     "$TEST_HOME/.gemini/settings.json" >/dev/null
 }
 
-# The dotenv policy rides the existing policies rsync, so assert it landed.
+# The secrets policy has no install step of its own; it rides the policies rsync.
 @test "the secrets policy is shipped" {
   run install_into --settings --gemini
   [ "$status" -eq 0 ]
