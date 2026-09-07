@@ -1,0 +1,63 @@
+{
+  "pr": 57,
+  "inline": [
+    {
+      "id": 3942169364,
+      "path": "scripts/install.sh",
+      "line": 503
+    },
+    {
+      "id": 3943131305,
+      "path": "scripts/install.sh",
+      "line": 485
+    },
+    {
+      "id": 3943131322,
+      "path": "scripts/install_test.sh",
+      "line": 138
+    }
+  ],
+  "reviews": [
+    {
+      "id": 5123158345,
+      "state": "COMMENTED",
+      "user": {
+        "login": "copilot-pull-request-reviewer[bot]"
+      },
+      "body": "### 🟡 Changes recommended\n\nThe installer currently interpolates the `agent` frontmatter value into a path without validating it as a safe identifier, which can lead to unintended file reads/inlining if templates/frontmatter are malformed.\n\n*Once you've addressed the issues Copilot identified, you can request another Copilot review.*\n\n<details>\n<summary>Pull request overview</summary>\n\nAdjusts the Gemini CLI installation so the two orchestrators (`composer`, `conductor`) work reliably by reaching Gemini as top-level commands (instead of Gemini agents), and mitigates Gemini’s default approval-mode tool stripping by pinning `general.defaultApprovalMode` to `auto_edit`.\n\n**Changes:**\n- Add an `agent: <name>` key for Gemini command templates and update the installer to inline the canonical agent body into the generated Gemini command TOML prompt.\n- Stop installing `composer`/`conductor` as Gemini agents and add installer cleanup to remove stale previously-installed copies.\n- Extend installer tests to validate TOML generation/parsing, inlining behavior, prompt-safety guardrails, stale-file cleanup, and settings merge behavior.\n</details>\n\n<details>\n<summary>File summaries</summary>\n\n| File | Description |\r\n| ---- | ----------- |\r\n| templates/.gemini/commands/specify.yaml | Adds `agent: composer` so `/specify` can inline the orchestrator body into the command prompt. |\r\n| templates/.gemini/commands/specify.preamble.md | Adds Gemini-specific runtime notes for `/specify` (session context, approval mode, stream-json, trust). |\r\n| templates/.gemini/commands/implement.yaml | Adds `agent: conductor` so `/implement` can inline the orchestrator body into the command prompt. |\r\n| templates/.gemini/commands/implement.preamble.md | Adds Gemini-specific runtime notes for `/implement` (session context, approval mode, stream-json, trust). |\r\n| scripts/install.sh | Implements agent-body inlining for Gemini command prompts, prompt-safety checks, and removal of skipped Gemini orchestrator agents. |\r\n| scripts/install_test.sh | Adds regression coverage for Gemini command inlining, TOML validity, safety guard, stale-agent cleanup, and settings merge. |\r\n| .gemini/settings.user.json | Pins `general.defaultApprovalMode` to `auto_edit` in the repository-provided Gemini settings. |\n</details>\n\n<details>\n<summary>Review details</summary>\n\n- **Files reviewed:** 7/7 changed files\n- **Comments generated:** 1\n- **Review effort level:** Lite\n</details>\n\n---\n\n💡 <a href=\"/sergeyklay/.agents/new/main?filename=.github/skills/code-review/SKILL.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add a `code-review` agent skill</a> or configure MCP servers for context-aware, tailored reviews. <a href=\"https://docs.github.com/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review?tool=webui#mcp-servers-and-agent-skills\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more in the docs.</a>"
+    },
+    {
+      "id": 5123236259,
+      "state": "COMMENTED",
+      "user": {
+        "login": "copilot-pull-request-reviewer[bot]"
+      },
+      "body": "### 🔵 Needs a closer look\n\nThe new prompt-safety guard is not applied to all prompt fragments, and the test TOML parser currently hard-depends on Python 3.11’s tomllib without a clear fallback/error path.\n\n<details>\n<summary>Review details</summary>\n\n### Suppressed comments (2)\n\n**Previously missed (2)** — in code that hasn't changed since the last review.\n\n**scripts/install.sh:503**\n* assert_prompt_safe is only applied to the inlined agent body. The Gemini TOML prompt also concatenates the command body and optional preamble/suffix, so a future change could introduce \"'''\", \"!{\", or \"@{\" in those fragments and the installer would still generate an unsafe command prompt.\n**scripts/install_test.sh:106**\n* assert_toml_parses imports tomllib, which only exists on Python 3.11+. On systems with older python3, this fails with a stack trace and makes install_test.sh non-portable; it would be better to provide a clear error (and optionally fall back to tomli when installed).\n\n- **Files reviewed:** 5/5 changed files\n- **Comments generated:** 0 new\n- **Review effort level:** Lite\n</details>"
+    },
+    {
+      "id": 5124332198,
+      "state": "COMMENTED",
+      "user": {
+        "login": "copilot-pull-request-reviewer[bot]"
+      },
+      "body": "### 🔵 Needs a closer look\n\nThe installer cleanup path can abort under `set -e` for non-regular stale paths, and the test TOML parser currently hard-requires Python 3.11 (`tomllib`) without fallback.\n\n<details>\n<summary>Review details</summary>\n\n### Suppressed comments (3)\n\n**Previously missed (3)** — in code that hasn't changed since the last review.\n\n**scripts/install.sh:561**\n* `cleanup_skipped_gemini_agents` treats any existing path (`-e`) as removable, but `rm -f` will error on a directory; with `set -e` that would abort the installer. Restrict deletion to regular files/symlinks (or handle non-regular paths explicitly).\n**scripts/install_test.sh:99**\n* `first_body_line` returns an empty string when the Markdown file has no YAML frontmatter, which can make downstream `assert_file_contains \"$(first_body_line ...)\"` pass trivially. Consider treating files without frontmatter as body starting at line 1.\n**scripts/install_test.sh:106**\n* `assert_toml_parses` relies on `tomllib`, which requires Python 3.11+. Other repo scripts (e.g. the spec validator) don't appear to require 3.11, so this can make `scripts/install_test.sh` fail on environments with older `python3`. Add a fallback to `tomli` (if installed) or emit a clear error about the requirement.\n\n- **Files reviewed:** 5/5 changed files\n- **Comments generated:** 0 new\n- **Review effort level:** Lite\n</details>"
+    },
+    {
+      "id": 5124397557,
+      "state": "COMMENTED",
+      "user": {
+        "login": "copilot-pull-request-reviewer[bot]"
+      },
+      "body": "### 🟡 Changes recommended\n\nTwo correctness/safety gaps were found in the installer/test changes that should be addressed before approving.\n\n*Once you've addressed the issues Copilot identified, you can request another Copilot review.*\n\n<details>\n<summary>Review details</summary>\n\n- **Files reviewed:** 5/5 changed files\n- **Comments generated:** 2\n- **Review effort level:** Lite\n</details>"
+    },
+    {
+      "id": 5124452662,
+      "state": "COMMENTED",
+      "user": {
+        "login": "copilot-pull-request-reviewer[bot]"
+      },
+      "body": "### 🔵 Needs a closer look\n\nIt changes security-sensitive installer behavior (prompt inlining guards and `$HOME` file deletion/cleanup paths) and should receive final human validation despite strong test coverage.\n\n<details>\n<summary>Review details</summary>\n\n- **Files reviewed:** 5/5 changed files\n- **Comments generated:** 0 new\n- **Review effort level:** Lite\n</details>"
+    }
+  ],
+  "issue": []
+}

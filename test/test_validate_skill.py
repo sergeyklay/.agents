@@ -9,8 +9,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-SKILL_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SKILL_ROOT / "scripts"))
+# Tests live outside .agents/skills so they never ship to a host; the
+# module under test is imported from the skill it belongs to.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / ".agents/skills/make-skill/scripts"))
 
 from validate_skill import (  # noqa: E402
     MAX_BODY_BYTES,

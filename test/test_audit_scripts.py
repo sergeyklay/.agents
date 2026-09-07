@@ -14,8 +14,10 @@ from io import StringIO
 from pathlib import Path
 from typing import cast
 
-SKILL_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SKILL_ROOT / "scripts"))
+# Tests live outside .agents/skills so they never ship to a host; the
+# module under test is imported from the skill it belongs to.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / ".agents/skills/audit-agent/scripts"))
 
 import audit_claude_code  # noqa: E402
 import audit_opencode  # noqa: E402

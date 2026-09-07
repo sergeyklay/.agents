@@ -18,6 +18,7 @@ Run `asdf install shfmt` or `asdf install bats` when a tool is unavailable.
 - A Claude `paths` overlay marks a rule that must not become an OpenCode global instruction.
 - `--context` overwrites the host-native context file and removes only legacy rules that match the canonical content.
 - `lint`, `typecheck` and the other file-selecting gates read `git ls-files`; an untracked file is skipped silently and the gate can still exit 0. Stage it first.
+- Everything tracked under `.agents/skills/` ships to five host directories; keep tests and fixtures in `test/`, which ships nowhere.
 
 ## Boundaries
 

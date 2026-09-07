@@ -25,13 +25,7 @@ Default output contains totals, session ids, and failed validations only. Add `-
 
 Exit codes: `0` means versions, usage totals, and spawn links all reconciled; `1` means a version is unsupported or detail, child-session, or terminal evidence was incomplete or disagreed; `2` means the session, database, or expected schema was unavailable. Fix or explain every nonzero result before quoting an exact figure.
 
-Before reporting zero child sessions, cache writes, or tool errors, run the bundled positive-control fixture:
-
-```sh
-python3 scripts/test_audit_scripts.py -v
-```
-
-It exercises the same auditor against one linked child session, nonzero cache writes, and one tool error; it also proves the stream parser rejects missing terminal evidence. If this control fails, do not report the target's zero.
+Before reporting zero child sessions, cache writes, or tool errors, prove the auditor can see a nonzero: run it against a session tree known to carry one. A zero from an auditor that was never shown a nonzero is unverified.
 
 Fallback when Python or the script is unavailable: inspect the schema, then query the tree through the CLI:
 
