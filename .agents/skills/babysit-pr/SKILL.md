@@ -46,9 +46,13 @@ Examine the input the user provided.
 
 **Source A - Inline input.** The user pasted or typed review comments. Use them as-is. Do not fetch anything from a remote tracker.
 
-**Source B - GitHub PR.** The user provided a PR number or URL, or the input is empty and a PR exists on the current branch. Run the fetch script to collect every kind of comment: `python3 scripts/fetch_pr_comments.py [PR_NUMBER]`. The script emits a single JSON object on stdout with `pr`, `inline`, `reviews`, and `issue` fields.
+**Source B - GitHub PR.** The user provided a PR number or URL, or the input is empty and a PR exists on the current branch. Run the fetch script to collect every kind of comment: `python3 scripts/fetch_pr_comments.py [PR_NUMBER]`. The script emits a single JSON object on stdout with `pr`, `inline`, `reviews` and `issue` fields, plus the `review_digest` and `totals` it derives from them.
 
-If `python3` or the script is unavailable, run the three `gh` commands it wraps, listed in [references/setup-and-ingest.md](references/setup-and-ingest.md). Missing any of them silently drops a class of comments.
+**A review body is a container of findings, not one finding.** Read all three places: the `inline` comments, the body's own prose, and every collapsed `### Suppressed comments (N)` block inside that body, where each `**path:line**` entry is a separate finding. Compare what you extracted against the `N` the reviewer declares in its own heading; `counts_agree: false` in `review_digest` means the format moved and you must read the body by hand.
+
+**Take each review's verdict from the first line of its body, never from `state`.** A bot submits every review as `COMMENTED` and puts the verdict in the body's opening heading (`### 🟢 Approval recommended`, `### 🟡 Changes recommended`, `### 🔵 Needs a closer look`); `review_digest[].verdict` carries it.
+
+If `python3` or the script is unavailable, run the three `gh` commands it wraps and do the same three-place reading yourself; both are in [references/setup-and-ingest.md](references/setup-and-ingest.md). Missing any of them silently drops a class of comments.
 
 Classify the feedback domain from what the comments reference:
 

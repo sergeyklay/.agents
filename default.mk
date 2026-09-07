@@ -16,8 +16,7 @@ export GEMINI_MODEL
 
 RUFF_OUTPUT_FORMAT ?= $(if $(CI),github,full)
 
-SKILL_VALIDATOR      := .agents/skills/make-skill/scripts/validate_skill.py
-SKILL_VALIDATOR_TEST := .agents/skills/make-skill/scripts/test_validate_skill.py
+SKILL_VALIDATOR := .agents/skills/make-skill/scripts/validate_skill.py
 
 _COLORS_OK :=
 ifeq  ($(NO_COLOR),)

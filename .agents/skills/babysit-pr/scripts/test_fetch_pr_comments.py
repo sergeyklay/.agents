@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+# Copyright 2026 Serghei Iakovlev
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+import json
+import sys
+import unittest
+from pathlib import Path
+from typing import cast
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(SKILL_ROOT / "scripts"))
+
+from fetch_pr_comments import (  # noqa: E402
+    build_payload,
+    digest_review,
+    suppressed_blocks,
+    verdict_from_body,
+)
+
+FIXTURE = Path(__file__).resolve().parent / "testdata" / "pr57.json"
+
+
+def _load_fixture() -> dict[str, object]:
+    with FIXTURE.open(encoding="utf-8") as handle:
+        return cast("dict[str, object]", json.load(handle))
+
+
+def _as_list(value: object) -> list[object]:
+    return cast("list[object]", value)
+
+
+def _as_dict(value: object) -> dict[str, object]:
+    return cast("dict[str, object]", value)
+
+
+class Pr57PayloadTest(unittest.TestCase):
+    """Assertions against a frozen capture of sergeyklay/.agents PR #57.
+
+    The capture is the raw response of the three endpoints the script
+    wraps, so the test exercises the real shape a reviewer bot emits
+    without reaching the network.
+    """
+
+    def setUp(self) -> None:
+        fixture = _load_fixture()
+        self.payload = build_payload(
+            cast("int", fixture["pr"]),
+            _as_list(fixture["inline"]),
+            _as_list(fixture["reviews"]),
+            _as_list(fixture["issue"]),
+        )
+        self.digest = [
+            _as_dict(item) for item in _as_list(self.payload["review_digest"])
+        ]
+
+    def test_the_api_state_cannot_tell_the_five_reviews_apart(self) -> None:
+        self.assertEqual({entry["state"] for entry in self.digest}, {"COMMENTED"})
+
+    def test_every_verdict_comes_from_the_body_first_line(self) -> None:
+        self.assertEqual(
+            [entry["verdict"] for entry in self.digest],
+            [
+                "\U0001f7e1 Changes recommended",
+                "\U0001f535 Needs a closer look",
+                "\U0001f535 Needs a closer look",
+                "\U0001f7e1 Changes recommended",
+                "\U0001f535 Needs a closer look",
+            ],
+        )
+
+    def test_the_collapsed_blocks_give_up_their_findings(self) -> None:
+        locations = [
+            [
+                _as_dict(finding)["location"]
+                for block in _as_list(entry["suppressed_blocks"])
+                for finding in _as_list(_as_dict(block)["findings"])
+            ]
+            for entry in self.digest
+        ]
+
+        self.assertEqual(
+            locations,
+            [
+                [],
+                ["scripts/install.sh:503", "scripts/install_test.sh:106"],
+                [
+                    "scripts/install.sh:561",
+                    "scripts/install_test.sh:99",
+                    "scripts/install_test.sh:106",
+                ],
+                [],
+                [],
+            ],
+        )
+
+    def test_each_block_reports_the_count_the_bot_declared(self) -> None:
+        blocks = [
+            _as_dict(block)
+            for entry in self.digest
+            for block in _as_list(entry["suppressed_blocks"])
+        ]
+
+        self.assertEqual(
+            [
+                (
+                    block["declared_count"],
+                    block["extracted_count"],
+                    block["counts_agree"],
+                )
+                for block in blocks
+            ],
+            [(2, 2, True), (3, 3, True)],
+        )
+
+    def test_a_finding_keeps_its_path_line_and_text(self) -> None:
+        first_block = _as_dict(_as_list(self.digest[1]["suppressed_blocks"])[0])
+        finding = _as_dict(_as_list(first_block["findings"])[0])
+
+        self.assertEqual(finding["path"], "scripts/install.sh")
+        self.assertEqual(finding["line"], 503)
+        self.assertIn("assert_prompt_safe", cast("str", finding["body"]))
+
+    def test_totals_count_every_place_a_finding_can_live(self) -> None:
+        self.assertEqual(
+            self.payload["totals"],
+            {
+                "reviews": 5,
+                "inline": 3,
+                "issue": 0,
+                "suppressed_declared": 5,
+                "suppressed_extracted": 5,
+                "suppressed_distinct_locations": 4,
+                "suppressed_counts_agree": True,
+                "distinct_findings": 7,
+            },
+        )
+
+    def test_the_raw_endpoint_arrays_are_passed_through_unchanged(self) -> None:
+        fixture = _load_fixture()
+
+        self.assertEqual(self.payload["pr"], fixture["pr"])
+        self.assertEqual(self.payload["inline"], fixture["inline"])
+        self.assertEqual(self.payload["reviews"], fixture["reviews"])
+        self.assertEqual(self.payload["issue"], fixture["issue"])
+
+
+class VerdictTest(unittest.TestCase):
+    def test_heading_marks_are_stripped(self) -> None:
+        self.assertEqual(
+            verdict_from_body("### Approval recommended\n\nLooks fine.\n"),
+            "Approval recommended",
+        )
+
+    def test_leading_blank_lines_are_skipped(self) -> None:
+        self.assertEqual(
+            verdict_from_body("\n\n## Changes recommended\n"), "Changes recommended"
+        )
+
+    def test_an_empty_body_has_no_verdict(self) -> None:
+        self.assertIsNone(verdict_from_body(""))
+
+    def test_a_review_without_a_body_has_no_verdict(self) -> None:
+        digest = digest_review({"id": 1, "state": "APPROVED", "body": None})
+
+        self.assertIsNone(digest.verdict)
+        self.assertEqual(digest.state, "APPROVED")
+
+
+class SuppressedBlockTest(unittest.TestCase):
+    # The bot's own count is the only independent check on the parser, so
+    # a disagreement has to survive into the output rather than be healed.
+    def test_a_declared_count_the_findings_contradict_is_reported(self) -> None:
+        body = (
+            "### Needs a closer look\n"
+            "\n"
+            "### Suppressed comments (3)\n"
+            "\n"
+            "**Previously missed (3)** - in code that hasn't changed.\n"
+            "\n"
+            "**src/a.py:10**\n"
+            "* First finding.\n"
+            "**src/b.py:20**\n"
+            "* Second finding.\n"
+            "\n"
+            "- **Files reviewed:** 2/2 changed files\n"
+        )
+
+        blocks = suppressed_blocks(body)
+
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].declared_count, 3)
+        self.assertEqual(len(blocks[0].findings), 2)
+
+    def test_the_footer_bullets_are_not_read_as_findings(self) -> None:
+        body = (
+            "### Suppressed comments (1)\n"
+            "\n"
+            "**src/a.py:10**\n"
+            "* Only finding.\n"
+            "\n"
+            "- **Files reviewed:** 2/2 changed files\n"
+            "- **Review effort level:** Lite\n"
+        )
+
+        findings = suppressed_blocks(body)[0].findings
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].body, "Only finding.")
+
+    def test_a_body_without_a_block_yields_nothing(self) -> None:
+        self.assertEqual(
+            suppressed_blocks("### Approval recommended\n\nAll good.\n"), []
+        )
+
+    def test_a_location_without_a_line_number_is_kept_verbatim(self) -> None:
+        body = "### Suppressed comments (1)\n\n**README.md**\n* No line anchor.\n"
+
+        finding = suppressed_blocks(body)[0].findings[0]
+
+        self.assertEqual(finding.location, "README.md")
+        self.assertIsNone(finding.path)
+        self.assertIsNone(finding.line)
+
+
+if __name__ == "__main__":
+    unittest.main()
