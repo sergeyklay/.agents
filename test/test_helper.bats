@@ -32,3 +32,10 @@ setup() {
   assert_contains "$output" \
     "refusing to match the frontmatter keys of $FIXTURE against an empty needle"
 }
+
+@test "assert_no_frontmatter refuses an empty needle" {
+  run assert_no_frontmatter "$FIXTURE" ''
+  [ "$status" -ne 0 ] || fail "assert_no_frontmatter passed on an empty needle"
+  assert_contains "$output" \
+    "refusing to match the frontmatter lines of $FIXTURE against an empty needle"
+}

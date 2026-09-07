@@ -1,13 +1,8 @@
 tools:
   - Agent
-  - Task
   - Read
   - Glob
   - Grep
-  - TaskCreate
-  - TaskGet
-  - TaskList
-  - TaskUpdate
   - SendMessage
   # project-level .mcp.json
   - mcp__atlassian__getAccessibleAtlassianResources

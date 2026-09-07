@@ -8,10 +8,6 @@ tools:
   - Grep
   - WebFetch
   - WebSearch
-  - TaskCreate
-  - TaskGet
-  - TaskList
-  - TaskUpdate
   - TaskStop
   # project-level .mcp.json
   - mcp__context7__resolve-library-id
