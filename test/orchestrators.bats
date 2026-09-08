@@ -126,7 +126,6 @@ load 'test_helper'
   assert_file_contains "$sleuth_agent" '## Report'
 }
 
-# The identifier a host dispatches a view by: its `name:`, else its filename.
 view_identifier() {
   local name
   name=$(frontmatter_of "$1" | sed -n 's/^name:[[:space:]]*//p' | head -n 1)
@@ -140,9 +139,7 @@ view_identifier() {
 
 # Copilot's `name:` key replaces the identifier its `agent` tool dispatches on,
 # so a body instructing delegation to `arch-review` reaches a CLI that knows
-# only `Reviewer` and answers `Unknown agent_type`. Vocabulary and delegation
-# capability both come from the installed tree, so an agent renamed tomorrow
-# is covered without editing this test.
+# only `Reviewer` and answers `Unknown agent_type`.
 @test "delegating agent views name only identifiers their host dispatches" {
   run install_into --agents
   [ "$status" -eq 0 ]
@@ -193,8 +190,7 @@ view_identifier() {
     done
   done
 
-  # Without a delegating view on a renaming host there is nothing left to
-  # catch, and every remaining comparison is an identifier against itself.
+  # Without one, every remaining comparison is an identifier against itself.
   [ "$renaming_views" -gt 0 ] ||
     fail "no delegating view was checked on a host that renames its agents"
 }

@@ -132,8 +132,6 @@ assert_disabled_once() {
 # Reading a key back out of a file this repository wrote proves only that it
 # wrote it: on 0.58.0 an invented key merges with `errors: []` and nobody reads
 # it (settings-validation.ts builds the settings object with `.passthrough()`).
-# This asks the host instead, over every installed key at once, so a ninth key
-# cannot arrive unguarded.
 settings_key_verdicts() {
   HOME="$TEST_HOME" "$NODE" "$ROOT/test/settings_keys.mjs" \
     "$BUNDLE" "$TEST_HOME/.gemini/settings.json" "$BATS_TEST_TMPDIR/workspace"
@@ -149,9 +147,8 @@ settings_key_verdicts() {
   [ "$status" -eq 0 ] || fail "the settings schema walk failed:
 $output"
 
-  # A walk that reached nothing reports nothing, and an all-`known` report of
-  # zero lines passes vacuously. Every top-level key yields at least one line,
-  # so the installed file's own key count is a floor that rises with it.
+  # An all-`known` report of zero lines passes vacuously, and keyVerdicts yields
+  # at least one line per top-level key, so the installed key count is a floor.
   local walked floor
   walked=$(printf '%s\n' "$output" | grep -c '^known') || true
   floor=$(jq 'keys | length' "$TEST_HOME/.gemini/settings.json")
