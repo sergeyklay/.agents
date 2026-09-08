@@ -3,7 +3,7 @@ name: isolate-cli
 description: "Run a third-party CLI as a subprocess without leaking into it or leaving state on the host, and prove both. Use when a script or skill shells out to an external tool, when a run must leave no trace outside the repository, when private input (a diff, a prompt, a credential) must not reach the tool's session log, when a policy or deny-list handed to the tool must actually be in force, when a claim about the tool's own behaviour (which paths it searches, which config file wins) must be settled against the shipped binary or bundle rather than its documentation, or before a measurement series whose runs must be comparable. Covers behaviour and state roots read out of the installed binary or bundle, a snapshot-diff-prune harness proven able to go red, and policy rules validated offline. Do NOT use to investigate an external system in general (that is research-it, which delegates here for artifacts on disk) or to judge whether a green result counts as evidence (that is prove-checks)."
 metadata:
   author: Serghei Iakovlev
-  version: "1.0"
+  version: "1.1"
   category: security
 ---
 
@@ -100,6 +100,8 @@ The price of that independence is the entire first request, every run, at full r
 A throwaway state root closes the outbound direction only. Inbound is still wide open: the credential, the account selection, the default model and the endpoint are read out of a file in the operator's home that any deploy, any parallel session and any configuration sync may rewrite between one run and the next. A series whose runs disagree about which account they used is not a series, and the disagreement is invisible because nothing errors.
 
 Derive each inherited value from an artifact rather than copying the operator's current choice: the format of a credential store states which authentication type it can serve, so the store on disk answers the question that the settings file only records an opinion about. Where a value cannot be derived, assert it at the start of the run with both the expected and the found value in the failure message, and record every inherited value beside the results. A wrapper that copies the operator's selection inherits their next mistake.
+
+Supplying a credential to a confined run reopens the outbound direction unless the credential is copied rather than shared. Pointing the run at the operator's real credential store makes that store writable: the tool refreshes a rotating token, rewrites the selected account, or appends to a usage ledger, and the one file worth protecting is the one the throwaway root never covered. Copy the minimum the authentication type needs into the run's own root, assert it arrived before spending anything, and destroy the copy with the root. The copy is an artifact too, so scrub the session store and any export taken from it before a figure read out of them leaves the machine.
 
 ### 7. Reconcile against the baseline and publish the counts
 

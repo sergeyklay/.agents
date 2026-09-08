@@ -75,10 +75,8 @@ class BodyByteCeilingTest(unittest.TestCase):
 
 class BodyByteCeilingValueTest(unittest.TestCase):
     """Pin MAX_BODY_BYTES to its derivation: 5000 tokens x 3.5 bytes.
-
     Budget from <https://agentskills.io/specification>; bytes per token from
-    Anthropic's glossary. Every other test builds its fixture from it.
-    """
+    Anthropic's glossary."""
 
     def test_the_ceiling_matches_its_documented_derivation(self) -> None:
         self.assertEqual(
@@ -131,11 +129,9 @@ class FrontmatterFixture(unittest.TestCase):
 
 
 class AllowedToolsTypeTest(FrontmatterFixture):
-    # The spec types allowed-tools as "a space-separated string of tools that
-    # are pre-approved to run" <https://agentskills.io/specification>, and the
-    # reference validator declares it Optional[str]. Claude Code additionally
-    # tolerates a YAML list, so the list form passes there and fails wherever
-    # the spec is enforced.
+    # The spec types allowed-tools as a space-separated string
+    # <https://agentskills.io/specification> and the reference validator declares
+    # it Optional[str]; Claude Code also takes a YAML list, which fails elsewhere.
     def test_space_separated_string_passes(self) -> None:
         self.assertEqual(self._errors("allowed-tools: Bash(git:*) Read"), [])
 
@@ -174,10 +170,9 @@ class MetadataShapeTest(FrontmatterFixture):
 
 
 class SpecFieldTest(FrontmatterFixture):
-    # Claude Code accepts roughly twenty frontmatter fields; claude.ai uploads,
-    # the Skills API and package_skill.py accept only the six the spec defines
-    # and fail the whole file on anything else. The notice is informational
-    # because a deliberate single-vendor skill is a supported choice.
+    # Claude Code accepts roughly twenty frontmatter fields; claude.ai, the Skills
+    # API and package_skill.py take only the spec's six and fail the whole file on
+    # anything else. Informational, because a single-vendor skill is a real choice.
     def test_the_six_spec_fields_are_silent(self) -> None:
         self.assertEqual(
             [message for message in self._infos() if "outside the spec" in message],
@@ -206,11 +201,9 @@ class SpecFieldTest(FrontmatterFixture):
 
 
 class SpecFieldSetTest(unittest.TestCase):
-    # The set is copied from <https://agentskills.io/specification>, and both
-    # reference implementations agree with it: skills-ref's ALLOWED_FIELDS and
-    # Anthropic's quick_validate.py ALLOWED_PROPERTIES list the same six.
-    # Pinning it keeps a later edit from quietly widening what counts as
-    # portable frontmatter.
+    # Copied from <https://agentskills.io/specification>; skills-ref's
+    # ALLOWED_FIELDS and Anthropic's quick_validate.py ALLOWED_PROPERTIES list the
+    # same six. Pinning it keeps a later edit from quietly widening portability.
     def test_the_spec_defines_exactly_these_six_fields(self) -> None:
         self.assertEqual(
             SPEC_FIELDS,

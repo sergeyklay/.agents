@@ -2,10 +2,8 @@
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
 """Aggregate cumulative per-message counters from JSON event streams.
-
 Valid only where records share a message id and counters are cumulative
-snapshots, so the reduction is a maximum grouped by (file, id).
-"""
+snapshots, so the reduction is a maximum grouped by (file, id)."""
 
 from __future__ import annotations
 

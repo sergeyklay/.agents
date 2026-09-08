@@ -3,9 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Reject the comment shapes AGENTS.md "Comments Explain Why" forbids.
 
-Reads every tracked Python and shell file. Docstrings count toward the block
-ceiling too, so moving narrative into one does not walk around it.
-"""
+Docstrings count too, so narrative moved into one does not walk around it."""
 
 from __future__ import annotations
 
@@ -18,7 +16,7 @@ import tokenize
 from pathlib import Path
 
 MAX_DENSITY = 0.35
-MAX_BLOCK = 5
+MAX_BLOCK = 3
 
 BANNER = re.compile(r"^#\s*[#=*-]\s*(?:[#=*-]\s*){2,}$")
 LABELED_BANNER = re.compile(r"^#\s*[#=*-]{2,}.*[#=*-]{2,}\s*$")

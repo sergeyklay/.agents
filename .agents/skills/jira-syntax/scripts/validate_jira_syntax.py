@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
-"""Validate Jira wiki markup syntax.
-
-Catches Markdown-in-Jira mistakes and structural problems: unclosed block
-macros, code blocks with no language, tables missing a header row.
-"""
+"""Validate Jira wiki markup syntax: Markdown-in-Jira mistakes and structural
+problems such as an unclosed block macro or a table with no header row."""
 
 from __future__ import annotations
 
@@ -165,10 +162,8 @@ def _check_heading_spacing(text: str) -> Iterable[Issue]:
 
 def _check_code_block_language(text: str) -> Iterable[Issue]:
     """Warn when at least one code block opens without a language identifier.
-
     Closing tags are bare ``{code}`` too, so a balanced tagged file has
-    ``bare == lang``, and ``bare > lang`` means an opening is missing one.
-    """
+    ``bare == lang``; ``bare > lang`` means an opening is missing one."""
     bare_openings = len(RE_CODE_OPENING_BARE.findall(text))
     lang_openings = len(RE_CODE_OPENING_LANG.findall(text))
     if bare_openings > lang_openings:

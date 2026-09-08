@@ -1,7 +1,6 @@
-# Gemini skips the orchestrator agents entirely: Gemini CLI 0.58.0 strips
-# agent-kind tools from subagent registries, so an orchestrator shipped as an
-# agent loses invoke_agent silently. The protocol ships as a top-level
-# command instead (see commands.bats).
+# Gemini CLI 0.58.0 strips agent-kind tools from subagent registries, so an
+# orchestrator shipped as an agent loses invoke_agent silently. The protocol
+# ships as a top-level command instead (see commands.bats).
 
 load 'test_helper'
 
@@ -13,10 +12,9 @@ load 'test_helper'
   assert_file "$TEST_HOME/.gemini/agents/architect.md"
 }
 
-# Skipping only stops writing: per-file views go through rsync without
-# --delete, so a copy from an earlier install survives frozen, still
-# advertising invoke_agent. The fresh-home case above passes trivially; this
-# is the one that matters for a machine that ran the old installer.
+# Skipping only stops writing: per-file views go through rsync without --delete,
+# so an earlier install's copy survives, still advertising invoke_agent. The
+# fresh-home case above passes trivially; this one covers the old installer.
 @test "a stale Gemini orchestrator is removed" {
   mkdir -p "$TEST_HOME/.gemini/agents"
   for agent in composer conductor; do
@@ -50,11 +48,9 @@ load 'test_helper'
   assert_file "$TEST_HOME/.gemini/agents/architect.md"
 }
 
-# A frontmatter mcp_servers block is registered straight into the subagent's
-# tool registry, ahead of the Kind.Agent filter that is Gemini's only guard
-# against agent recursion (local-executor.ts:177-197, 0.58.0), and nothing else
-# counts nesting depth. The docs spell the key mcpServers, which the strict
-# loader rejects onto stderr while the run still exits 0.
+# A frontmatter mcp_servers block bypasses the Kind.Agent filter, Gemini's only
+# guard against agent recursion (local-executor.ts:177-197, 0.58.0). The docs'
+# mcpServers spelling is rejected onto stderr while the run still exits 0.
 @test "no Gemini agent declares an inline MCP server" {
   run install_into --agents --gemini
   [ "$status" -eq 0 ]

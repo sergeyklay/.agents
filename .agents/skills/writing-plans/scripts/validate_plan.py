@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Validate an implementation plan produced by the writing-plans skill.
-
 Structural problems exit 1; budgets warn and never fail, for the reason
-validate_spec.py gives.
-"""
+validate_spec.py gives."""
 
 from __future__ import annotations
 

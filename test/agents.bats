@@ -33,3 +33,18 @@ load 'test_helper'
     assert_frontmatter "$TEST_HOME/.claude/agents/$agent.md" '  - TaskStop'
   done
 }
+
+# A `tools` list fails OpenCode's schema decode uncaught, so one agent file
+# takes all ten down; a canonical body reaches the view with templates clean.
+@test "OpenCode agent templates and views declare no tools key" {
+  run install_into --agents --opencode
+  [ "$status" -eq 0 ]
+  for template in "$ROOT"/templates/.opencode/agents/*.yaml; do
+    assert_file "$template"
+    assert_no_yaml_key "$template" 'tools'
+  done
+  for view in "$TEST_HOME"/.config/opencode/agents/*.md; do
+    assert_file "$view"
+    assert_no_frontmatter_key "$view" 'tools'
+  done
+}

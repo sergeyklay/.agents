@@ -3,9 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Output the next available ADR number(s) in docs/decisions/.
 
-Resolves the directory relative to this script rather than the working
-directory, so it works from anywhere; --decision-dir overrides.
-"""
+The directory resolves relative to this script, not the caller's cwd."""
 
 from __future__ import annotations
 

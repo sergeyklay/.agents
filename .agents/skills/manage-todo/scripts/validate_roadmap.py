@@ -40,10 +40,8 @@ def validate(path: str) -> list[str]:
     seen_incomplete = False  # tracks [x] before [ ] ordering within milestone
 
     for i, line in enumerate(lines, start=1):
-        # Check line width (skip blank lines, code fences, heading lines).
-        # The project convention targets ~90 chars with a hard limit of 96.
-        # Lines containing inline code (backtick-wrapped identifiers and
-        # commands) are exempt because breaking them harms copy-paste.
+        # The project convention targets ~90 chars with a hard limit of 96. Lines
+        # with inline code are exempt because breaking them harms copy-paste.
         if (
             line
             and not line.startswith("#")
@@ -113,10 +111,9 @@ def validate(path: str) -> list[str]:
                 errors.append(f"Line {i}: Duplicate task ID {task_id}")
             task_ids.add(task_id)
 
-            # Completion ordering: completed tasks generally precede
-            # incomplete ones, but some tasks (e.g., release automation)
-            # can be completed independently of milestone sequence. Report
-            # as a warning, not a hard violation.
+            # Completed tasks generally precede incomplete ones, but some
+            # (release automation, say) finish out of milestone sequence, so
+            # this warns rather than fails.
             if state == " ":
                 seen_incomplete = True
             elif state == "x" and seen_incomplete:

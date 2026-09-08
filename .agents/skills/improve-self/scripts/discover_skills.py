@@ -2,10 +2,8 @@
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
 """Discover installed Agent Skills across vendor directories.
-
 ``--vendors`` is required rather than defaulted, so an unknown name exits 2
-instead of silently scanning nothing. On a collision user scope wins.
-"""
+instead of silently scanning nothing. On a collision user scope wins."""
 
 from __future__ import annotations
 
@@ -22,11 +20,9 @@ from typing import Callable
 
 # --- Public constants ---------------------------------------------------------
 
-# The set of vendor names this script accepts as `--vendors`. Vendor names
-# differ between project and home scope on some platforms (notably GitHub
-# Copilot uses `.github/skills/` for project skills but `.copilot/skills/`
-# for user-level skills). All recognised names live in one set; the agent
-# decides which ones to pass based on what actually exists on the host.
+# Vendor names differ between project and home scope on some platforms (Copilot
+# uses `.github/skills/` for project skills, `.copilot/skills/` for user ones).
+# One set holds them all; the agent passes whichever exist on the host.
 SUPPORTED_VENDORS: frozenset[str] = frozenset(
     {
         "agents",  # OpenAI Codex; emerging cross-platform convention
@@ -50,10 +46,7 @@ FRONTMATTER_DELIMITER: str = "---"
 
 
 class Scope(enum.Enum):
-    """Where a skill was discovered; serialized as the ``type`` field.
-
-    ``project`` when it lives under the project root, ``user`` when in home.
-    """
+    """Where a skill was discovered; serialized as the ``type`` field."""
 
     PROJECT = "project"
     USER = "user"
@@ -62,9 +55,7 @@ class Scope(enum.Enum):
 def _abbreviate_home(path: Path, home: Path | None = None) -> str:
     """Return ``path`` with the home directory collapsed to ``~``, else as-is.
 
-    Keeps the literal home name out of the output while staying pasteable
-    into a shell, which expands a leading ``~``.
-    """
+    Keeps the literal home name out of the output while staying shell-pasteable."""
     home = home or Path.home()
     try:
         relative = path.relative_to(home)
@@ -76,10 +67,8 @@ def _abbreviate_home(path: Path, home: Path | None = None) -> str:
 @dataclass(frozen=True)
 class SkillEntry:
     """A successfully-discovered skill.
-
-    ``vendor`` and ``scope`` serialize as ``agent`` and ``type``.
-    ``project_root`` lets a project-scope path render relative to it.
-    """
+    ``vendor`` and ``scope`` serialize as ``agent`` and ``type``; ``project_root``
+    lets a project-scope path render relative to it."""
 
     vendor: str
     scope: Scope
@@ -127,10 +116,8 @@ class FrontmatterError(ValueError):
 
 def read_frontmatter_fields(skill_md: Path) -> tuple[str, str, str]:
     """Return ``(name, description, category)`` from a SKILL.md frontmatter.
-
-    Raises ``FrontmatterError`` when a required key is missing or unreadable.
-    ``category`` is optional: ``metadata.category``, then top-level, then "".
-    """
+    Raises ``FrontmatterError`` on a missing or unreadable required key.
+    ``category`` is optional: ``metadata.category``, then top-level, then ""."""
     try:
         text = skill_md.read_text(encoding="utf-8-sig", errors="replace")
     except OSError as exc:
@@ -180,9 +167,7 @@ def _extract_scalar(block: str, key: str) -> str:
 
 def _extract_nested_scalar(block: str, parent: str, child: str) -> str:
     """Return the value of ``child:`` nested one level under ``parent:``.
-
-    Stops at the next zero-indent key. Empty string when either is absent.
-    """
+    Stops at the next zero-indent key; empty string when either is absent."""
     lines = block.splitlines()
     parent_prefix = f"{parent}:"
     in_parent = False
@@ -217,10 +202,8 @@ def _extract_nested_scalar(block: str, parent: str, child: str) -> str:
 
 def _read_block_scalar(lines: Sequence[str], start: int) -> str:
     """Collect indented continuation lines and fold them for display.
-
     Folds whatever the YAML block style, because the output is for scanning
-    rather than round-tripping.
-    """
+    rather than round-tripping."""
     collected: list[str] = []
     base_indent: int | None = None
     for raw in lines[start:]:
@@ -313,10 +296,8 @@ def sort_entries(
     order_by: str,
 ) -> list[SkillEntry]:
     """Return ``entries`` sorted by ``order_by``, then by name.
-
     ``sorted`` is stable, so equal primary keys fall back to name order.
-    ``order_by`` must be a key of ``as_record()``; the CLI validates it.
-    """
+    ``order_by`` must be a key of ``as_record()``; the CLI validates it."""
     return sorted(
         entries,
         key=lambda e: (e.as_record()[order_by], e.name),
@@ -324,11 +305,9 @@ def sort_entries(
 
 
 def resolve_precedence(entries: Sequence[SkillEntry]) -> list[SkillEntry]:
-    """Drop project-scope entries whose name also exists at user scope.
-
+    """Drop project-scope entries whose name also exists at user scope, order kept.
     Home wins because that is what the agents load when both are present, and
-    emitting both would imply the project copy is live too. Order survives.
-    """
+    emitting both would imply the project copy is live too."""
     grouped: dict[str, list[SkillEntry]] = {}
     for entry in entries:
         grouped.setdefault(entry.name, []).append(entry)
@@ -395,10 +374,8 @@ DEFAULT_FIELDS: tuple[str, ...] = tuple(f for f in ALL_FIELDS if f not in OPT_IN
 
 def _select_fields(opt_ins: set[str]) -> tuple[str, ...]:
     """Return the active field list given the set of opted-in optional fields.
-
-    Preserves the canonical order from ``ALL_FIELDS`` so output schema is
-    deterministic regardless of which flags the caller passes.
-    """
+    Preserves ``ALL_FIELDS`` order, so the output schema is deterministic
+    whichever flags the caller passes."""
     return tuple(f for f in ALL_FIELDS if f not in OPT_IN_FIELDS or f in opt_ins)
 
 
@@ -415,10 +392,8 @@ def _xml_escape(text: str) -> str:
 
 def format_xml(entries: Sequence[SkillEntry], fields: Sequence[str]) -> str:
     """Render entries as ``<skills><skill>…</skill></skills>``.
-
     The default format: freeform description text needs no escaping, and it
-    matches Anthropic's guidance on structured prompt inputs.
-    """
+    matches Anthropic's guidance on structured prompt inputs."""
     if not entries:
         return "<skills/>"
     out: list[str] = ["<skills>"]
@@ -460,10 +435,8 @@ def format_markdown(entries: Sequence[SkillEntry], fields: Sequence[str]) -> str
 
 def format_csv(entries: Sequence[SkillEntry], fields: Sequence[str]) -> str:
     """Render entries as RFC 4180 CSV with a header row.
-
-    Quoting is the standard library's ``QUOTE_MINIMAL``. The header is
-    emitted even for empty input so the schema still reaches the caller.
-    """
+    Quoting is ``QUOTE_MINIMAL``. The header is emitted even for empty input,
+    so the schema still reaches the caller."""
     buf = io.StringIO()
     writer = csv.DictWriter(
         buf,

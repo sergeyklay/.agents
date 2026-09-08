@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Semantic audit of a Dependabot config against the repository manifests.
-
 Schema validation proves the keys are spelled right; it cannot tell that a
-pattern matches nothing or that two groups claim the same package.
-"""
+pattern matches nothing or that two groups claim the same package."""
 
 from __future__ import annotations
 
@@ -153,10 +151,8 @@ def config_updates(value: object) -> list[object] | None:
 
 def load_config(path: Path) -> object:
     """Parse a Dependabot config from YAML, or from JSON when given .json.
-
-    Accepting JSON removes the PyYAML requirement for callers that already
-    converted the file - step 1 of the skill produces exactly such a file.
-    """
+    JSON drops the PyYAML requirement for callers that already converted the
+    file, which is what step 1 of the skill produces."""
     text = path.read_text()
     if path.suffix == ".json":
         json_data: object = json.loads(text)
@@ -272,10 +268,8 @@ RESOLVERS: dict[str, Resolver] = {
 
 def matches(name: str, pattern: str) -> bool:
     """Dependabot patterns are case-insensitive wildcard globs; `*` spans `/`.
-
     fnmatchcase over pre-lowercased operands, because fnmatch applies
-    os.path.normcase and would behave differently on Windows.
-    """
+    os.path.normcase and would behave differently on Windows."""
     return fnmatch.fnmatchcase(name.lower(), pattern.lower())
 
 

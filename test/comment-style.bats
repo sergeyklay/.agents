@@ -98,15 +98,13 @@ PROBE
 # two
 # three
 # four
-# five
-# six
 @test "probe" {
   run true
 }
 PROBE
   run python3 "$GATE" "$PROBE"
   [ "$status" -eq 1 ]
-  assert_contains "$output" '6-line comment block'
+  assert_contains "$output" '4-line comment block'
 }
 
 @test "the comment gate allows a block at the ceiling" {
@@ -114,8 +112,6 @@ PROBE
 # one
 # two
 # three
-# four
-# five
 @test "probe" {
   run true
 }

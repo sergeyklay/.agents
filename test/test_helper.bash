@@ -95,12 +95,24 @@ assert_no_frontmatter() {
 
 # Both overlay paths pass a quoted, tagged or anchored key through unchanged,
 # and the host YAML parsers bind every such spelling as the same key.
+reads_top_level_key() {
+  local key
+  key=$(printf '%s' "$1" | sed 's/[][(){}.*+?|^$\\]/\\&/g')
+  grep -qE "^([!&][^[:space:]]*[[:space:]]+)*['\"]?${key}['\"]?[[:space:]]*:"
+}
+
 assert_no_frontmatter_key() {
   have_needle "$2" "the frontmatter keys of $1" || return 1
-  local key
-  key=$(printf '%s' "$2" | sed 's/[][(){}.*+?|^$\\]/\\&/g')
-  if frontmatter_of "$1" | grep -qE "^([!&][^[:space:]]*[[:space:]]+)*['\"]?${key}['\"]?[[:space:]]*:"; then
+  if frontmatter_of "$1" | reads_top_level_key "$2"; then
     fail "unexpected frontmatter key in $1: $2"
+  fi
+}
+
+# A vendor template is bare YAML with no `---` fences for frontmatter_of to find.
+assert_no_yaml_key() {
+  have_needle "$2" "the keys of $1" || return 1
+  if reads_top_level_key "$2" <"$1"; then
+    fail "unexpected key in $1: $2"
   fi
 }
 

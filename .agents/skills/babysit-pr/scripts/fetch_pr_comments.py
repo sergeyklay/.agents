@@ -2,10 +2,8 @@
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
 """Collect every reviewer comment for a GitHub pull request.
-
-Feedback splits across three endpoints plus folded `Suppressed comments`
-blocks; API `state` is always COMMENTED, so the verdict is the body first line.
-"""
+Feedback splits across three endpoints plus folded `Suppressed comments` blocks;
+`state` is always COMMENTED, so the verdict is the body's first line."""
 
 from __future__ import annotations
 
@@ -72,10 +70,8 @@ def _gh_repo() -> str:
 
 def _gh_api_paginated(endpoint: str, label: str) -> list[object]:
     """Fetch a paginated `gh api` endpoint and concatenate the pages.
-
-    For array endpoints `--paginate` emits successive JSON arrays back to
-    back rather than one wrapping array, so pages are walked with ``raw_decode``.
-    """
+    For array endpoints `--paginate` emits back-to-back JSON arrays rather than
+    one wrapping array, so pages are walked with ``raw_decode``."""
     result = subprocess.run(
         ["gh", "api", endpoint, "--paginate"],
         capture_output=True,
@@ -184,10 +180,8 @@ def _as_int(value: object) -> int | None:
 
 def verdict_from_body(body: str) -> str | None:
     """Return the reviewer's verdict: the body's first non-empty line.
-
-    A bot submits every review under the same API `state` and puts the verdict
-    in the body's opening heading, so `state` cannot tell approval from doubt.
-    """
+    A bot submits every review under the same API `state` and puts the verdict in
+    the body's opening heading, so `state` cannot tell approval from doubt."""
     for line in body.splitlines():
         stripped = line.strip()
         if stripped:
@@ -197,10 +191,8 @@ def verdict_from_body(body: str) -> str | None:
 
 def _block_end(lines: list[str], start: int) -> int:
     """Return the index at which the findings of a block stop.
-
-    The bot closes a block with a `- **Files reviewed:**` footer and wraps
-    it in `<details>`; either boundary, or the next heading, ends it.
-    """
+    The bot closes a block with a `- **Files reviewed:**` footer wrapped in
+    `<details>`; either boundary, or the next heading, ends it."""
     for index in range(start, len(lines)):
         stripped = lines[index].strip()
         if stripped.startswith(("#", "- **Files reviewed", "<details", "</details")):
@@ -233,10 +225,8 @@ def _parse_findings(lines: list[str]) -> list[Finding]:
 
 def suppressed_blocks(body: str) -> list[SuppressedBlock]:
     """Parse every `### Suppressed comments (N)` block out of a review body.
-
-    The declared N is kept as the bot wrote it so a caller can compare it
-    against the number of findings actually parsed.
-    """
+    N is kept as the bot wrote it, so a caller can compare it against the
+    findings that actually parsed."""
     lines = body.splitlines()
     blocks: list[SuppressedBlock] = []
     for index, line in enumerate(lines):

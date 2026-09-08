@@ -23,11 +23,9 @@ load 'test_helper'
   done
 }
 
-# OpenCode 1.18.27 derives subagent permissions and appends `task: deny` and
-# `todowrite: deny` unless the agent carries rules named literally that; a
-# blanket `"*": allow` resolves to a rule named `*` and does not satisfy it.
-# Without the spelled-out keys the tool is dropped silently and the agent
-# simply never delegates.
+# OpenCode 1.18.27 appends `task: deny` and `todowrite: deny` unless the agent
+# carries rules named literally that; a blanket `"*": allow` resolves to a rule
+# named `*` and does not satisfy it, so the agent silently never delegates.
 @test "OpenCode orchestrators keep the delegation protocol" {
   run install_into --agents --settings --opencode
   [ "$status" -eq 0 ]
@@ -56,11 +54,9 @@ load 'test_helper'
   ' "$TEST_HOME/.config/opencode/opencode.json" >/dev/null
 }
 
-# A view that pins no effort inherits the parent session's, so every view pins
-# one. Levels are per model: `GPT-5.5 (copilot)` offers no `max`, so the
-# architect pins `xhigh`, that model's ceiling. The loader accepts any string
-# without warning, so a level the model does not offer installs clean and
-# fails silently. Do not restore `max` without also changing the pinned model.
+# A view pinning no effort inherits the parent session's. Levels are per model:
+# `GPT-5.5 (copilot)` offers no `max`, so the architect pins `xhigh`, that
+# model's ceiling. The loader takes any string, so `max` needs a model change.
 @test "Copilot views pin a reasoning effort per model" {
   run install_into --agents --copilot
   [ "$status" -eq 0 ]
@@ -107,11 +103,9 @@ load 'test_helper'
   done
 }
 
-# The workflow's last step is the agent's final output. While that step was
-# the improve-self check, the agent closed on its own self-assessment and the
-# deliverable needed a second run. The report must end the list; the
-# self-assessment must remain a non-final step. A body dropping the
-# self-assessment would satisfy the first half alone.
+# The workflow's last step is the agent's final output: while that was the
+# improve-self check, the agent closed on its self-assessment and the
+# deliverable needed a second run. Assert the step survives, not just the end.
 @test "sleuth ends its workflow with the report" {
   run install_into --agents --claude
   [ "$status" -eq 0 ]
