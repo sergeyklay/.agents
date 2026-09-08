@@ -125,3 +125,76 @@ load 'test_helper'
   # The final step points at the output contract rather than restating it.
   assert_file_contains "$sleuth_agent" '## Report'
 }
+
+# The identifier a host dispatches a view by: its `name:`, else its filename.
+view_identifier() {
+  local name
+  name=$(frontmatter_of "$1" | sed -n 's/^name:[[:space:]]*//p' | head -n 1)
+  name=${name%\"}
+  name=${name#\"}
+  name=${name%\'}
+  name=${name#\'}
+  [ -n "$name" ] || name=$(basename -- "$1" "$2")
+  printf '%s\n' "$name"
+}
+
+# Copilot's `name:` key replaces the identifier its `agent` tool dispatches on,
+# so a body instructing delegation to `arch-review` reaches a CLI that knows
+# only `Reviewer` and answers `Unknown agent_type`. Vocabulary and delegation
+# capability both come from the installed tree, so an agent renamed tomorrow
+# is covered without editing this test.
+@test "delegating agent views name only identifiers their host dispatches" {
+  run install_into --agents
+  [ "$status" -eq 0 ]
+
+  local canonical='' source_body
+  for source_body in "$ROOT"/.agents/agents/*.md; do
+    canonical="$canonical$(basename -- "$source_body" .md) "
+  done
+  [ -n "$canonical" ] || fail "no canonical agent bodies to derive identifiers from"
+  local canonical_set=" $canonical"
+  local pattern
+  pattern=$(printf '%s' "${canonical% }" | tr ' ' '|')
+
+  local renaming_views=0
+  local spec host dir suffix delegates
+  for spec in \
+    "claude|$TEST_HOME/.claude/agents|.md|  - Agent" \
+    "copilot|$TEST_HOME/.copilot/agents|.agent.md|  - agent" \
+    "gemini|$TEST_HOME/.gemini/agents|.md|  - invoke_agent" \
+    "opencode|$TEST_HOME/.config/opencode/agents|.md|  task: allow"; do
+    IFS='|' read -r host dir suffix delegates <<<"$spec"
+
+    local vocabulary=' ' renames=0 view identifier
+    for view in "$dir"/*"$suffix"; do
+      [ -f "$view" ] || continue
+      identifier=$(view_identifier "$view" "$suffix")
+      vocabulary="$vocabulary$identifier "
+      case $canonical_set in
+      *" $identifier "*) ;;
+      *) renames=1 ;;
+      esac
+    done
+
+    local self named lowered
+    for view in "$dir"/*"$suffix"; do
+      [ -f "$view" ] || continue
+      frontmatter_of "$view" | grep -qxF -- "$delegates" || continue
+      [ "$renames" -eq 0 ] || renaming_views=$((renaming_views + 1))
+      self=$(basename -- "$view" "$suffix")
+      while read -r named; do
+        lowered=$(printf '%s' "$named" | tr '[:upper:]' '[:lower:]')
+        [ "$lowered" != "$self" ] || continue
+        case $vocabulary in
+        *" $named "*) ;;
+        *) fail "$host dispatches no \"$named\", named in $view" ;;
+        esac
+      done < <(grep -owiE -- "$pattern" "$view" | sort -u)
+    done
+  done
+
+  # Without a delegating view on a renaming host there is nothing left to
+  # catch, and every remaining comparison is an identifier against itself.
+  [ "$renaming_views" -gt 0 ] ||
+    fail "no delegating view was checked on a host that renames its agents"
+}
