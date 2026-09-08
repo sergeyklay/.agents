@@ -30,8 +30,8 @@ Before writing a comment, ask whether the same information can be expressed as a
 | "all cases are covered" | `default: assertNever(x)` inside the `switch` |
 
 ```typescript
-function assertNever(value: never): never {
-  throw new Error(`Unhandled case: ${value}`);
+function assertNever(value: never, message = 'Unhandled case'): never {
+  throw new Error(`${message}: ${String(value)}`);
 }
 
 type Shape =
@@ -49,6 +49,18 @@ function area(shape: Shape): number {
   }
 }
 ```
+
+The optional second argument keeps a call site's own wording (`assertNever(tier, 'Unexpected tier')`) without letting each site invent its own throw.
+
+### Introducing `assertNever` in a project that has none
+
+Add the helper once. Do not write the check inline instead.
+
+The inline form, `const exhaustive: never = value;` followed by a `throw`, performs the same compile-time check in three lines rather than one, names a new variable at every site, and gives every site its own error text. A project that starts with two of them ends with two spellings of one idea, and the next author has to guess which one is house style.
+
+Put it in its own module in the project's shared library directory, dependency-free, exported once, with a test beside it if the project tests its utilities. Do not redeclare it per file. Do not attach it to an existing utility module that carries third-party imports: a helper every layer imports MUST NOT pull a UI or framework dependency into a server-side module graph. Do not create a new top-level directory for four lines.
+
+Convert the project's existing inline sites in the same change, preserving each site's error wording through the second argument, so the project ends with one form rather than two.
 
 ## Naming
 
