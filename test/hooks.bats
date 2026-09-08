@@ -29,6 +29,10 @@ run_hook() {
     "$TEST_HOME/.claude/hooks/require_pr_template.sh"
 }
 
+run_hook_raw() {
+  printf '%s' "$1" | "$TEST_HOME/.claude/hooks/require_pr_template.sh"
+}
+
 @test "a body carrying the template headings is allowed" {
   install_hook
   assert_file "$TEST_HOME/$TEMPLATE_PATH"
@@ -85,6 +89,54 @@ TEMPLATE
     'gh pr create --draft' 'git commit -m "no body here"'; do
     run run_hook "$call"
     [ "$status" -eq 0 ] || fail "expected the hook to allow: $call"$'\n'"$output"
+  done
+}
+
+# The jq guard declines when jq is missing; a payload jq rejects leaves the
+# same absent decision, so it must not surface as a hook error either.
+@test "a payload jq cannot parse is left alone" {
+  install_hook
+  for payload in '{"tool_input":{' 'hello world' ''; do
+    run run_hook_raw "$payload"
+    [ "$status" -eq 0 ] || fail "expected exit 0 for: $payload"$'\n'"$output"
+    [ -z "$output" ] || fail "expected no output for: $payload"$'\n'"$output"
+  done
+}
+
+# The hook precedes every Bash call, so matching the substring anywhere
+# refuses the greps and commit messages that open no PR at all.
+@test "a quoted mention of gh pr is left alone" {
+  install_hook
+  for call in 'echo "gh pr create --body x"' \
+    'grep -rn "gh pr create --body" docs' \
+    'git commit -m "add gh pr create --body note"' \
+    "git log --grep='gh pr edit 86 --body-file x'" \
+    'gh pr create --fill && echo "--body"' \
+    'echo nogh pr create --body x'; do
+    run run_hook "$call"
+    [ "$status" -eq 0 ] || fail "expected the hook to allow: $call"$'\n'"$output"
+  done
+}
+
+# Every PR here is opened after a cd, so anchoring on the start of the whole
+# command would blind the hook to the form it exists to catch.
+@test "gh pr in command position is refused whatever precedes it" {
+  install_hook
+  for call in 'gh pr create --body x' \
+    'gh pr edit 86 --body x' \
+    'gh pr create --body=x' \
+    'gh pr create --body-file b.md' \
+    'cd /x && gh pr create --body x' \
+    'cd /x ; gh pr edit 86 --body x' \
+    'cat b.md | gh pr create --body x' \
+    '(cd /x && gh pr create --body x)' \
+    'cd /x && gh pr edit 86 --body-file b.md' \
+    'GH_TOKEN=t gh pr create --body x' \
+    'GH_TOKEN=t gh pr create --body-file b.md' \
+    $'cd /repo\ngh pr edit 86 --body x' \
+    $'cd /repo\nGH_TOKEN=t gh pr create --body-file b.md'; do
+    run run_hook "$call"
+    [ "$status" -eq 2 ] || fail "expected the hook to refuse: $call"$'\n'"$output"
   done
 }
 

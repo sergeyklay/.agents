@@ -12,18 +12,18 @@ TEMPLATE="$CLAUDE_DIR/skills/create-pr/assets/pull_request_template.md"
 # add a hook error to every Bash call, so decline rather than fail.
 command -v jq >/dev/null 2>&1 || exit 0
 
-command=$(jq -r '.tool_input.command // ""')
+# A payload jq rejects is the same absent decision, and set -e would turn
+# jq's failure into the per-call hook error the guard above avoids.
+command=$(jq -r '.tool_input.command // ""' 2>/dev/null) || exit 0
 
-case $command in
-*'gh pr create'* | *'gh pr edit'*) ;;
-*) exit 0 ;;
-esac
+# Matched anywhere, `gh pr create` refuses the echo or commit message that
+# merely quotes it, so anchor it to command position past any VAR=value.
+GH_PR_CALL='(^|[;&|(])[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*gh[[:space:]]+pr[[:space:]]+(create|edit)([[:space:]]|$)'
+printf '%s\n' "$command" | grep -qE "$GH_PR_CALL" || exit 0
 
 # --body-file shares this prefix, so one pattern covers both spellings.
-case $command in
-*--body*) ;;
-*) exit 0 ;;
-esac
+printf '%s\n' "$command" |
+  grep -qE '(^|[[:space:]])--body(-file)?([[:space:]=]|$)' || exit 0
 
 if [ ! -r "$TEMPLATE" ]; then
   printf 'Refusing gh pr: cannot read the PR template at %s\n' "$TEMPLATE" >&2
