@@ -108,7 +108,7 @@ Report: commit hash, files changed, insertions/deletions.
 `git branch -f` refuses to move a branch that is checked out, and `git reset --hard` is banned here because it takes every uncommitted change in the tree with it, including a parallel session's. Detach first, then move the ref:
 
 ```bash
-git branch <type>/<description> main   # name the commits before main stops pointing at them
+git branch "<type>/<description>" main   # name the commits before main stops pointing at them
 git switch --detach origin/main
 git branch -f main origin/main
 git switch main
