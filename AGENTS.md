@@ -29,39 +29,23 @@ These constraints protect canonical source files and installed host views.
 - Keep behavior shared by hosts in `.agents/`; add host-specific frontmatter or prompt fragments only in `templates/`.
 - Run `make validate` after changing a skill.
 - Follow the surrounding style. Do not refactor adjacent legacy content without a separate task.
+- Give each agent its own worktree off `main`: `git worktree add -b <branch> <dir> main`. One agent per worktree, and it owns that worktree alone.
+- Treat every other checkout of this repository as read-only, including the one the brief was written from.
+- Keep scratch files out of the repository, in a per-agent subdirectory of the session scratch directory.
+- Stage a new file with `git add <path>` before running any gate, for the reason under Gotchas: the file-selecting gates read `git ls-files`, skip an untracked file, and still exit 0.
+- Run a negative control before reporting any green. `prove-checks` owns what that requires.
 
 ### Ask first
 
 - Changes to host-wide settings in `.claude/`, `.gemini/`, or `.opencode/`.
 - Installer destinations or stale-file migration behavior.
 - Canonical skill content, its validators, or vendor templates.
+- Any write outside the assigned worktree.
 
 ### Never
 
 - Edit installed files under `$HOME` as a substitute for updating this source repository.
 - Copy a path-scoped Claude rule into OpenCode's global rules.
-
-## Delegation guardrails
-
-Reference this section from an agent brief. Do not retype it into the brief; `delegate-work` step 1 explains what four hand-copied copies cost.
-
-### Always
-
-- Give each agent its own worktree off `main`: `git worktree add -b <branch> <dir> main`. One agent per worktree, and it owns that worktree alone.
-- Treat every other checkout of this repository as read-only, including the one the brief was written from.
-- Keep scratch files out of the repository, in a per-agent subdirectory of the session scratch directory.
-- Stage a new file with `git add <path>` before running any gate, for the reason under Gotchas: the file-selecting gates read `git ls-files`, skip an untracked file, and still exit 0.
-- A deliverable git does not track is absent from every worktree. `/.tasks`, `/.plans`, `/.specs`, `/.reviews`, `/.findings`, and `/.issues` are listed in `.git/info/exclude`, so an agent assigned a change to one of them cannot commit it and must not reach into the main checkout for it. Write the change as a patch under the session scratch directory, name that path in the report, and leave applying it to the orchestrator.
-- Paste real command output as evidence: a gate's final line and its exit status, never a summary of them.
-- Run a negative control before reporting any green. `prove-checks` owns what that requires.
-- Write findings to a file as they accumulate, per the Working Agreement under "Reporting".
-
-### Ask first
-
-- Any write outside the assigned worktree.
-
-### Never
-
 - Run the destructive git commands the Working Agreement lists under "Surgical Changes". In a shared checkout they destroy a parallel session's uncommitted work.
 - Write into an installed host directory. `sync_context` in `scripts/install.sh` names them: `$HOME/.claude`, `$HOME/.codex`, `$HOME/.copilot`, `$HOME/.gemini`, `$HOME/.config/opencode`.
 - Revert or reformat a change you cannot trace to your own brief.
