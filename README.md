@@ -1,4 +1,4 @@
-<p align="center"><h1><code>.agents</code></h1></p>
+<h1 align="center"><code>.agents</code></h1>
 
 <div align="center">
 
