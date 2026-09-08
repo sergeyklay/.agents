@@ -41,9 +41,7 @@ def _as_dict(value: object) -> dict[str, object]:
 class Pr57PayloadTest(unittest.TestCase):
     """Assertions against a frozen capture of sergeyklay/.agents PR #57.
 
-    Review bodies are kept verbatim, so the real shape a reviewer bot emits
-    is exercised without reaching the network.
-    """
+    Bodies are verbatim, so the real bot output is exercised offline."""
 
     def setUp(self) -> None:
         fixture = _load_fixture()
@@ -298,10 +296,8 @@ class SuppressedBlockTest(unittest.TestCase):
 
     def test_every_heading_form_the_corpus_carries_is_recognized(self) -> None:
         """Forms taken from every review body in sergeyklay/.agents.
-
-        All 59 headings across 38 blocks are `path:line`; the path has
-        neither a guaranteed directory separator nor a file extension.
-        """
+        All 59 headings across 38 blocks are `path:line`, with the separator
+        and the extension both optional."""
         locations = [
             "Makefile:52",
             "AGENTS.md:9",
@@ -332,10 +328,8 @@ class SuppressedBlockTest(unittest.TestCase):
 
 class MismatchedCountPayloadTest(unittest.TestCase):
     """A block declaring three findings whose body carries only two.
-
-    The PR #57 capture cannot reach this state, so a parser that reports
-    its own count in place of the reviewer's stays green against it.
-    """
+    PR #57 cannot reach this state, so a parser reporting its own count in
+    place of the reviewer's stays green against it."""
 
     def setUp(self) -> None:
         review = {

@@ -22,11 +22,9 @@ assert_disabled_once() {
   printf '{"general": {"vimMode": true}}\n' >"$TEST_HOME/.gemini/settings.json"
   run install_into --settings --gemini
   [ "$status" -eq 0 ]
-  # Under the default approval mode a stage agent receives no write tool
-  # (measured on 0.58.0: 2 tools under `default`, 4 under `auto_edit`), and
-  # the pipeline reports success without writing anything.
-  # `general.defaultApprovalMode` is the only mitigation a settings file can
-  # hold; `"yolo"` there is discarded.
+  # Under `default` a stage agent gets no write tool (measured on 0.58.0: 2 tools
+  # against 4 under `auto_edit`) and the pipeline reports success writing nothing.
+  # `general.defaultApprovalMode` is the only settings fix; `"yolo"` is discarded.
   jq -e '.general.defaultApprovalMode == "auto_edit"' \
     "$TEST_HOME/.gemini/settings.json" >/dev/null
   # The merge is a deep merge, so a host-local sibling key survives it.
@@ -81,12 +79,12 @@ assert_disabled_once() {
 # `buildArgsPatterns` prefix-anchors by concatenating `"command":"` with the
 # pattern, so a top-level alternation anchors only its first branch (measured:
 # `echo sudo hello` was denied). Every commandRegex must open with a group.
-# The shape check filters matching lines, so a missing key passes vacuously;
-# assert the key exists before testing what it holds.
 @test "every installed commandRegex anchors its alternation" {
   run install_into --settings --gemini
   [ "$status" -eq 0 ]
   policy="$TEST_HOME/.gemini/policies/safe-commands.toml"
+  # The shape check below filters matching lines, so a missing key would pass
+  # vacuously.
   if ! grep -q '^commandRegex = ' "$policy"; then
     fail 'no commandRegex in installed policy'
   fi

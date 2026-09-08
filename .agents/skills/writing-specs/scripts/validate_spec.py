@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Validate a technical specification produced by the writing-specs skill.
-
 Budgets warn and never fail: gating on size halts specs that are correct but
-long, and teaches the agent to rename headings rather than write less.
-"""
+long, and teaches the agent to rename headings rather than write less."""
 
 from __future__ import annotations
 
@@ -21,11 +19,9 @@ REQUIRED_SECTIONS: list[tuple[str, str]] = [
     (r"^##\s+7\.\s+Acceptance criteria\s*$", "7. Acceptance criteria"),
 ]
 
-# Past this overrun the length is structural rather than a prose problem: the
-# skill's trimming rules recover a fraction of a dense spec, not a third of it,
-# so the question becomes scope. A ratio rather than a word margin, because
-# --document-word-limit is configurable and "significantly over" has to mean
-# the same at every setting of it.
+# Past this overrun the length is structural, not prose: the trimming rules
+# recover a fraction of a dense spec, not a third of it, so the question becomes
+# scope. A ratio, not a word margin, because --document-word-limit is configurable.
 SPLIT_GUIDANCE_RATIO = 1.3
 
 EM_OR_EN_DASH = re.compile(r"[–—]")
@@ -153,10 +149,9 @@ def validate(
         elif len(cleaned) < 20 and label != "Compliance check":
             errors.append(f"Empty or minimal section: {label}")
 
-    # Exception format, or the legacy nine-row table for older specs.
     # Gate on the header, not on the body: the header pattern's trailing \s*
-    # consumes the newline, so a section holding only whitespace yields an
-    # empty body and would otherwise skip every verdict check below.
+    # consumes the newline, so a whitespace-only section yields an empty body
+    # and would otherwise skip every verdict check below.
     compliance_body = section_body(content, COMPLIANCE_HEADER)
     if COMPLIANCE_HEADER.search(content):
         rows = table_data_rows(compliance_body)

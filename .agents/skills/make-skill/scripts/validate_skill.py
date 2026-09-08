@@ -2,10 +2,8 @@
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
 """Validate an Agent Skill directory against the agentskills.io specification.
-
-The bundled YAML parser covers the frontmatter subset only: block mappings and
-sequences, plain, quoted and block scalars. Flow style and anchors are not.
-"""
+The bundled YAML parser covers block mappings and sequences plus plain, quoted
+and block scalars; flow style and anchors are not supported."""
 
 from __future__ import annotations
 
@@ -114,10 +112,8 @@ _DELIMITER = "---"
 
 def split_frontmatter(text: str) -> tuple[str, str]:
     """Return (frontmatter_yaml, body) by splitting at '---' delimiters.
-
-    The opening delimiter must be the very first line of the file. Raises
-    FrontmatterError if the frontmatter block is missing or unterminated.
-    """
+    The opening delimiter must be the file's very first line. Raises
+    FrontmatterError when the block is missing or unterminated."""
     lines = text.splitlines(keepends=True)
     if not lines or lines[0].rstrip("\r\n") != _DELIMITER:
         raise FrontmatterError(
@@ -381,10 +377,8 @@ def _parse_block_indicator(text: str, line_no: int) -> tuple[str, str]:
 
 def _fold_block_lines(lines: list[str]) -> str:
     """Join lines per YAML '>' (folded) semantics.
-
-    A single line break between two non-empty lines becomes a space; each
-    empty line within the block contributes one literal newline to the output.
-    """
+    A single break between two non-empty lines becomes a space; each empty line
+    contributes one literal newline."""
     parts: list[str] = []
     blank_run = 0
     has_content = False
@@ -506,9 +500,7 @@ def _check_name(fm: dict[str, YamlValue], skill_dir: Path) -> Iterable[Issue]:
 def _is_user_invoked_only(fm: dict[str, YamlValue]) -> bool:
     """Detect frontmatter that prevents model invocation.
 
-    Recognizes Claude Code's `disable-model-invocation`. Codex's equivalent
-    lives in a sibling `agents/openai.yaml`, so it is not detected here.
-    """
+    Codex's equivalent lives in a sibling `agents/openai.yaml` and is not seen."""
     val = fm.get("disable-model-invocation")
     if isinstance(val, bool):
         return val
@@ -586,9 +578,7 @@ def _check_compatibility(fm: dict[str, YamlValue]) -> Iterable[Issue]:
 
 def _check_allowed_tools(fm: dict[str, YamlValue]) -> Iterable[Issue]:
     """Check that allowed-tools is a string, as the spec types it.
-
-    A YAML list parses on Claude Code and fails wherever the spec is enforced.
-    """
+    A YAML list parses on Claude Code and fails wherever the spec is enforced."""
     if "allowed-tools" not in fm:
         return
 
@@ -708,10 +698,8 @@ def _without_code_examples(text: str) -> str:
 
 def _resolve_within(base: Path, relative: str) -> Path | None:
     """Resolve a Markdown link target under ``base``, or None if it escapes.
-
-    ``Path.__truediv__`` drops the left operand for an absolute right one,
-    and ".." can walk out, so resolve first and require containment after.
-    """
+    ``Path.__truediv__`` drops the left operand for an absolute right one and ".."
+    can walk out, so resolve first and require containment after."""
     candidate = (base / relative).resolve()
     try:
         candidate.relative_to(base)

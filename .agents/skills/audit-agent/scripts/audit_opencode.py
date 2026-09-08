@@ -3,9 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Audit one OpenCode session tree from a read-only DB snapshot.
 
-Emits structural metadata, usage totals and counts, never prompts, text
-parts, tool inputs or tool outputs.
-"""
+Emits metadata and usage totals only: never prompts, text parts or tool I/O."""
 
 from __future__ import annotations
 

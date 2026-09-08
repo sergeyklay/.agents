@@ -3,9 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Audit one Claude Code session tree from its JSONL transcripts.
 
-Children split into spawned and forked; a fork carries no spawning tool-call id.
-Split on newlines only: splitlines() tears records on U+2028 and C0 separators.
-"""
+A fork carries no spawning tool-call id; that is what separates it from a spawn."""
 
 from __future__ import annotations
 
@@ -115,6 +113,8 @@ def _load(path: Path) -> Transcript:
 
     records: list[dict[str, object]] = []
     unparsable = 0
+    # Newlines only: splitlines() also tears records on U+2028 and the C0
+    # separators, which appear inside transcript payloads.
     for line in text.split("\n"):
         if not line.strip():
             continue
@@ -243,10 +243,8 @@ def _block_ids(records: list[dict[str, object]], kind: str, key: str) -> set[str
 
 def _meta(transcript: Path) -> tuple[dict[str, object], bool]:
     """Read a child's *.meta.json sibling, with whether it was readable.
-
-    An absent sidecar reads as readable-and-empty; an unparsable one does not,
-    because delegation mode comes from it and an empty dict scores it a fork.
-    """
+    Absent reads as readable-and-empty; unparsable does not, because delegation
+    mode comes from it and an empty dict would score the child a fork."""
     sidecar = transcript.with_suffix(".meta.json")
     if not sidecar.exists():
         return {}, True

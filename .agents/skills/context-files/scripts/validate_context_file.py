@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 # Copyright 2026 Serghei Iakovlev
 # SPDX-License-Identifier: Apache-2.0
-"""Validate a context file (AGENTS.md, CLAUDE.md, GEMINI.md).
-
-Checks the golden rule and structure: length, anti-patterns, required
-sections and boundary subsections, stale file references.
-"""
+"""Validate a context file (AGENTS.md, CLAUDE.md, GEMINI.md) against the golden
+rule and the required structure."""
 
 import re
 import sys
