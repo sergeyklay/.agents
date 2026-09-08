@@ -73,6 +73,8 @@ Pick exactly one. When two rows match, ask one question that decides between the
 
 ### Duplicate check (BLOCKING)
 
+This check and the parent-matching queries above are the create path's first searches over a populated project, and the first calls that can overflow the tool's output limit into a persisted file. Load [references/jira-recipes.md](references/jira-recipes.md) § "Querying large projects without overflowing tool output" before running either.
+
 Run before every `createJiraIssue` call. Use `searchJiraIssuesUsingJql` with a keyword query:
 
 ```
@@ -150,8 +152,9 @@ When creating multiple related tickets (e.g. an Epic with child Stories):
 
 1. Present all planned tickets as a numbered list (title, type, parent, labels) before creating any.
 2. Wait for user confirmation.
-3. Create sequentially. Report each ticket key after creation.
-4. Print a summary table when done:
+3. Order the batch so each ticket is created after every ticket its body names. Jira allocates keys in submission order, which is rarely the order the drafts sit in, and a parallel agent can take the numbers in between: the next free number is a guess, not a key. When two tickets reference each other and no order satisfies both, create with a placeholder naming the target (`BP-???(PNG/JPG drop zone)`), then substitute the real keys via `editJiraIssue` in one pass, reading each off the create report. A predicted key renders as a valid link, points at the wrong ticket, and nothing downstream checks it.
+4. Create sequentially. Report each ticket key after creation.
+5. Print a summary table when done:
 
 ```
 | # | Key | Type | Parent | Title | Labels |
