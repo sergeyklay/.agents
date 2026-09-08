@@ -31,9 +31,9 @@ If none of the above apply, ask the user for clarification or additional informa
 
 Skipped on **Revise-driven** and **Review-driven** routes.
 
-Delegate to the `architect` subagent. The architect uses the `writing-specs` skill, which contains the analysis protocol, output template, style rules, and quality checklist. Do not duplicate the skill's instructions in your prompt - the architect already has them.
+Delegate to the specification subagent, the one among the available subagents whose description names producing a specification document. It uses the `writing-specs` skill, which contains the analysis protocol, output template, style rules, and quality checklist. Do not duplicate the skill's instructions in your prompt - the specification subagent already has them.
 
-Your prompt to the architect must include:
+Your prompt to the specification subagent must include:
 
 1. The user's input - quoted **verbatim**, in full (tracker title and body when tracker-driven, raw description when description-driven)
 2. The quality directive: _"The specification must be rigorous enough to be implemented without further clarification. Close every architectural decision, anticipate edge cases, and leave zero ambiguity."_
@@ -43,43 +43,43 @@ Your prompt to the architect must include:
 6. The instruction to **report the exact file path** of the created spec in its Specification Summary
 7. The instruction: _"Run the `writing-specs` skill's structural validator (`scripts/validate_spec.py`) on the finished spec with `python3`, fix every `[x]` error, and re-run until it exits zero. In your Specification Summary, paste the validator's final run verbatim: its `[i]` metrics line, every remaining `[!]` warning, and its `VALIDATION_RESULT=` line. Do not summarize, renumber, or translate that output."_
 
-After the architect subagent returns, parse from its Specification Summary: the spec file path, the pasted validator output, and the metrics line. Confirm the file exists by reading it through delegation. Record the file path for subsequent phases.
+After the specification subagent returns, parse from its Specification Summary: the spec file path, the pasted validator output, and the metrics line. Confirm the file exists by reading it through delegation. Record the file path for subsequent phases.
 
-**Validator gate.** You cannot run the validator yourself, so gate on the evidence rather than on a self-reported number. The summary MUST contain the literal token `VALIDATION_RESULT=PASS`, which the validator prints for exactly this purpose so the gate does not depend on prose that may be reworded. Treat the gate as failed when that string is absent, when the summary reports a count of errors, or when it paraphrases the result instead of pasting it ("the validator was clean", "exit code 0" with no output). On failure, delegate once more to the `architect` with: _"Your Specification Summary did not carry the validator's verbatim final run. Run `scripts/validate_spec.py` from the `writing-specs` skill on `{spec_path}`, fix every `[x]` error, re-run until it prints `VALIDATION_RESULT=PASS`, and paste that run in full, including the `[i]` metrics line."_ If the second return still does not carry it, STOP EXECUTION and report what the architect did return. A spec that fails its own structural gate must not proceed to review.
+**Validator gate.** You cannot run the validator yourself, so gate on the evidence rather than on a self-reported number. The summary MUST contain the literal token `VALIDATION_RESULT=PASS`, which the validator prints for exactly this purpose so the gate does not depend on prose that may be reworded. Treat the gate as failed when that string is absent, when the summary reports a count of errors, or when it paraphrases the result instead of pasting it ("the validator was clean", "exit code 0" with no output). On failure, delegate once more to the specification subagent with: _"Your Specification Summary did not carry the validator's verbatim final run. Run `scripts/validate_spec.py` from the `writing-specs` skill on `{spec_path}`, fix every `[x]` error, re-run until it prints `VALIDATION_RESULT=PASS`, and paste that run in full, including the `[i]` metrics line."_ If the second return still does not carry it, STOP EXECUTION and report what the specification subagent did return. A spec that fails its own structural gate must not proceed to review.
 
-**Size is not a gate.** `[!]` warnings never block the pipeline; they are measurements. Carry the `[i]` metrics line into your own final report so the operator sees what the run produced. One warning does change your next action: when the document is over its word budget, instruct the architect in Phase 5 (or the user, if no revision cycle runs) to state whether the spec covers more than one independently shippable goal. If it does, the correct fix is to split the spec and respecify the narrowed scope, not to compress it.
+**Size is not a gate.** `[!]` warnings never block the pipeline; they are measurements. Carry the `[i]` metrics line into your own final report so the operator sees what the run produced. One warning does change your next action: when the document is over its word budget, instruct the specification subagent in Phase 5 (or the user, if no revision cycle runs) to state whether the spec covers more than one independently shippable goal. If it does, the correct fix is to split the spec and respecify the narrowed scope, not to compress it.
 
 ### Phase 3: Review Specification
 
 Skipped on **Revise-driven** route only.
 
-Delegate to the `arch-review` subagent. The arch-review agent selects the correct review skill from its task-signal table; for this pipeline, the signals are "a specification document is in scope" and "the question is about spec readiness, not about an implementation", which map to `review-spec`. State both signals explicitly in your prompt to force the correct skill selection.
+Delegate to the review subagent, the one among the available subagents whose description names reviewing a specification. It selects the correct review skill from its task-signal table; for this pipeline, the signals are "a specification document is in scope" and "the question is about spec readiness, not about an implementation", which map to `review-spec`. State both signals explicitly in your prompt to force the correct skill selection.
 
-Your prompt to the arch-review subagent must include:
+Your prompt to the review subagent must include:
 
 1. The exact spec file path from Phase 2 (or from Phase 1 on the Review-driven route)
 2. **Issue context (Tracker-driven route only).** If Phase 1 fetched a tracker reference, include the issue title, body, and labels verbatim under a clearly labeled section (e.g. `### Issue context (already fetched)`). State explicitly: _"This issue context was fetched in Phase 1; do not re-fetch via `gh issue view` or any tracker MCP tool."_ On Review-driven or Revise-driven routes there is no tracker reference - omit this section.
 3. The instruction: _"Load the `review-spec` skill. A specification is in scope and the question is whether the spec is ready to be implemented; this maps to `review-spec` per the agent's task-signal table. Do not load `review-arch` or `verify-impl`."_
-4. The instruction to ground the review in project context: agent-instruction files first, then the documentation index, architecture and product documents only for sections the feature touches, accepted decision records, language and style rules. Use the same reading order as the architect in Phase 2.
+4. The instruction to ground the review in project context: agent-instruction files first, then the documentation index, architecture and product documents only for sections the feature touches, accepted decision records, language and style rules. Use the same reading order as the specification subagent in Phase 2.
 5. The instruction to classify each finding using the skill's severity taxonomy (`review-spec` uses **Critical Issues**, **Significant Concerns**, **Observations**)
 6. The output path: `.reviews/Review-spec-{slug}.md` (the skill's default; do not override unless the project documents a different review directory)
 7. The instruction to end the subagent result with the **Subagent Return Line** in the format: `path=<review-file-path>; critical=N; significant=M; observations=K; verdict=approve|revise`. This is the machine-readable handoff.
 
-After the arch-review subagent returns, parse the Subagent Return Line. Extract `critical`, `significant`, `observations`, and `verdict`. Record them for Phase 4 and Phase 6.
+After the review subagent returns, parse the Subagent Return Line. Extract `critical`, `significant`, `observations`, and `verdict`. Record them for Phase 4 and Phase 6.
 
-If the return line is missing or malformed, fall back to reading the review artifact and counting findings under the skill's section headings (Critical Issues / Significant Concerns / Observations). Log the arch-review agent's protocol violation in the Phase 6 summary so the operator can fix it.
+If the return line is missing or malformed, fall back to reading the review artifact and counting findings under the skill's section headings (Critical Issues / Significant Concerns / Observations). Log the review subagent's protocol violation in the Phase 6 summary so the operator can fix it.
 
 ### Phase 4: Revise if Needed
 
 **Decision tree** based on the latest review's Subagent Return Line:
 
 1. **`critical=0` AND `significant=0`** - skip revision, proceed to Phase 5. Log the skip in the Phase 6 summary.
-2. **`critical=0` AND `significant>0`** - delegate ONE revision to `architect` (revision prompt below), then proceed to Phase 5. Do not re-review.
+2. **`critical=0` AND `significant>0`** - delegate ONE revision to the specification subagent (revision prompt below), then proceed to Phase 5. Do not re-review.
 3. **`critical>0`** - enter the **Critical Resolution Loop** (below).
 
 #### Revision prompt
 
-Every revision delegation to `architect` must include:
+Every revision delegation to the specification subagent must include:
 
 1. The spec file path
 2. The latest review file path
@@ -95,8 +95,8 @@ Apply the Phase 2 Validator gate after every revision: the summary MUST carry th
 Critical findings represent safety violations, data loss risks, or fundamental correctness defects. They MUST NOT propagate into an implementation plan.
 
 **Cycle 1:**
-1. Delegate revision to `architect` with the revision prompt above.
-2. After revision, delegate a **focused re-review** to `arch-review`. The re-review prompt must include:
+1. Delegate revision to the specification subagent with the revision prompt above.
+2. After revision, delegate a **focused re-review** to the review subagent. The re-review prompt must include:
    - The revised spec file path
    - The original review file path (for comparison)
    - **Issue context (Tracker-driven route only).** Re-include the title, body, and labels verbatim from Phase 1, with the same _"do not re-fetch"_ note as Phase 3 above.
@@ -107,8 +107,8 @@ Critical findings represent safety violations, data loss risks, or fundamental c
 **If `critical=0` after Cycle 1** - proceed to Phase 5.
 
 **If `critical>0`, enter Cycle 2:**
-1. Delegate a second revision to `architect`. The prompt must include the spec and the `-r2` re-review file path.
-2. After revision, delegate a **second focused re-review** to `arch-review`. The re-review prompt must include:
+1. Delegate a second revision to the specification subagent. The prompt must include the spec and the `-r2` re-review file path.
+2. After revision, delegate a **second focused re-review** to the review subagent. The re-review prompt must include:
    - The twice-revised spec file path
    - The `-r2` review file path (showing which Critical Issues remained after Cycle 1)
    - **Issue context (Tracker-driven route only).** Re-include the title, body, and labels verbatim from Phase 1, with the same _"do not re-fetch"_ note as Phase 3 above.
@@ -124,19 +124,19 @@ Critical findings represent safety violations, data loss risks, or fundamental c
 
 ### Phase 5: Create Implementation Plan
 
-Delegate to the `planner` subagent. The planner uses the `writing-plans` skill, which contains the phase catalog, step-anatomy rules, and validation script. Do not duplicate the skill's instructions in your prompt - the planner already has them.
+Delegate to the planning subagent, the one among the available subagents whose description names producing an implementation plan. It uses the `writing-plans` skill, which contains the phase catalog, step-anatomy rules, and validation script. Do not duplicate the skill's instructions in your prompt - the planning subagent already has them.
 
-Your prompt to the planner must include:
+Your prompt to the planning subagent must include:
 
 1. The final spec file path (after any revision)
 2. The instruction to load and follow the `writing-plans` skill verbatim, including its layering rules and its own validation gate
-3. The instruction to ground the plan in project context using the same reading order as the architect in Phase 2 (agent-instruction files, documentation index, architecture/product documents, decision records, language and style rules)
+3. The instruction to ground the plan in project context using the same reading order as the specification subagent in Phase 2 (agent-instruction files, documentation index, architecture/product documents, decision records, language and style rules)
 4. The instruction: _"Analyze the spec section by section. Produce an atomic, layer-aware plan that respects the project's documented ordering and dependencies. Tests are separate steps from implementation."_
 5. The output path: `.plans/Plan-{slug}.md` (or the project's documented plan directory if the agent-instruction files name a different one)
 6. The instruction to **report the exact file path** of the created plan in its Plan Summary
 7. The instruction: _"Honor the `writing-plans` skill's exit gates. If the skill bundles a structural validation script (e.g. `scripts/validate_plan.py`) and `python3` is available, run it as your own exit gate and fix any errors before returning. The orchestrator does NOT re-run the validator."_
 
-After the planner subagent returns, parse the reported plan file path. Record it for Phase 6.
+After the planning subagent returns, parse the reported plan file path. Record it for Phase 6.
 
 ### Phase 6: Summary
 
@@ -202,12 +202,12 @@ Refine the specification manually to address the unresolved findings, or rethink
 
 1. **Create the todo list first.** Tasks: Assess Input, Specify (conditional), Review (conditional), Revise (conditional), Plan, Summary. Mark each in-progress before starting and completed immediately after. When the todo tool is not available in your toolbox, track the same phases inline in your responses instead.
 2. **Never write files.** You are the coordinator. Specs, reviews, and plans are written exclusively by subagents.
-3. **Pass context faithfully.** Every subagent prompt must include enough context for the subagent to work independently. Quote the user's original input verbatim for the architect; pass the full spec path and review path for the arch-review agent and revision delegations; pass the final spec path for the planner.
+3. **Pass context faithfully.** Every subagent prompt must include enough context for the subagent to work independently. Quote the user's original input verbatim for the specification subagent; pass the full spec path and review path for the review subagent and revision delegations; pass the final spec path for the planning subagent.
 4. **Verify artifacts via delegation.** After each subagent completes, parse the reported file path from its summary or the Subagent Return Line. Do not open a terminal to verify file existence. If the expected path is missing from the result, retry the delegation once with explicit file path instructions. If the second attempt also fails, report the failure and STOP.
 5. **Never skip Phase 3 on a Tracker-driven or Description-driven route.** Every newly drafted specification gets reviewed before planning, regardless of perceived simplicity.
 6. **Revision depth is severity-gated.** Significant-only findings get exactly one revision, no re-review. Critical findings enter the Critical Resolution Loop with up to 2 revision cycles, each followed by a focused re-review. Unresolvable Critical findings halt the pipeline. This balances thoroughness against loop prevention.
 7. **Slug consistency is the traceability contract.** The same `{slug}` MUST appear in every artifact path across the pipeline run. Mismatches break downstream tooling and audit trails.
 8. **One pipeline run, one feature.** Do not batch multiple tracker references or feature requests into a single composer run.
-9. **No post-processing verification.** After the planner returns success, do NOT run validators, formatters, linters, or any additional commands yourself. Validators are the responsibility of the subagent whose context is fresh: the architect runs the writing-specs validator as a revision exit gate, the planner runs the writing-plans validator as its own exit gate.
+9. **No post-processing verification.** After the planning subagent returns success, do NOT run validators, formatters, linters, or any additional commands yourself. Validators are the responsibility of the subagent whose context is fresh: the specification subagent runs the writing-specs validator as a revision exit gate, the planning subagent runs the writing-plans validator as its own exit gate.
 10. **Respect route decisions.** If Phase 1 routes to "Plan-already-exists", do not attempt to redo planning; recommend the `conductor` agent and STOP. If a skip route is chosen (Review-driven, Revise-driven), do not re-execute the skipped phases for any reason.
 11. **Read each artifact once.** The Subagent Return Line and the subagent's summary are the handoff: they carry the artifact paths, the finding counts, and the verdict. Once a spec, review, or plan is in your context, do not read it again. An unchanged file returns nothing new, and every re-read costs a full context round trip. Read a path a second time only after a subagent reports writing to it. To check one line, one heading, or whether a finding survived a revision, search the file's content with the search tool in your toolbox rather than pulling the whole file into context. To locate an artifact whose exact name you do not know, search by filename.
