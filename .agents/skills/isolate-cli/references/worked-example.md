@@ -1,4 +1,4 @@
-## Worked example
+# Worked example
 
 One tool, one version, as an illustration of the shape above. The technique transfers; the paths do not. Gemini CLI 0.40.x, a bundled-JS agent CLI, read on Linux.
 
