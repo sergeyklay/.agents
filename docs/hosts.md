@@ -26,7 +26,7 @@ VS Code Copilot can load `~/.claude/CLAUDE.md` when `chat.useClaudeMdFile` is en
 
 Copilot CLI reads personal assets only from `~/.copilot/skills/`, so `--commands` installs each command as `skills/<name>/SKILL.md` rather than into a commands directory of its own. Invocation is unchanged: `/<name>`, the same spelling the other hosts use. Earlier versions wrote `~/.copilot/prompts/<name>.prompt.md`, which no Copilot CLI version reads; `--commands` now removes those files and leaves any prompt file of your own in place.
 
-## Rules on opencode
+## Rules on OpenCode
 
 opencode has no path-scoped instructions. Rules with a Claude `paths` overlay remain Claude/Copilot-only; the rest install to `~/.config/opencode/rules/`. The Working Agreement loads from `~/.config/opencode/AGENTS.md`.
 
