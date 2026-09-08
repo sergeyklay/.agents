@@ -37,7 +37,7 @@ LEGACY_BANNERS = {
 
 def tracked_sources(root: Path) -> list[str]:
     result = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "--", "*.py", "*.sh", "*.bats"],
+        ["git", "-C", str(root), "ls-files", "--", "*.py", "*.sh", "*.bash", "*.bats"],
         capture_output=True,
         text=True,
         check=True,
