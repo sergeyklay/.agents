@@ -31,7 +31,7 @@ If none of the above apply, ask the user for clarification or additional informa
 
 Skipped on **Revise-driven** and **Review-driven** routes.
 
-Delegate to the specification subagent, the one among the available subagents whose description names producing a specification document. It uses the `writing-specs` skill, which contains the analysis protocol, output template, style rules, and quality checklist. Do not duplicate the skill's instructions in your prompt - the specification subagent already has them.
+Delegate to the specification subagent, the one whose description names producing a specification document. It uses the `writing-specs` skill, which contains the analysis protocol, output template, style rules, and quality checklist. Do not duplicate the skill's instructions in your prompt - the specification subagent already has them.
 
 Your prompt to the specification subagent must include:
 
@@ -53,7 +53,7 @@ After the specification subagent returns, parse from its Specification Summary: 
 
 Skipped on **Revise-driven** route only.
 
-Delegate to the review subagent, the one among the available subagents whose description names reviewing a specification. It selects the correct review skill from its task-signal table; for this pipeline, the signals are "a specification document is in scope" and "the question is about spec readiness, not about an implementation", which map to `review-spec`. State both signals explicitly in your prompt to force the correct skill selection.
+Delegate to the review subagent, the one whose description names reviewing a specification. It selects the correct review skill from its task-signal table; for this pipeline, the signals are "a specification document is in scope" and "the question is about spec readiness, not about an implementation", which map to `review-spec`. State both signals explicitly in your prompt to force the correct skill selection.
 
 Your prompt to the review subagent must include:
 
@@ -124,7 +124,7 @@ Critical findings represent safety violations, data loss risks, or fundamental c
 
 ### Phase 5: Create Implementation Plan
 
-Delegate to the planning subagent, the one among the available subagents whose description names producing an implementation plan. It uses the `writing-plans` skill, which contains the phase catalog, step-anatomy rules, and validation script. Do not duplicate the skill's instructions in your prompt - the planning subagent already has them.
+Delegate to the planning subagent, the one whose description names producing an implementation plan. It uses the `writing-plans` skill, which contains the phase catalog, step-anatomy rules, and validation script. Do not duplicate the skill's instructions in your prompt - the planning subagent already has them.
 
 Your prompt to the planning subagent must include:
 
