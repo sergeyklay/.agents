@@ -42,20 +42,21 @@ function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-// A schema node lists its children under `properties`, or accepts any name
-// under `additionalProperties` and hands the child an opaque `ref` this schema
-// does not expand. Both stop the descent, so each line names the deepest path
-// the schema can still rule on.
+function childNodeFor(node, name) {
+  return node.properties?.[name] ?? node.additionalProperties;
+}
+
+// An `additionalProperties` child is an opaque `ref` this schema does not
+// expand, so each line names the deepest path the schema can still rule on.
 function* keyVerdicts(value, node, path) {
-  const named = node.properties;
-  const wildcard = node.additionalProperties;
-  if (!isRecord(value) || (!named && !wildcard)) {
+  const listsChildren = Boolean(node.properties || node.additionalProperties);
+  if (!isRecord(value) || !listsChildren) {
     yield `known\t${path}`;
     return;
   }
   for (const [name, child] of Object.entries(value)) {
     const childPath = path ? `${path}.${name}` : name;
-    const childNode = named?.[name] ?? wildcard;
+    const childNode = childNodeFor(node, name);
     if (childNode) {
       yield* keyVerdicts(child, childNode, childPath);
     } else {
