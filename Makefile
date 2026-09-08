@@ -95,12 +95,17 @@ fmt-shell: ## Fail if any tracked shell script needs shfmt reformatting
 	$(SHFMT) --version; \
 	git ls-files -z -- '*.sh' '*.bash' '*.bats' | xargs -0 $(SHFMT) -d --
 
+.PHONY: lint-markdown
+lint-markdown: ## Lint README and docs with markdownlint-cli2
+	@git ls-files -z -- 'README.md' ':(glob)docs/*.md' ':(glob)docs/**/*.md' | xargs -0 \
+		$(MARKDOWNLINT) --
+
 # ── Gates ──────────────────────────────────────────────────────────────────────
 
 ##@ Gates
 
 .PHONY: check
-check: validate test typecheck lint lint-shell fmt-shell install-test ## Run every CI gate from ci.yml locally
+check: validate test typecheck lint lint-shell fmt-shell lint-markdown install-test ## Run every CI gate from ci.yml locally
 
 .PHONY: install-test
 install-test: ## Run the installer test suite with bats
@@ -141,5 +146,6 @@ endif
 		'SHELLCHECK'           ' shellcheck binary for lint-shell' \
 		'SHFMT'                ' shfmt binary for fmt-shell' \
 		'BATS'                 ' bats binary for install-test' \
+		'MARKDOWNLINT'         ' markdownlint-cli2 command for lint-markdown' \
 		'NO_COLOR'             ' Disable color output (https://no-color.org/)'
 	@printf '\n'

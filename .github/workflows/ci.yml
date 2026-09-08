@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
 name: CI
 
 on:
@@ -9,6 +10,18 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
+
+env:
+  NODEJS_VERSION: 24.20.0
+
+  SHFMT_VERSION: 3.14.0
+  SHFMT_SHA: fe42021c7272ef2d67ea36cbc3031683c625d0badec733ef3a57b567246a0b66
+
+  BATS_VERSION: 1.12.0
+  BATS_SHA: e36b020436228262731e3319ed013d84fcd7c4bd97a1b34dee33d170e9ae6bab
+
+  GEMINI_CLI_VERSION: 0.58.0
+  GEMINI_CLI_SHA: 8ffeb9e7edddffb054764d00749f39e8cc9804ca9b38b9093f906dd2157322ae
 
 jobs:
   validate:
@@ -78,6 +91,15 @@ jobs:
         shell: bash
         run: make lint
 
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODEJS_VERSION }}
+
+      - name: Lint Markdown files
+        shell: bash
+        run: make lint-markdown
+
   shellcheck:
     name: Portability
     runs-on: ubuntu-latest
@@ -114,9 +136,6 @@ jobs:
           echo "$SHFMT_SHA  ${HOME}/.local/bin/shfmt" | sha256sum --check -
           chmod +x "${HOME}/.local/bin/shfmt"
           echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
-        env:
-          SHFMT_VERSION: 3.14.0
-          SHFMT_SHA: fe42021c7272ef2d67ea36cbc3031683c625d0badec733ef3a57b567246a0b66
 
       - name: Check shell script formatting
         shell: bash
@@ -141,14 +160,11 @@ jobs:
           echo "${BATS_SHA}  ${RUNNER_TEMP}/bats.tar.gz" | sha256sum --check -
           tar -xzf "${RUNNER_TEMP}/bats.tar.gz" -C "${RUNNER_TEMP}"
           echo "${RUNNER_TEMP}/bats-core-${BATS_VERSION}/bin" >> "${GITHUB_PATH}"
-        env:
-          BATS_VERSION: 1.12.0
-          BATS_SHA: e36b020436228262731e3319ed013d84fcd7c4bd97a1b34dee33d170e9ae6bab
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24.20.0
+          node-version: ${{ env.NODEJS_VERSION }}
 
       - name: Install the Gemini CLI
         shell: bash
@@ -162,9 +178,6 @@ jobs:
           ln -s "${RUNNER_TEMP}/gemini-cli/package/bundle/gemini.js" \
             "${RUNNER_TEMP}/gemini-bin/gemini"
           echo "${RUNNER_TEMP}/gemini-bin" >> "${GITHUB_PATH}"
-        env:
-          GEMINI_CLI_VERSION: 0.58.0
-          GEMINI_CLI_SHA: 8ffeb9e7edddffb054764d00749f39e8cc9804ca9b38b9093f906dd2157322ae
 
       - name: Run the installer test suite
         shell: bash
