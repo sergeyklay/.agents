@@ -33,8 +33,11 @@ fi
 # The body reaches us quoted, with newlines and apostrophes intact, so the
 # whole command line is searched rather than unquoted into an argument.
 body=$command
-body_file=$(printf '%s' "$command" |
-  sed -n "s/.*--body-file[ =]*['\"]\{0,1\}\([^'\" ]*\).*/\1/p")
+# A quoted path runs to its closing quote; only a bare path ends at a space.
+body_file=$(printf '%s' "$command" | sed -n \
+  -e "s/.*--body-file[ =]*\"\([^\"]*\)\".*/\1/p;t" \
+  -e "s/.*--body-file[ =]*'\([^']*\)'.*/\1/p;t" \
+  -e "s/.*--body-file[ =]*\([^'\" ]*\).*/\1/p")
 if [ -n "$body_file" ] && [ -r "$body_file" ]; then
   body="$body
 $(cat -- "$body_file")"

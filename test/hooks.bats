@@ -56,6 +56,38 @@ run_hook_raw() {
   done
 }
 
+@test "a body file whose quoted path holds a space is read" {
+  install_hook
+  spaced="$BATS_TEST_TMPDIR/My PR body.md"
+  cp "$TEST_HOME/$TEMPLATE_PATH" "$spaced"
+  cp "$TEST_HOME/$TEMPLATE_PATH" "$BATS_TEST_TMPDIR/plain.md"
+  for call in "gh pr create --body-file \"$spaced\"" \
+    "gh pr create --body-file '$spaced'" \
+    "gh pr create --body-file=\"$spaced\"" \
+    "gh pr create --body-file $BATS_TEST_TMPDIR/plain.md"; do
+    run run_hook "$call"
+    [ "$status" -eq 0 ] || fail "expected the hook to allow: $call"$'\n'"$output"
+  done
+}
+
+# A hook that refused nothing would satisfy the test above, so the same
+# spellings must still catch a body file that omits the headings.
+@test "a body file whose quoted path holds a space is still judged" {
+  install_hook
+  heading=$(grep -m1 '^#' "$TEST_HOME/$TEMPLATE_PATH")
+  spaced="$BATS_TEST_TMPDIR/No headings.md"
+  printf 'Implementation Details: rewrote the parser.\n' >"$spaced"
+  cp "$spaced" "$BATS_TEST_TMPDIR/plain.md"
+  for call in "gh pr create --body-file \"$spaced\"" \
+    "gh pr create --body-file '$spaced'" \
+    "gh pr create --body-file=\"$spaced\"" \
+    "gh pr create --body-file $BATS_TEST_TMPDIR/plain.md"; do
+    run run_hook "$call"
+    [ "$status" -eq 2 ] || fail "expected the hook to refuse: $call"$'\n'"$output"
+    assert_contains "$output" "$heading"
+  done
+}
+
 # The shipped template carries no fenced block, so the fixture supplies one.
 @test "a hash inside a fenced template block is not a heading" {
   install_hook
