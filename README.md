@@ -1,6 +1,14 @@
-# `.agents`
+<p align="center">
+  <code>.agents</code>
+</p>
+
+<div align="center">
 
 **One set of rules, skills, and agents that follows you across every AI coding tool.**
+
+[![CI](https://github.com/sergeyklay/.agents/actions/workflows/ci.yml/badge.svg)](https://github.com/sergeyklay/.agents/actions/workflows/ci.yml)
+
+</div>
 
 Clone it once, run the installer, and Claude Code, Codex, Copilot, Gemini, and opencode all read the same instructions - no copy-pasting between config directories, no drift between machines.
 
