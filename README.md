@@ -1,4 +1,8 @@
-<h1 align="center"><code>.agents</code></h1>
+<!-- markdownlint-configure-file {"MD033": {"allowed_elements": ["h1", "img", "div"]}} -->
+
+<h1 align="center">
+  <img src="docs/assets/banner.png" alt=".agents — From idea to shipped code: plan, build, verify, and ship with shared context, skills, commands, and agents." width="100%">
+</h1>
 
 <div align="center">
 
