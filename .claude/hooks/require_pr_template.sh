@@ -18,7 +18,7 @@ command=$(jq -r '.tool_input.command // ""' 2>/dev/null) || exit 0
 
 # Matched anywhere, `gh pr create` refuses the echo or commit message that
 # merely quotes it, so anchor it to command position past any VAR=value.
-GH_PR_CALL='(^|[;&|(])[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*gh[[:space:]]+pr[[:space:]]+(create|edit)([[:space:]]|$)'
+GH_PR_CALL='(^|[;&|(`])[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*gh[[:space:]]+pr[[:space:]]+(create|edit)([[:space:]]|$)'
 printf '%s\n' "$command" | grep -qE "$GH_PR_CALL" || exit 0
 
 # --body-file shares this prefix, so one pattern covers both spellings.

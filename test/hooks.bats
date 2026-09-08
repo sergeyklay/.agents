@@ -130,6 +130,8 @@ TEMPLATE
     'cd /x ; gh pr edit 86 --body x' \
     'cat b.md | gh pr create --body x' \
     '(cd /x && gh pr create --body x)' \
+    "out=\`gh pr create --body x\`" \
+    "\`gh pr edit 86 --body-file b.md\`" \
     'cd /x && gh pr edit 86 --body-file b.md' \
     'GH_TOKEN=t gh pr create --body x' \
     'GH_TOKEN=t gh pr create --body-file b.md' \
