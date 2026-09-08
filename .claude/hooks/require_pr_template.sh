@@ -19,6 +19,8 @@ command=$(jq -r '.tool_input.command // ""' 2>/dev/null) || exit 0
 # Matched anywhere, `gh pr create` refuses the echo or commit message that
 # merely quotes it, so anchor it to command position past any VAR=value.
 GH_PR_CALL='(^|[;&|(`])[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*gh[[:space:]]+pr[[:space:]]+(create|edit)([[:space:]]|$)'
+# The match is deliberately incomplete: ahead of every Bash call, refusing
+# a legitimate command costs more than letting an off-template PR through.
 printf '%s\n' "$command" | grep -qE "$GH_PR_CALL" || exit 0
 
 # --body-file shares this prefix, so one pattern covers both spellings.
@@ -38,7 +40,10 @@ body_file=$(printf '%s' "$command" | sed -n \
   -e "s/.*--body-file[ =]*\"\([^\"]*\)\".*/\1/p;t" \
   -e "s/.*--body-file[ =]*'\([^']*\)'.*/\1/p;t" \
   -e "s/.*--body-file[ =]*\([^'\" ]*\).*/\1/p")
-if [ -n "$body_file" ] && [ -r "$body_file" ]; then
+# An unreadable --body-file leaves an absent decision, not a failed one:
+# judging the command line alone would refuse a call it never saw.
+if [ -n "$body_file" ]; then
+  [ -r "$body_file" ] || exit 0
   body="$body
 $(cat -- "$body_file")"
 fi

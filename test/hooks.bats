@@ -88,6 +88,20 @@ run_hook_raw() {
   done
 }
 
+# The hook expands no variable and no tilde, so an extracted path may name
+# nothing. Refusing there would block a call whose body was never read.
+@test "a --body-file the hook cannot read is left alone" {
+  install_hook
+  cp "$TEST_HOME/$TEMPLATE_PATH" "$BATS_TEST_TMPDIR/My PR body.md"
+  for call in "gh pr create --body-file \"\$HOME/b.md\"" \
+    'gh pr create --body-file ~/b.md' \
+    "gh pr create --body-file $BATS_TEST_TMPDIR/My\\ PR\\ body.md" \
+    "gh pr create --body-file $BATS_TEST_TMPDIR/nosuch.md"; do
+    run run_hook "$call"
+    [ "$status" -eq 0 ] || fail "expected the hook to allow: $call"$'\n'"$output"
+  done
+}
+
 # The shipped template carries no fenced block, so the fixture supplies one.
 @test "a hash inside a fenced template block is not a heading" {
   install_hook
@@ -154,21 +168,25 @@ TEMPLATE
 # command would blind the hook to the form it exists to catch.
 @test "gh pr in command position is refused whatever precedes it" {
   install_hook
+  # An unreadable --body-file declines now, so the anchor is probed with a
+  # file that exists and simply omits the headings.
+  bodyless=$BATS_TEST_TMPDIR/b.md
+  printf 'no headings here\n' >"$bodyless"
   for call in 'gh pr create --body x' \
     'gh pr edit 86 --body x' \
     'gh pr create --body=x' \
-    'gh pr create --body-file b.md' \
+    "gh pr create --body-file $bodyless" \
     'cd /x && gh pr create --body x' \
     'cd /x ; gh pr edit 86 --body x' \
     'cat b.md | gh pr create --body x' \
     '(cd /x && gh pr create --body x)' \
     "out=\`gh pr create --body x\`" \
-    "\`gh pr edit 86 --body-file b.md\`" \
-    'cd /x && gh pr edit 86 --body-file b.md' \
+    "\`gh pr edit 86 --body-file \"$bodyless\"\`" \
+    "cd /x && gh pr edit 86 --body-file $bodyless" \
     'GH_TOKEN=t gh pr create --body x' \
-    'GH_TOKEN=t gh pr create --body-file b.md' \
+    "GH_TOKEN=t gh pr create --body-file $bodyless" \
     $'cd /repo\ngh pr edit 86 --body x' \
-    $'cd /repo\nGH_TOKEN=t gh pr create --body-file b.md'; do
+    $'cd /repo\n'"GH_TOKEN=t gh pr create --body-file $bodyless"; do
     run run_hook "$call"
     [ "$status" -eq 2 ] || fail "expected the hook to refuse: $call"$'\n'"$output"
   done
