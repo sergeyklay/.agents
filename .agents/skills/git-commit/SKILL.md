@@ -103,6 +103,19 @@ Report: commit hash, files changed, insertions/deletions.
 | Pre-commit hook fails | Read the error, fix the issue, create a NEW commit (do not amend) |
 | Wrong files committed | `git reset --soft HEAD~1`, re-stage correctly, commit again       |
 
+### Rewinding an unpushed protected branch
+
+`git branch -f` refuses to move a branch that is checked out, and `git reset --hard` is banned here because it takes every uncommitted change in the tree with it, including a parallel session's. Detach first, then move the ref:
+
+```bash
+git branch <type>/<description> main   # name the commits before main stops pointing at them
+git switch --detach origin/main
+git branch -f main origin/main
+git switch main
+```
+
+Verify: `git rev-parse main` equals `git rev-parse origin/main`, the new branch is ahead by the rewound commits, and `git status --short` still shows everything it showed before.
+
 ## Handoff
 
 If the user also asked to create a PR, invoke the `creating-pr` skill after committing. Do not hand-roll `gh pr create` - the skill has a required template.

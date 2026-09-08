@@ -34,6 +34,7 @@ These constraints protect canonical source files and installed host views.
 - Keep scratch files out of the repository, in a per-agent subdirectory of the session scratch directory.
 - Stage a new file with `git add <path>` before running any gate, for the reason under Gotchas: the file-selecting gates read `git ls-files`, skip an untracked file, and still exit 0.
 - Run a negative control before reporting any green. `prove-checks` owns what that requires.
+- Land a delegate's branch only in the form you were asked for. Verification finishes the work; it does not authorize merging, pushing, or opening a PR. When the form was not named, ask before the branch moves anywhere.
 
 ### Ask first
 
