@@ -35,7 +35,7 @@ Unexpected key(s) in SKILL.md frontmatter: argument-hint. Allowed properties are
 
 Claude Code's own documentation quotes that message verbatim and applies it to claude.ai skill uploads, the Skills API, and `package_skill.py`.
 
-That script is forked, and the forks disagree about `compatibility`. Codex CLI 0.153.2 ships its own copy at `~/.codex/skills/.system/skill-creator/scripts/quick_validate.py:40` whose allow-list is five names, with `compatibility` absent. The same skill through that copy fails differently:
+That script is forked, and the forks disagree about `compatibility`. Codex CLI 0.153.4 ships its own copy at `~/.codex/skills/.system/skill-creator/scripts/quick_validate.py:40` whose allow-list is five names, with `compatibility` absent. The same skill through that copy fails differently:
 
 ```plaintext
 Unexpected key(s) in SKILL.md frontmatter: argument-hint, compatibility. Allowed properties are: allowed-tools, description, license, metadata, name
@@ -175,7 +175,7 @@ metadata:
 
 `version` is not a frontmatter field: not in the spec, not in Claude Code's table. Nest it under `metadata`, as the spec's own example does. A top-level `version:` fails `package_skill.py` and every claude.ai upload.
 
-Codex reads `metadata.short-description` and prefers it over `description` in its model-visible skill listing.
+Codex parses `metadata.short-description` but does not use it in the model-visible skill listing: measured on 0.153.4, the listing renders `description` at both a truncating and a saturated budget. Tuning it changes nothing the model sees.
 
 ## allowed-tools
 
@@ -237,13 +237,13 @@ Every host loads a listing of installed skill names and descriptions into each s
 | Host        | Budget                                                                        | What happens over budget                                                                     |
 | ----------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Claude Code | 1% of the model's context window, in characters. Raise with `skillListingBudgetFraction`. | Drops descriptions starting with the least-invoked skills, so heavily used skills keep theirs. |
-| Codex       | At most 2% of the context window, or 8,000 characters when the window is unknown. | Shortens every description first; omits whole skills, with a warning, only when names alone overflow. |
+| Codex       | 2% of the context window, in tokens, with an 8,000-character fallback when the window is unknown. Override with `skills.max_context_tokens`. | Shrinks the per-description ceiling; omits whole skills, with a warning, only when names alone overflow. Measured on 0.153.4 at the catalog default window of 272,000, the ceiling lands at 600 characters and the cut carries no ellipsis and no word boundary. |
 
 Claude Code also caps each entry at 1,536 characters of `description` plus `when_to_use` combined, regardless of budget, configurable with `skillListingMaxDescChars`. Codex truncates each description to 1,024 characters before its own budget math runs. Put the load-bearing trigger first in the description so it survives both.
 
 ## OpenAI Codex extensions
 
-Codex scans `.agents/skills/` from the working directory upward, and `$CODEX_HOME/skills/` for user-scope skills, which is `~/.codex/skills/` unless `CODEX_HOME` says otherwise. Its SKILL.md parser reads exactly three things: `name`, `description`, and `metadata.short-description`. Every other frontmatter key is discarded at load time, so Claude Code fields cost nothing on Codex and do nothing either. Loading is not the only gate, though: the plugin validator Codex ships (`~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py:468-474`) rejects a skill whose `disable-model-invocation` is anything but `false` or absent: ``skill `X` frontmatter field `disable-model-invocation` must be false``. A skill distributed inside a Codex plugin therefore cannot carry that field set. UI metadata, invocation policy, and MCP dependencies go in a sibling file instead.
+Codex scans `.agents/skills/` from the working directory upward, and `$CODEX_HOME/skills/` for user-scope skills, which is `~/.codex/skills/` unless `CODEX_HOME` says otherwise. Its SKILL.md parser reads `name` and `description`, and parses `metadata.short-description` without using it in the model-visible listing. Every other frontmatter key is discarded at load time, so Claude Code fields cost nothing on Codex and do nothing either. Loading is not the only gate, though: the plugin validator Codex ships (`~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py:468-474`) rejects a skill whose `disable-model-invocation` is anything but `false` or absent: ``skill `X` frontmatter field `disable-model-invocation` must be false``. A skill distributed inside a Codex plugin therefore cannot carry that field set. UI metadata, invocation policy, and MCP dependencies go in a sibling file instead.
 
 ### agents/openai.yaml
 
@@ -272,17 +272,17 @@ dependencies:
 
 **`interface`** is UI metadata for the ChatGPT desktop app: how the skill is named and rendered in the picker.
 
-Each comment above names a constraint some shipped artifact enforces, and they do not all come from the same one. Codex CLI 0.153.2's own validator (`plugin-creator/scripts/validate_plugin.py:531-559`) requires `display_name` and `short_description` to be non-empty strings, `default_prompt` to be one when present, `brand_color` to match `#RRGGBB`, and each icon path to be a relative path resolving to a file inside the package; it checks no lengths at all. The `assets/` rule is the loader's, not the validator's: `codex-rs/skills/src/interface.rs` refuses an icon whose first path segment is anything else. The 25-64 range for `short_description` comes from Codex's own reference (`skill-creator/references/openai_yaml.md:37`, stated as advice) and from its generator (`skill-creator/scripts/generate_openai_yaml.py:169`, which errors outside that range).
+Each comment above names a constraint some shipped artifact enforces, and they do not all come from the same one. Codex CLI 0.153.4's own validator (`plugin-creator/scripts/validate_plugin.py:531-559`) requires `display_name` and `short_description` to be non-empty strings, `default_prompt` to be one when present, `brand_color` to match `#RRGGBB`, and each icon path to be a relative path resolving to a file inside the package; it checks no lengths at all. The `assets/` rule is the loader's, not the validator's: `skills/src/interface.rs` refuses an icon whose first path segment is anything else, and `ext/skills/src/loader/metadata.rs` is the second module that reads the sidecar. The 25-64 range for `short_description` comes from Codex's own reference (`skill-creator/references/openai_yaml.md:37`, stated as advice) and from its generator (`skill-creator/scripts/generate_openai_yaml.py:169`, which errors outside that range).
 
-Character caps do exist in the Rust loader, and they are wider. `openai/codex` at `main` declares `MAX_NAME_LEN = 64` and `MAX_DESCRIPTION_LEN = 1024` in `codex-rs/skills/src/interface.rs:10-11`, applying 64 to `display_name` and 1,024 to `short_description` and `default_prompt`; a value over the cap is dropped with a log warning rather than rejected. Those constants were not confirmed in the installed 0.153.2 build: the module is compiled in, since its other warnings appear as literals in the binary, but the numbers are not observable there. Treat 64 and 1,024 as the upstream source branch, not as a limit this build was seen to apply.
+Character caps do exist in the Rust loader, and they are wider. `MAX_NAME_LEN = 64` and `MAX_DESCRIPTION_LEN = 1024` sit in the module the binary names `skills/src/interface.rs`, applying 64 to `display_name` and 1,024 to `short_description` and `default_prompt`; a value over the cap is dropped with a log warning rather than rejected. The 1,024 cap is live in 0.153.4: a 1,994-character `description` renders at exactly 1,024. Treat 64 as the source constant, not as a limit this build was seen to apply.
 
 **`policy`** carries one key. `allow_implicit_invocation: false` keeps the whole catalog entry out of the model's context while explicit `$skill-name` invocation keeps working, which is the Codex equivalent of Claude Code's `disable-model-invocation: true`. The default is `true`.
 
-**`dependencies.tools`** declares the MCP servers the skill needs. It is a declaration, not a restriction: nothing in Codex disables a skill whose declared server is absent, and nothing confines the skill to the servers it lists.
+**`dependencies.tools`** declares the MCP servers the skill needs. It is a declaration, not a restriction: nothing in Codex disables a skill whose declared server is absent, and nothing confines the skill to the servers it lists. Each entry names `type`, `value`, and `description`, then the connection: `transport` with `url` for an HTTP server, or `command` for a stdio one. `command` is in the 0.153.4 loader's field set and in neither shipped reference cited above.
 
 The loader is fail-open by design, with a source comment that says so: "Fail open: optional metadata should not block loading SKILL.md." Malformed YAML drops the entire sidecar with a log warning while SKILL.md still loads; one rejected field drops only that field and its siblings survive. Nothing surfaces to the author, so a typo here is silent. Validate the file by reading it back, not by watching for an error.
 
-Two `short_description` fields exist and they feed different surfaces. `interface.short_description` styles the human picker; the model-visible listing falls back from frontmatter `metadata.short-description` to `description` and never sees the sidecar. Tune `metadata.short-description` for implicit routing.
+Two short-description spellings exist, and neither reaches the model. `interface.short_description` styles the human picker; the model-visible listing renders frontmatter `description` and sees neither `metadata.short-description` nor the sidecar. Tune `description` for implicit routing, and put the load-bearing trigger first because the tail is what truncation removes.
 
 The sidecar is Codex-specific and ignored elsewhere: it is an ordinary file in the skill directory, and the spec allows a skill to contain any files beyond SKILL.md. Include it only when targeting Codex.
 
@@ -311,7 +311,7 @@ The sidecar is Codex-specific and ignored elsewhere: it is an ordinary file in t
 | `agents/openai.yaml`        | no   | no          | yes     | no      | no     | no            | no            |
 
 - **accepted** means the host parses the field without complaint and does nothing with it.
-- **partial** for Codex `metadata` means only `metadata.short-description` is read.
+- **partial** for Codex `metadata` means only `metadata.short-description` is parsed, and nothing the model sees uses it.
 - **rejected** means the host reports the field as unsupported. VS Code raises it as an editor hint, not a load failure.
 - The Gemini CLI column is `no` below `description` on purpose. Its frontmatter parser returns `{ name, description }`, so every other field is discarded in silence.
 - Zed has no column because it documents three fields in total: `name`, `description`, and `disable-model-invocation`.
