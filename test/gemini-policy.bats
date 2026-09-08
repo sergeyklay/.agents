@@ -76,6 +76,18 @@ $output"
     deny '{ rm -rf /; }'
 }
 
+# The loader expands the five-entry commandPrefix list into five compiled rules,
+# so an entry dropped from the list removes one deny rule while the other four
+# still load and the file still reports no error. Only `sudo` was probed above.
+@test "the privileged-command rule denies every prefix it lists" {
+  require_gemini
+  assert_decisions \
+    deny 'su - root' \
+    deny 'shutdown -h now' \
+    deny 'reboot' \
+    deny 'eval echo hi'
+}
+
 @test "a flagged relative path with a slash keeps its decision" {
   require_gemini
   assert_decisions \
