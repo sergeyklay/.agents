@@ -7,6 +7,7 @@ UVX        ?= uvx
 SHELLCHECK ?= shellcheck
 SHFMT      ?= shfmt
 BATS       ?= bats
+MARKDOWNLINT ?= npx --yes markdownlint-cli2
 
 RUFF_VERSION         ?= latest
 BASEDPYRIGHT_VERSION ?= 1.39.10
