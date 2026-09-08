@@ -616,7 +616,10 @@ sync_commands() {
   [ -d "$src_dir" ] || die "source missing: $src_dir"
 
   for_host claude ensure_subdir "$HOME/.claude" commands
-  for_host copilot ensure_subdir "$HOME/.copilot" prompts
+  # Copilot CLI 1.0.83 loads personal assets only from ~/.copilot/skills and
+  # ~/.agents/skills; a prompts/ directory is not a discovery root, and there is
+  # no personal commands/ root at all.
+  for_host copilot ensure_subdir "$HOME/.copilot" skills
   for_host gemini ensure_subdir "$HOME/.gemini" commands
   for_host opencode ensure_subdir "$HOME/.config/opencode" commands
 
@@ -624,7 +627,8 @@ sync_commands() {
     [ -f "$f" ] || continue
     name=$(basename -- "$f" .md)
     for_host claude sync_view ".claude/commands" "$f" "$HOME/.claude/commands/$name.md"
-    for_host copilot sync_view ".copilot/prompts" "$f" "$HOME/.copilot/prompts/$name.prompt.md"
+    for_host copilot ensure_subdir "$HOME/.copilot/skills" "$name"
+    for_host copilot sync_view ".copilot/commands" "$f" "$HOME/.copilot/skills/$name/SKILL.md"
     for_host gemini sync_view ".gemini/commands" "$f" "$HOME/.gemini/commands/$name.toml"
     for_host opencode sync_view ".opencode/commands" "$f" "$HOME/.config/opencode/commands/$name.md"
   done
@@ -666,6 +670,19 @@ apply_skill_overlays() {
   done
 }
 
+# sync_commands writes the Copilot command views into this same root, because
+# Copilot reads no other personal directory; sync_to mirrors with --delete and
+# would otherwise remove them.
+sync_copilot_skills() {
+  protected=$(mktemp) || die "mktemp failed"
+  for f in "$REPO_ROOT/.agents/commands/"*.md; do
+    [ -f "$f" ] || continue
+    printf '/%s/\n' "$(basename -- "$f" .md)"
+  done >"$protected"
+  sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills" --exclude-from="$protected"
+  rm -f -- "$protected"
+}
+
 sync_skills() {
   any_host_active claude codex copilot gemini opencode || return 0
   progress_section "Skills"
@@ -676,7 +693,7 @@ sync_skills() {
   # Codex preserves .system/ and other Codex-managed dot entries.
   for_host codex sync_to "$REPO_ROOT/.agents/skills" "$HOME/.codex/skills" --exclude='.*'
 
-  for_host copilot sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills"
+  for_host copilot sync_copilot_skills
   for_host copilot apply_skill_overlays ".copilot" "$HOME/.copilot/skills"
 
   for_host gemini sync_to "$REPO_ROOT/.agents/skills" "$HOME/.gemini/skills"

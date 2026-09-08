@@ -56,3 +56,30 @@ load 'test_helper'
     fi
   done
 }
+
+# Copilot CLI 1.0.83 discovers personal assets only under ~/.copilot/skills and
+# ~/.agents/skills. A prompts/ directory is not a discovery root and there is no
+# personal commands/ root, so a command written anywhere else never loads.
+@test "Copilot commands install into the personal skills root" {
+  run install_into --commands --copilot
+  [ "$status" -eq 0 ]
+  for command in specify vet-spec; do
+    skill="$TEST_HOME/.copilot/skills/$command/SKILL.md"
+    assert_file "$skill"
+    # Derived from the canonical file so the assertion cannot drift, and distinct
+    # per command so installing the wrong body still fails.
+    canonical="$ROOT/.agents/commands/$command.md"
+    assert_frontmatter "$skill" "$(grep -m1 '^description: ' "$canonical")"
+    assert_file_contains "$skill" "$(first_body_line "$canonical")"
+  done
+  assert_absent "$TEST_HOME/.copilot/prompts"
+}
+
+# ALL_ACTIONS runs skills after commands, and the skills mirror deletes whatever
+# it does not own, so the two share one destination root.
+@test "installing skills keeps the Copilot command views" {
+  run install_into --commands --skills --copilot
+  [ "$status" -eq 0 ]
+  assert_file "$TEST_HOME/.copilot/skills/specify/SKILL.md"
+  assert_file "$TEST_HOME/.copilot/skills/research-it/SKILL.md"
+}
