@@ -24,7 +24,7 @@ VS Code Copilot can load `~/.claude/CLAUDE.md` when `chat.useClaudeMdFile` is en
 
 ## Rules on opencode
 
-OpenCode has no path-scoped instructions. Rules with a Claude `paths` overlay remain Claude/Copilot-only; the rest install to `~/.config/opencode/rules/`. The Working Agreement loads from `~/.config/opencode/AGENTS.md`.
+opencode has no path-scoped instructions. Rules with a Claude `paths` overlay remain Claude/Copilot-only; the rest install to `~/.config/opencode/rules/`. The Working Agreement loads from `~/.config/opencode/AGENTS.md`.
 
 ## Keeping opencode away from Claude Code
 

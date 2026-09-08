@@ -2,7 +2,7 @@
 
 **One set of rules, skills, and agents that follows you across every AI coding tool.**
 
-Clone it once, run the installer, and Claude Code, Codex, Copilot, Gemini, and Opencode all read the same instructions - no copy-pasting between config directories, no drift between machines.
+Clone it once, run the installer, and Claude Code, Codex, Copilot, Gemini, and opencode all read the same instructions - no copy-pasting between config directories, no drift between machines.
 
 ## The Problem
 
