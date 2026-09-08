@@ -1,3 +1,2 @@
-name: vetImpl
 argument-hint: Path to the specification file
-agent: Reviewer
+agent: arch-review

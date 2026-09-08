@@ -1,1 +1,1 @@
-${input:request:Paste review comments here, or leave empty to fetch from current GitHub PR}
+Any reviewer comments the user pasted are in the message that invoked this skill, after the command name. If they pasted nothing, fetch the comments from the current branch's open pull request.

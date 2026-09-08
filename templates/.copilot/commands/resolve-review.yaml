@@ -1,2 +1,1 @@
-name: resolveReview
 argument-hint: Paste review comments, or leave empty to fetch from GitHub PR

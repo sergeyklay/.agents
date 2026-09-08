@@ -76,7 +76,7 @@ ${BOLD}Asset options${RESET}
   ${BOLD}${YELLOW}--all${RESET}       Install all asset types
   ${BOLD}${YELLOW}--context${RESET}   Install global user context
   ${BOLD}${YELLOW}--agents${RESET}    Install agent definitions
-  ${BOLD}${YELLOW}--commands${RESET}  Install commands and prompts
+  ${BOLD}${YELLOW}--commands${RESET}  Install commands
   ${BOLD}${YELLOW}--hooks${RESET}     Install agent hooks
   ${BOLD}${YELLOW}--rules${RESET}     Install agent rules and instructions
   ${BOLD}${YELLOW}--settings${RESET}  Install host settings
@@ -464,6 +464,31 @@ frontmatter_value() {
     ' "$1"
 }
 
+# Sets AGENT_BODY to a temp file holding the named agent's body and AGENT_SRC to
+# the file it came from, or both to empty when the frontmatter names no agent.
+# The caller removes the temp file.
+resolve_agent_body() {
+  agent=$(frontmatter_value "$1" agent)
+  AGENT_BODY=
+  AGENT_SRC=
+  [ -n "$agent" ] || return 0
+
+  # The name is interpolated into a path: a non-token value traverses out of
+  # .agents/agents, and the existence check below passes on the traversed file.
+  case $agent in
+  *[!A-Za-z0-9-]*)
+    die "refusing to inline agent \"$agent\" from $2: expected [A-Za-z0-9-]"
+    ;;
+  esac
+  AGENT_SRC="$REPO_ROOT/.agents/agents/$agent.md"
+  [ -f "$AGENT_SRC" ] || die "agent source missing: $AGENT_SRC"
+
+  AGENT_BODY=$(mktemp) || die "mktemp failed"
+  agent_fm=$(mktemp) || die "mktemp failed"
+  split_frontmatter "$AGENT_SRC" "$agent_fm" "$AGENT_BODY"
+  rm -f -- "$agent_fm"
+}
+
 # A Gemini command prompt is a TOML literal string the CLI expands before it
 # runs: ''' closes the string early, !{...} executes a command, @{...} reads a file.
 assert_prompt_safe() {
@@ -497,23 +522,10 @@ sync_view_toml() {
   description=$(frontmatter_value "$fm" description)
   description_escaped=$(printf '%s' "$description" | sed 's/\\/\\\\/g; s/"/\\"/g')
 
-  agent=$(frontmatter_value "$fm" agent)
-  agent_body=
-  if [ -n "$agent" ]; then
-    # The name is interpolated into a path: a non-token value traverses out of
-    # .agents/agents, and the existence check below passes on the traversed file.
-    case $agent in
-    *[!A-Za-z0-9-]*)
-      die "refusing to inline agent \"$agent\" from $tmpl onto $src: expected [A-Za-z0-9-]"
-      ;;
-    esac
-    agent_src="$REPO_ROOT/.agents/agents/$agent.md"
-    [ -f "$agent_src" ] || die "agent source missing: $agent_src"
-    agent_body=$(mktemp) || die "mktemp failed"
-    agent_fm=$(mktemp) || die "mktemp failed"
-    split_frontmatter "$agent_src" "$agent_fm" "$agent_body"
-    rm -f -- "$agent_fm"
-    assert_prompt_safe "$agent_body" "$agent_src"
+  resolve_agent_body "$fm" "$tmpl onto $src"
+  agent_body=$AGENT_BODY
+  if [ -n "$agent_body" ]; then
+    assert_prompt_safe "$agent_body" "$AGENT_SRC"
   fi
 
   # Every fragment reaching the prompt literal is a place a sigil can enter;
@@ -608,9 +620,100 @@ sync_agents() {
   for_host gemini cleanup_skipped_gemini_agents
 }
 
+# Emit the frontmatter without one scalar key.
+drop_frontmatter_key() {
+  awk -v key="$2" 'index($0, key ":") == 1 { next } { print }' "$1"
+}
+
+# Copilot CLI 1.0.83 reads no `agent` key on a SKILL.md, so an "agent: <name>"
+# template key inlines that agent's body and never reaches the installed file.
+sync_copilot_command() {
+  src=$1
+  dst=$2
+  name=$(basename -- "$src" .md)
+  tmpl="$REPO_ROOT/templates/.copilot/commands/$name.yaml"
+  preamble="$REPO_ROOT/templates/.copilot/commands/$name.preamble.md"
+  suffix="$REPO_ROOT/templates/.copilot/commands/$name.body.md"
+
+  merged=$(mktemp) || die "mktemp failed"
+  fm=$(mktemp) || die "mktemp failed"
+  body=$(mktemp) || die "mktemp failed"
+  frontmatter_overlay "$src" "$tmpl" "$merged"
+  split_frontmatter "$merged" "$fm" "$body"
+
+  resolve_agent_body "$fm" "$tmpl onto $src"
+
+  tmp=$(mktemp) || die "mktemp failed"
+  {
+    printf -- '---\n'
+    drop_frontmatter_key "$fm" agent
+    printf -- '---\n'
+    if [ -f "$preamble" ]; then
+      cat -- "$preamble"
+      printf '\n'
+    fi
+    if [ -n "$AGENT_BODY" ]; then
+      cat -- "$AGENT_BODY"
+      printf '\n'
+    fi
+    cat -- "$body"
+    if [ -f "$suffix" ]; then
+      printf '\n'
+      cat -- "$suffix"
+    fi
+  } >"$tmp"
+
+  SYNC_TO_LABEL=".copilot/commands/$name"
+  sync_to "$tmp" "$dst"
+  unset SYNC_TO_LABEL
+
+  rm -f -- "$merged" "$fm" "$body" "$tmp"
+  if [ -n "$AGENT_BODY" ]; then
+    rm -f -- "$AGENT_BODY"
+    AGENT_BODY=
+  fi
+}
+
+# `--commands` used to write a view per command into $HOME/.copilot/prompts,
+# which no Copilot version reads. Matching on the description rather than on the
+# filename also catches the `pr` view orphaned by the rename to `make-pr`.
+cleanup_stale_copilot_prompts() {
+  dir="$HOME/.copilot/prompts"
+  [ -d "$dir" ] || return 0
+
+  known=$(mktemp) || die "mktemp failed"
+  for f in "$REPO_ROOT/.agents/commands/"*.md; do
+    [ -f "$f" ] || continue
+    fm=$(mktemp) || die "mktemp failed"
+    body=$(mktemp) || die "mktemp failed"
+    split_frontmatter "$f" "$fm" "$body"
+    frontmatter_value "$fm" description >>"$known"
+    rm -f -- "$fm" "$body"
+  done
+
+  for stale in "$dir"/*.prompt.md; do
+    [ -f "$stale" ] || continue
+    fm=$(mktemp) || die "mktemp failed"
+    body=$(mktemp) || die "mktemp failed"
+    split_frontmatter "$stale" "$fm" "$body"
+    description=$(frontmatter_value "$fm" description)
+    rm -f -- "$fm" "$body"
+
+    if [ -n "$description" ] && grep -qxF -- "$description" "$known"; then
+      rm -f -- "$stale"
+      progress_removed "$stale" 'removed prompt view the CLI never read'
+    else
+      progress_skipped "$stale" 'not written by this installer'
+    fi
+  done
+  rm -f -- "$known"
+
+  rmdir -- "$dir" 2>/dev/null || true
+}
+
 sync_commands() {
   any_host_active claude copilot gemini opencode || return 0
-  progress_section "Commands and prompts"
+  progress_section "Commands"
 
   src_dir="$REPO_ROOT/.agents/commands"
   [ -d "$src_dir" ] || die "source missing: $src_dir"
@@ -628,10 +731,12 @@ sync_commands() {
     name=$(basename -- "$f" .md)
     for_host claude sync_view ".claude/commands" "$f" "$HOME/.claude/commands/$name.md"
     for_host copilot ensure_subdir "$HOME/.copilot/skills" "$name"
-    for_host copilot sync_view ".copilot/commands" "$f" "$HOME/.copilot/skills/$name/SKILL.md"
+    for_host copilot sync_copilot_command "$f" "$HOME/.copilot/skills/$name/SKILL.md"
     for_host gemini sync_view ".gemini/commands" "$f" "$HOME/.gemini/commands/$name.toml"
     for_host opencode sync_view ".opencode/commands" "$f" "$HOME/.config/opencode/commands/$name.md"
   done
+
+  for_host copilot cleanup_stale_copilot_prompts
 }
 
 apply_skill_overlays() {
