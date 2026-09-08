@@ -779,13 +779,12 @@ apply_skill_overlays() {
 # Copilot reads no other personal directory; sync_to mirrors with --delete and
 # would otherwise remove them.
 sync_copilot_skills() {
-  protected=$(mktemp) || die "mktemp failed"
+  set --
   for f in "$REPO_ROOT/.agents/commands/"*.md; do
     [ -f "$f" ] || continue
-    printf '/%s/\n' "$(basename -- "$f" .md)"
-  done >"$protected"
-  sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills" --exclude-from="$protected"
-  rm -f -- "$protected"
+    set -- "$@" --exclude="/$(basename -- "$f" .md)/"
+  done
+  sync_to "$REPO_ROOT/.agents/skills" "$HOME/.copilot/skills" "$@"
 }
 
 sync_skills() {
