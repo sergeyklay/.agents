@@ -12,6 +12,18 @@ install_hook() {
   assert_file "$TEST_HOME/.claude/hooks/require_pr_template.sh"
 }
 
+# jq cannot be shadowed off a PATH, so the probe PATH carries only what the
+# hook reaches before the guard.
+path_without_jq() {
+  local dir="$BATS_TEST_TMPDIR/nojq"
+  local tool
+  mkdir -p "$dir"
+  for tool in sh dirname; do
+    ln -sf "$(command -v "$tool")" "$dir/$tool"
+  done
+  printf '%s\n' "$dir"
+}
+
 run_hook() {
   jq -n --arg command "$1" '{tool_name: "Bash", tool_input: {command: $command}}' |
     "$TEST_HOME/.claude/hooks/require_pr_template.sh"
@@ -38,6 +50,33 @@ run_hook() {
     assert_contains "$output" "$heading"
     assert_contains "$output" "$TEMPLATE_PATH"
   done
+}
+
+# The shipped template carries no fenced block, so the fixture supplies one.
+@test "a hash inside a fenced template block is not a heading" {
+  install_hook
+  cat >"$TEST_HOME/$TEMPLATE_PATH" <<'TEMPLATE'
+### Real Heading
+
+```sh
+# not a heading
+```
+TEMPLATE
+  assert_file_contains "$TEST_HOME/$TEMPLATE_PATH" '# not a heading'
+  run run_hook "gh pr create --title x --body '### Real Heading'"
+  [ "$status" -eq 0 ] || fail "expected the hook to ignore the fenced hash"$'\n'"$output"
+}
+
+@test "a host without jq is left alone" {
+  install_hook
+  nojq=$(path_without_jq)
+  if env PATH="$nojq" sh -c 'command -v jq' >/dev/null 2>&1; then
+    fail "expected no jq on the probe PATH"
+  fi
+  run env PATH="$nojq" "$TEST_HOME/.claude/hooks/require_pr_template.sh" \
+    <<<'{"tool_name":"Bash","tool_input":{"command":"gh pr create --body x"}}'
+  [ "$status" -eq 0 ] || fail "expected exit 0 without jq"$'\n'"$output"
+  [ -z "$output" ] || fail "expected no output without jq"$'\n'"$output"
 }
 
 @test "a gh call that sets no body is left alone" {

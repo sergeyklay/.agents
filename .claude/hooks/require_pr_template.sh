@@ -8,6 +8,10 @@ set -eu
 CLAUDE_DIR=$(CDPATH="" cd -- "$(dirname -- "$0")/.." && pwd)
 TEMPLATE="$CLAUDE_DIR/skills/create-pr/assets/pull_request_template.md"
 
+# Without jq there is no decision to make, and a non-zero exit would only
+# add a hook error to every Bash call, so decline rather than fail.
+command -v jq >/dev/null 2>&1 || exit 0
+
 command=$(jq -r '.tool_input.command // ""')
 
 case $command in
@@ -36,9 +40,12 @@ if [ -n "$body_file" ] && [ -r "$body_file" ]; then
 $(cat -- "$body_file")"
 fi
 
-missing=$(grep '^#' "$TEMPLATE" | while IFS= read -r heading; do
-  printf '%s' "$body" | grep -qF -- "$heading" || printf '  %s\n' "$heading"
-done)
+# A `#` inside a fenced example is a comment, not a heading the body must carry.
+missing=$(awk '/^ *(```|~~~)/ { fenced = !fenced; next }
+     !fenced && /^#{1,6} / { print }' "$TEMPLATE" |
+  while IFS= read -r heading; do
+    printf '%s' "$body" | grep -qF -- "$heading" || printf '  %s\n' "$heading"
+  done)
 
 [ -n "$missing" ] || exit 0
 
