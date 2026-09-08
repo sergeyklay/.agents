@@ -209,3 +209,34 @@ require_gemini() {
   NODE=$(node_beside_bundle "$BUNDLE") ||
     fail_on_ci_else_skip 'no node to load the Gemini CLI bundle with'
 }
+
+# `command -v copilot` can be a version-manager shim that picks its interpreter
+# by walking up from the cwd, and the probe runs from outside $HOME where that
+# walk finds nothing. Resolve the real entry point here, from the repository root.
+copilot_loader_entry() {
+  local candidate
+  for candidate in "$(cd "$ROOT" && asdf which copilot 2>/dev/null)" \
+    "$(command -v copilot 2>/dev/null)"; do
+    [ -n "$candidate" ] || continue
+    candidate=$(readlink -f -- "$candidate" 2>/dev/null) || continue
+    case $candidate in
+    *.js)
+      printf '%s\n' "$candidate"
+      return 0
+      ;;
+    esac
+  done
+  return 1
+}
+
+# CI installs no Copilot CLI, so this skips there rather than failing. The skip
+# reason names what goes unverified, because a silent skip turns the shape
+# assertions into claims about a host nothing checked.
+require_copilot() {
+  LOADER=$(copilot_loader_entry) ||
+    skip 'no Copilot CLI on PATH; the installed shape goes unchecked against the host'
+  # Read by the .bats files via `load`; shellcheck cannot follow that.
+  # shellcheck disable=SC2034
+  NODE=$(node_beside_bundle "$LOADER") ||
+    skip 'no node to run the Copilot CLI with; the installed shape goes unchecked'
+}

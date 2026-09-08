@@ -1,3 +1,2 @@
-name: specify
 argument-hint: Tracker reference, feature description, or path to an existing spec
-agent: Composer
+agent: composer

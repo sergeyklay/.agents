@@ -60,7 +60,7 @@ load 'test_helper'
   assert_file "$TEST_HOME/.gemini/commands/challenge-pr.toml"
   assert_file "$TEST_HOME/.config/opencode/commands/challenge-pr.md"
   assert_absent "$TEST_HOME/.claude/commands"
-  assert_absent "$TEST_HOME/.copilot/prompts"
+  assert_absent "$TEST_HOME/.copilot/skills"
   assert_absent "$TEST_HOME/.gemini/agents"
   assert_absent "$TEST_HOME/.config/opencode/agents"
 }
@@ -69,7 +69,7 @@ load 'test_helper'
   run install_into --commands
   [ "$status" -eq 0 ]
   assert_file "$TEST_HOME/.claude/commands/challenge-pr.md"
-  assert_file "$TEST_HOME/.copilot/prompts/challenge-pr.prompt.md"
+  assert_file "$TEST_HOME/.copilot/skills/challenge-pr/SKILL.md"
   assert_file "$TEST_HOME/.gemini/commands/challenge-pr.toml"
   assert_file "$TEST_HOME/.config/opencode/commands/challenge-pr.md"
   assert_absent "$TEST_HOME/.codex/commands"
