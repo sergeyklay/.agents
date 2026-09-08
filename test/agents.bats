@@ -34,11 +34,8 @@ load 'test_helper'
   done
 }
 
-# OpenCode types `tools` as a deprecated name-to-boolean map
-# (`$defs.AgentConfig.properties.tools` in https://opencode.ai/config.json), so
-# the YAML list every other host uses fails schema decoding uncaught and one
-# agent file takes all ten agents down. Both layers are checked because they
-# diverge: a canonical body's `tools` reaches the view, leaving templates clean.
+# A `tools` list fails OpenCode's schema decode uncaught, so one agent file
+# takes all ten down; a canonical body reaches the view with templates clean.
 @test "OpenCode agent templates and views declare no tools key" {
   run install_into --agents --opencode
   [ "$status" -eq 0 ]
