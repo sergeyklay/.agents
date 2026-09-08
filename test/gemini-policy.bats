@@ -216,10 +216,9 @@ $output"
     ask_user "$(read_file_in_repo .env.dist)"
 }
 
-# The `(?![a-zA-Z])` lookahead draws this line, and `.envrc` lands on the
-# permitted side, so direnv secrets stay open. `.ENV.local` is reached by
-# neither guard: the pattern is case-sensitive and the built-in one only
-# lowercases a whole segment.
+# `.envrc` and `.ENV.local` carry secrets and neither guard denies them: the
+# rule's pattern stops at a letter and is case-sensitive, and the built-in one
+# refuses only a whole `.env` segment.
 @test "a name the dotenv rule cannot reach keeps its decision" {
   require_gemini
   POLICY=$SECRETS_POLICY
@@ -231,8 +230,6 @@ $output"
     ask_user "$(read_file_in_repo README.md)"
 }
 
-# The exemption lookahead scans forward from the match to the closing quote, so
-# an example suffix exempts and an example directory further up the path cannot.
 @test "the example exemption is read forward from the match" {
   require_gemini
   POLICY=$SECRETS_POLICY
@@ -249,9 +246,8 @@ $output"
   assert_decisions deny "  $(read_file_in_repo .env.local)"
 }
 
-# That closing quote also separates array elements, so one dotenv entry denies
-# the whole call. `exclude` is matched too, though a call excluding a dotenv
-# path would never read it.
+# `exclude` is matched too, though a call excluding a dotenv path would never
+# read it.
 @test "read_many_files is covered element by element" {
   require_gemini
   POLICY=$SECRETS_POLICY
