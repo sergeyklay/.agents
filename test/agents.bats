@@ -33,3 +33,21 @@ load 'test_helper'
     assert_frontmatter "$TEST_HOME/.claude/agents/$agent.md" '  - TaskStop'
   done
 }
+
+# OpenCode types `tools` as a deprecated name-to-boolean map
+# (`$defs.AgentConfig.properties.tools` in https://opencode.ai/config.json), so
+# the YAML list every other host uses fails schema decoding uncaught and one
+# agent file takes all ten agents down. Both layers are checked because they
+# diverge: a canonical body's `tools` reaches the view, leaving templates clean.
+@test "OpenCode agent templates and views declare no tools key" {
+  run install_into --agents --opencode
+  [ "$status" -eq 0 ]
+  for template in "$ROOT"/templates/.opencode/agents/*.yaml; do
+    assert_file "$template"
+    assert_no_yaml_key "$template" 'tools'
+  done
+  for view in "$TEST_HOME"/.config/opencode/agents/*.md; do
+    assert_file "$view"
+    assert_no_frontmatter_key "$view" 'tools'
+  done
+}
