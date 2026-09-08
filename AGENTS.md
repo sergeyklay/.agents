@@ -31,6 +31,7 @@ These constraints protect canonical source files and installed host views.
 - Follow the surrounding style. Do not refactor adjacent legacy content without a separate task.
 - Give each agent its own worktree off `main`: `git worktree add -b <branch> <dir> main`. One agent per worktree, and it owns that worktree alone.
 - Treat every other checkout of this repository as read-only, including the one the brief was written from.
+- Write scratch files to `.scratch/<task>/`, which is git-excluded and scoped to one session. Delete your own subdirectory when you finish, and move anything that must outlive the task into `.tasks/`.
 - Stage a new file with `git add <path>` before running any gate, for the reason under Gotchas: the file-selecting gates read `git ls-files`, skip an untracked file, and still exit 0.
 - Run a negative control before reporting any green. `prove-checks` owns what that requires.
 - Land a delegate's branch only in the form you were asked for. Verification finishes the work; it does not authorize merging, pushing, or opening a PR. When the form was not named, ask before the branch moves anywhere.
