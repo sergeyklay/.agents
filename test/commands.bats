@@ -83,3 +83,20 @@ load 'test_helper'
   assert_file "$TEST_HOME/.copilot/skills/specify/SKILL.md"
   assert_file "$TEST_HOME/.copilot/skills/research-it/SKILL.md"
 }
+
+# sync_copilot_skills excludes the command names from the skills mirror, so a
+# canonical skill that took a command's name would stop reaching Copilot without
+# a word from the installer.
+@test "no canonical skill takes a command name" {
+  checked=0
+  for f in "$ROOT"/.agents/commands/*.md; do
+    # An unmatched glob arrives as its own literal and would count as a file.
+    [ -f "$f" ] || continue
+    name=$(basename -- "$f" .md)
+    checked=$((checked + 1))
+    if [ -d "$ROOT/.agents/skills/$name" ]; then
+      fail "skill and command both named $name; the Copilot skills mirror would drop the skill"
+    fi
+  done
+  [ "$checked" -gt 0 ] || fail "no command sources under .agents/commands to check"
+}
