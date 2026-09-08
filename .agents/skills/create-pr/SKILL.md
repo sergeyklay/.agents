@@ -3,7 +3,7 @@ name: create-pr
 description: "Use when asked to create a pull request, open a PR, or submit changes for review. Handles branch verification, change analysis, title and description generation, and gh pr create. Do NOT use for committing, pushing without PR, or reviewing existing PRs"
 metadata:
   author: Serghei Iakovlev
-  version: "1.2"
+  version: "1.3"
   category: vcs
 ---
 
@@ -61,11 +61,7 @@ feat(messages): add server-only synthetic mailbox archive parser
 
 ### Step 4: Generate description
 
-Use the template from `assets/pull_request_template.md`. Three sections:
-
-1. **Scope & Context** - Type, Intent, Related Issues
-2. **Reviewer Guide** - Complexity (Low/Medium/High), Entry Point, Sensitive Areas
-3. **Risk Assessment** - Breaking Changes, Migrations/State
+Open `assets/pull_request_template.md` and read it before writing a line of the body. That file is the only definition of the shape: reproduce every heading it carries verbatim, at the level and with the emoji it gives them, and fill each one. Add no section the template does not define.
 
 Formatting rules:
 
