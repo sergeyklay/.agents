@@ -84,6 +84,8 @@ Confirm with a command, or do not assert. When a check is unavailable, address t
 | A person, bot, or team has access | `gh api repos/{owner}/{repo}/collaborators` |
 | A repository setting or feature is enabled | `gh api repos/{owner}/{repo} --jq '.<field>'` |
 | An external action, workflow, or tag is reachable | `gh api repos/{owner}/{repo}` |
+| A CI job or workflow with a given name exists | Read `.github/workflows/*.yml`: `jobs.<id>.name` is the displayed job name. A step name is not a job name |
+| A workflow runs on a given branch or event | Read the workflow's `on:` block. `pull_request`-only means the default branch is never checked |
 
 This governs every section, not only Risk Assessment. An unverified line under "Sensitive Areas" costs the reviewer the same time.
 
