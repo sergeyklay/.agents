@@ -162,6 +162,30 @@ type Client struct{}
 type Client struct{}
 ```
 
+`//go:build` carries a second meaning the other two do not: it decides which platforms compile the file at all. Put only platform-dependent code behind a tag and move everything else into an untagged file. Code sharing a tagged file is absent from the excluded builds rather than skipped in them, so those builds report neither a failure nor a skip.
+
+```go
+// ❌ One tag over the whole file. On Windows the key sanitizer's test is
+// not built, and nothing in the "go test" output says so.
+// workspace_test.go
+//go:build unix
+
+func TestSymlinkResolution(t *testing.T) { ... }
+func TestSanitizeKey(t *testing.T)       { ... }
+
+// ✅ Only what depends on the platform sits behind the tag. The tag line
+// does that work, not the name: "unix" is a build tag and no GOOS, so a
+// "_unix.go" suffix constrains nothing, while "_windows.go" does.
+// workspace_unix_test.go
+//go:build unix
+
+func TestSymlinkResolution(t *testing.T) { ... }
+
+// ✅ No tag, so every platform runs it.
+// workspace_test.go
+func TestSanitizeKey(t *testing.T) { ... }
+```
+
 ## Naming
 
 ### Variables
@@ -330,6 +354,30 @@ entry := RunningEntry{
     ExitCode:   0,
 }
 ```
+
+Use field names in any literal whose struct has two fields of the same type, adjacent or not. A positional literal binds values by position alone, so swapping two same-type values compiles and changes meaning in silence.
+
+Within one package nothing mechanical catches it. `go vet` reports unkeyed literals only for types imported from another package, through its `composites` analyzer. That analyzer exempts every type declared in the package under analysis, and it treats a package's external `_test` package as that same package. It also exempts anonymous structs, which is the usual table-test shape. `go test` does not run `composites` at all, so even the imported case passes there.
+
+```go
+// ❌ Positional - Name, Headers and Body are all strings, so any two of
+// them swap without a complaint from the compiler or from vet.
+cases := []Reply{
+    {"json payload", 200, "Content-Type: application/json", "{}"},
+}
+
+// ✅ Named - the pairing is stated rather than inferred from position.
+cases := []Reply{
+    {
+        Name:    "json payload",
+        Status:  200,
+        Headers: "Content-Type: application/json",
+        Body:    "{}",
+    },
+}
+```
+
+Table-driven test cases are where this costs most, because a case that still passes after a silent swap has stopped testing what its name claims. The rule is about the hazard rather than the location: it applies wherever a struct has two fields of one type.
 
 ## Type Assertions
 

@@ -44,9 +44,9 @@ Keep one file (a shared brief fragment, a section of `AGENTS.md`, or a skill the
 
 The gate-selection row is the one most often skipped and the most expensive to skip. In this repository every file-selecting `make` gate selects its inputs through `git ls-files`, so a new file that is not yet indexed is silently skipped and the gate can still exit 0. A brief that omits this gets a green report about a file nothing read.
 
-### 2. Keep your arithmetic out of the brief
+### 2. Keep your own unchecked claims out of the brief
 
-`research-it` tells the receiver that the brief which reached it is not a source. This is the same rule from the sending end: a number you computed, a count you eyeballed, or a classification you inferred becomes unfalsifiable the moment it enters a brief as a fact, because the agent will build on it rather than check it.
+`research-it` tells the receiver that the brief which reached it is not a source. This is the same rule from the sending end: a number you computed, a count you eyeballed, a classification you inferred, or a statement about what the project's own tooling does becomes unfalsifiable the moment it enters a brief as a fact, because the agent will build on it rather than check it.
 
 State provenance, and grant standing to refute:
 
@@ -54,6 +54,8 @@ State provenance, and grant standing to refute:
 - But: *"I count 26 new and 43 pre-existing. That count is mine and unverified. Derive it yourself, and if it disagrees, report the disagreement and act on your number."*
 
 The second form costs one sentence and converts a silent corruption into a finding. A brief that encodes a verifier's arithmetic as fact has laundered an unchecked claim through the authority of an instruction.
+
+The class this misses most often is not arithmetic. A brief that names a gate ("`lint-markdown` runs over this too, check you did not break it") has asserted a pathspec, and the pathspec sits in the build file one `grep` away, which is why the sentence reads as background rather than as a claim. Read the selector before writing the sentence: step 1's gate-selection row is a fact about the repository, not a slot filled from memory. A named gate that does not cover the file sends the delegate to collect a green that was never about its work.
 
 ### 3. Give every instruction a named artifact
 
@@ -124,6 +126,7 @@ A delegated result is accepted only when all of these hold:
 
 - [ ] The brief's repeated guardrails came from one file, not from retyping.
 - [ ] Every number and classification the brief asserted was labeled as unverified, with standing to refute.
+- [ ] Every gate the brief named was checked against its selector in the build file rather than recalled.
 - [ ] Every instruction that matters named an artifact, and the artifact is a token or a path, not a claim.
 - [ ] Each named artifact was checked against the filesystem, working from the brief rather than from the report's contents.
 - [ ] Every quoted string was found in the file it was attributed to.
