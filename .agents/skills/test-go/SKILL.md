@@ -65,7 +65,7 @@ func TestFunctionName(t *testing.T) {
 4. `t.TempDir()` for filesystem isolation - never write to fixed paths.
 5. `t.Setenv()` for environment variables and `t.Chdir()` for the working directory, never in a parallel test.
 6. Errors use `errors.As()` / `errors.Is()` - never string comparison.
-7. `t.Fatal` / `t.Fatalf` / `t.FailNow` / `t.Error` only from the goroutine running the test.
+7. `t.Fatal` / `t.Fatalf` / `t.FailNow` only from the goroutine running the test; `t.Error` never from one that can outlive it.
 
 ### Waiting on background work
 
