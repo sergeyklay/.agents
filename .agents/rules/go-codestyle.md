@@ -165,15 +165,17 @@ type Client struct{}
 `//go:build` carries a second meaning the other two do not: it decides which platforms compile the file at all. Put only platform-dependent code behind a tag and move everything else into an untagged file. Code sharing a tagged file is absent from the excluded builds rather than skipped in them, so those builds report neither a failure nor a skip.
 
 ```go
-// ❌ One tag over the whole file. On Windows the key sanitizer is never
-// built, so "go test" there reports no test files and passes.
+// ❌ One tag over the whole file. On Windows the key sanitizer is not
+// built, and nothing in the "go test" output says so.
 // workspace_test.go
 //go:build unix
 
 func TestSymlinkResolution(t *testing.T) { ... }
 func TestSanitizeKey(t *testing.T)       { ... }
 
-// ✅ Only what depends on the platform sits behind the tag.
+// ✅ Only what depends on the platform sits behind the tag. The tag line
+// does that work: "_unix" is no GOOS and constrains nothing, unlike
+// "_windows".
 // workspace_unix_test.go
 //go:build unix
 
@@ -353,11 +355,13 @@ entry := RunningEntry{
 }
 ```
 
-Use field names in any literal where two adjacent fields share a type. A positional literal binds values by position alone, so swapping two same-type neighbours compiles and `go vet` stays silent: its `composites` analyzer reports only literals of structs imported from another package, and a struct declared in the same package is exempt.
+Use field names in any literal whose struct has two fields of the same type, adjacent or not. A positional literal binds values by position alone, so swapping two same-type values compiles and changes meaning in silence.
+
+Nothing mechanical catches it. `go vet`'s `composites` analyzer exempts anonymous structs, which is the usual table-test shape, and every type declared in the package under analysis, counting that package's external `_test` package as the same package. `go test` does not run `composites` at all.
 
 ```go
-// ❌ Positional - Headers and Body are both strings. Swap them and the case
-// keeps passing while sending different bytes.
+// ❌ Positional - Name, Headers and Body are all strings, so any two of
+// them swap without a complaint from the compiler or from vet.
 cases := []Reply{
     {"json payload", 200, "Content-Type: application/json", "{}"},
 }
@@ -373,7 +377,7 @@ cases := []Reply{
 }
 ```
 
-Table-driven test cases are where this costs most, because a case that still passes after a silent swap has stopped testing what its name claims. The rule is about the hazard rather than the location: it applies wherever a literal has same-type neighbours.
+Table-driven test cases are where this costs most, because a case that still passes after a silent swap has stopped testing what its name claims. The rule is about the hazard rather than the location: it applies wherever a struct has two fields of one type.
 
 ## Type Assertions
 
