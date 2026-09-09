@@ -35,7 +35,7 @@ Pick the lightest category that validates the behavior.
 
 ## Canonical Test Structure
 
-Every test file in this project follows this skeleton. Internalize it - do not deviate.
+Every test file in this project follows this skeleton: helpers first, then test functions. Internalize it - do not deviate. Declaration order carries the structure, so do not add banner comments to mark the sections; `rules/go-codestyle.md` bans them.
 
 ```go
 package pkg // or pkg_test for black-box
@@ -45,15 +45,11 @@ import (
     // stdlib, then project imports, then third-party
 )
 
-// --- Test helpers (file-scoped, before test functions) ---
-
 func helperName(t *testing.T, args ...) ReturnType {
     t.Helper()
     // setup or assertion logic
     // use t.Cleanup() for teardown, never defer in helpers
 }
-
-// --- Tests ---
 
 func TestFunctionName(t *testing.T) {
     t.Parallel()
@@ -64,11 +60,24 @@ func TestFunctionName(t *testing.T) {
 **Key rules this project enforces:**
 
 1. `t.Helper()` is the first statement in every helper - no exceptions.
-2. `t.Cleanup()` for teardown in helpers; `defer` only in test functions themselves.
+2. `t.Cleanup()` for teardown in helpers; `defer` only in test functions themselves, and never to wait on background work.
 3. `t.Parallel()` at both test and subtest level for independent cases.
 4. `t.TempDir()` for filesystem isolation - never write to fixed paths.
-5. `t.Setenv()` for environment variable isolation in tests.
+5. `t.Setenv()` for environment variables and `t.Chdir()` for the working directory, never in a parallel test.
 6. Errors use `errors.As()` / `errors.Is()` - never string comparison.
+7. `t.Fatal` / `t.Fatalf` / `t.FailNow` / `t.Error` only from the goroutine running the test.
+
+### Waiting on background work
+
+`t.Context()` is canceled *just before* Cleanup functions run, and a `defer` in the test body runs *before* both. So `defer wg.Wait()` on a goroutine that exits on `t.Context().Done()` waits for something nothing has told to stop, and the test hangs to `panic: test timed out`. Register the wait with `t.Cleanup(wg.Wait)`, which runs after the cancellation. This is the one exception to rule 2.
+
+### Process-wide state and t.Parallel
+
+`t.Setenv` and `t.Chdir` mutate the whole process, so calling either in a parallel test or a test with a parallel ancestor panics with `testing: test using t.Setenv, t.Chdir, or cryptotest.SetGlobalRandom can not use t.Parallel`. Two ways out: drop `t.Parallel()` from that one test, or have the code under test take the value as a parameter instead of reading the process, which keeps the test parallel. `testing.AllocsPerRun` is the same class: it panics when a parallel test is running while it is called, so never call it from a parallel test or from a subtest of one.
+
+### Failing from a goroutine that is not the test
+
+`FailNow` stops the goroutine it runs on and nothing else, so `t.Fatal` from a server handler fails the test without stopping it and the caller sees a connection error instead of the real cause. `t.Error` is no safer: once the test has returned, it panics with `Fail in goroutine after <test> has completed`, `net/http` recovers that panic inside the handler, and the assertion disappears - the test prints PASS while the suite exits FAIL naming no test at all. Record what the goroutine saw and assert on it from the test body.
 
 ---
 
@@ -221,14 +230,14 @@ Adapter tests use `httptest.NewServer` with handler functions that return fixtur
 func TestFetchIssues(t *testing.T) {
     t.Parallel()
 
+    // loadFixture fatals, and t.Fatal cannot stop the test from a handler.
+    fixture := loadFixture(t, "search_single_page.json")
+
+    var gotAuth atomic.Value
     srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        // Verify request details
-        if got := r.Header.Get("Authorization"); got == "" {
-            t.Error("missing Authorization header")
-        }
-        // Return fixture response
+        gotAuth.Store(r.Header.Get("Authorization"))
         w.Header().Set("Content-Type", "application/json")
-        w.Write(loadFixture(t, "search_single_page.json"))
+        w.Write(fixture)
     }))
     defer srv.Close()
 
@@ -237,16 +246,20 @@ func TestFetchIssues(t *testing.T) {
     if err != nil {
         t.Fatalf("FetchIssuesByStates: %v", err)
     }
+    if auth, _ := gotAuth.Load().(string); auth == "" {
+        t.Errorf("Authorization header = %q, want non-empty", auth)
+    }
     // Assert on normalized domain objects, not raw JSON
 }
 ```
 
 **Rules for httptest usage:**
 
-- Verify request headers, query params, and method inside the handler
+- Read every fixture before `httptest.NewServer`; the handler writes bytes it already holds. A handler that calls a `t.Fatal`-ing helper leaves the client with `Get "http://127.0.0.1:PORT": EOF` instead of the real cause
+- Capture request headers, query params, and method in the handler; assert on the captured values from the test body, where a failed assertion can still stop the test
 - Return fixture JSON from `testdata/` - do not inline large JSON strings
 - Assert on domain-level objects after adapter normalization, not raw payloads
-- Use `atomic` counters when verifying call counts across concurrent requests
+- Use `atomic` values and counters for anything the handler records, because the handler runs on another goroutine
 
 ---
 
@@ -373,7 +386,8 @@ t.Error("wrong result")
 After writing or modifying tests, verify:
 
 - [ ] `make test` passes with `-race` (the default)
-- [ ] New test functions have `t.Parallel()` where appropriate
+- [ ] Independent test functions and subtests call `t.Parallel()`; those using `t.Setenv`, `t.Chdir` or `testing.AllocsPerRun` do not
+- [ ] No `t.Fatal` / `t.Error` inside an `http.HandlerFunc` or any other spawned goroutine
 - [ ] All helpers call `t.Helper()` as first statement
 - [ ] Error assertions use `errors.As()` / `errors.Is()`, not string comparison
 - [ ] Failure messages include function name, inputs, got, and want
