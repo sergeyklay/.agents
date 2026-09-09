@@ -162,6 +162,28 @@ type Client struct{}
 type Client struct{}
 ```
 
+`//go:build` carries a second meaning the other two do not: it decides which platforms compile the file at all. Put only platform-dependent code behind a tag and move everything else into an untagged file. Code sharing a tagged file is absent from the excluded builds rather than skipped in them, so those builds report neither a failure nor a skip.
+
+```go
+// ❌ One tag over the whole file. On Windows the key sanitizer is never
+// built, so "go test" there reports no test files and passes.
+// workspace_test.go
+//go:build unix
+
+func TestSymlinkResolution(t *testing.T) { ... }
+func TestSanitizeKey(t *testing.T)       { ... }
+
+// ✅ Only what depends on the platform sits behind the tag.
+// workspace_unix_test.go
+//go:build unix
+
+func TestSymlinkResolution(t *testing.T) { ... }
+
+// ✅ No tag, so every platform runs it.
+// workspace_test.go
+func TestSanitizeKey(t *testing.T) { ... }
+```
+
 ## Naming
 
 ### Variables
@@ -330,6 +352,28 @@ entry := RunningEntry{
     ExitCode:   0,
 }
 ```
+
+Use field names in any literal where two adjacent fields share a type. A positional literal binds values by position alone, so swapping two same-type neighbours compiles and `go vet` stays silent: its `composites` analyzer reports only literals of structs imported from another package, and a struct declared in the same package is exempt.
+
+```go
+// ❌ Positional - Headers and Body are both strings. Swap them and the case
+// keeps passing while sending different bytes.
+cases := []Reply{
+    {"json payload", 200, "Content-Type: application/json", "{}"},
+}
+
+// ✅ Named - the pairing is stated rather than inferred from position.
+cases := []Reply{
+    {
+        Name:    "json payload",
+        Status:  200,
+        Headers: "Content-Type: application/json",
+        Body:    "{}",
+    },
+}
+```
+
+Table-driven test cases are where this costs most, because a case that still passes after a silent swap has stopped testing what its name claims. The rule is about the hazard rather than the location: it applies wherever a literal has same-type neighbours.
 
 ## Type Assertions
 
