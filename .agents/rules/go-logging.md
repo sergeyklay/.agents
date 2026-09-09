@@ -224,7 +224,31 @@ output := buf.String()
 if !strings.Contains(output, "issue_id=") { t.Error("missing issue_id") }
 ```
 
+That example is synchronous: once the call under test returns, nothing writes to the buffer any more. When the code under test logs from a goroutine, `bytes.Buffer` is the wrong writer. `slog.NewTextHandler` allocates a fresh mutex per call, and every logger built on that same handler instance shares it - whether from calling `slog.New` on it again, from `slog.Default()`, or from a clone made by `With` or `WithGroup`. So one handler serializes its own writes and nothing else: a second `NewTextHandler` over the same writer races with the first, and any read the test makes races with both. Put the lock in the writer instead, and never let a method return a value that aliases the buffer after unlocking - `String` is safe because it copies; a `Bytes` method returning the raw slice would not be:
+
+```go
+type syncBuffer struct {
+    mu  sync.Mutex
+    buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+    b.mu.Lock()
+    defer b.mu.Unlock()
+    return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+    b.mu.Lock()
+    defer b.mu.Unlock()
+    return b.buf.String()
+}
+```
+
 Rules:
 - Never assert on exact timestamp values.
 - Assert on attribute key presence and expected values, not full line formatting.
 - For functions that accept `*slog.Logger`, pass the test logger - never rely on `slog.Default()` in tests.
+- Wait for the background work with a `sync.WaitGroup` or a channel it signals, not a `time.Sleep` - a sleep creates no happens-before edge and only shrinks the failure window. Do this in the test body, before the read: a locking writer makes the read safe, not the record present. A read that wins the race usually still finds output - the code under test's synchronous log lines, often carrying the same key - so assert on a value only the awaited record carries, never on the buffer being empty.
+- Wait in `t.Cleanup`, never `defer`, for goroutines the test asserts nothing about: `t.Context()` is canceled just before cleanup functions run, so a deferred wait on one that exits on `t.Context().Done()` deadlocks. A cleanup wait runs after the body and can never precede a read.
+- Give each subtest its own buffer and handler, parallel or not. A shared locking writer never races, so nothing flags the real failure: a subtest whose code logs nothing passes on a sibling's record, sequential subtests included.
