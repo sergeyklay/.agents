@@ -357,7 +357,7 @@ entry := RunningEntry{
 
 Use field names in any literal whose struct has two fields of the same type, adjacent or not. A positional literal binds values by position alone, so swapping two same-type values compiles and changes meaning in silence.
 
-Nothing mechanical catches it. `go vet`'s `composites` analyzer exempts anonymous structs, which is the usual table-test shape, and every type declared in the package under analysis, counting that package's external `_test` package as the same package. `go test` does not run `composites` at all.
+Within one package nothing mechanical catches it. `go vet` reports unkeyed literals only for types imported from another package, through its `composites` analyzer. That analyzer exempts every type declared in the package under analysis, and it treats a package's external `_test` package as that same package. It also exempts anonymous structs, which is the usual table-test shape. `go test` does not run `composites` at all, so even the imported case passes there.
 
 ```go
 // ❌ Positional - Name, Headers and Body are all strings, so any two of
