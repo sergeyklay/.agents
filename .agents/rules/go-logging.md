@@ -224,7 +224,7 @@ output := buf.String()
 if !strings.Contains(output, "issue_id=") { t.Error("missing issue_id") }
 ```
 
-That example is synchronous: once the call under test returns, nothing writes to the buffer any more. When the code under test logs from a goroutine, `bytes.Buffer` is the wrong writer. `slog.NewTextHandler` allocates a fresh mutex per call, and every logger built on that same handler instance shares it - whether from calling `slog.New` on it again, from `slog.Default()`, or from a clone made by `With` or `WithGroup`. So one handler serializes its own writes and nothing else: a second `NewTextHandler` over the same writer races with the first, and any read the test makes races with both. Put the lock in the writer instead, and never let a method return a value that aliases the buffer after unlocking - `String` is safe because it copies; a `Bytes` method returning the raw slice would not be:
+That example is synchronous: once the call under test returns, nothing writes to the buffer any more. When the code under test logs from a goroutine, `bytes.Buffer` is the wrong writer. `slog.NewTextHandler` allocates a fresh mutex per call, and every logger built on that same handler instance shares it - whether from calling `slog.New` on it again, from `slog.Default()`, or from a clone made by `With` or `WithGroup`. So one handler serializes its own writes and nothing else: a second `NewTextHandler` over the same writer races with the first, and any read the test makes races with both. A method must never return a value that aliases the buffer after unlocking: `String` is safe because it copies, and a `Bytes` method returning the raw slice would not be. Put the lock in the writer:
 
 ```go
 type syncBuffer struct {
