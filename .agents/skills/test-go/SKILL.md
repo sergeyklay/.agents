@@ -35,7 +35,7 @@ Pick the lightest category that validates the behavior.
 
 ## Canonical Test Structure
 
-Every test file in this project follows this skeleton: helpers first, then test functions. Internalize it - do not deviate. Declaration order carries the structure, so do not add banner comments to mark the sections; `rules/go-codestyle.md` bans them.
+Every test file in this project follows this skeleton: helpers first, then test functions. Internalize it - do not deviate. Declaration order carries the structure, so do not add banner comments to mark the sections; the `go-codestyle` rule bans them.
 
 ```go
 package pkg // or pkg_test for black-box
