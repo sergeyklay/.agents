@@ -50,13 +50,17 @@ Check the actual project layout for the real package paths and registry names. A
 Use `httptest.NewServer` handlers with `atomic` counters or captured request data:
 
 ```go
+fixture := loadFixture(t, "response.json")
+
 var callCount int64
 srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     atomic.AddInt64(&callCount, 1)
-    // capture r.URL.Query(), r.Header, etc.
-    w.Write(loadFixture(t, "response.json"))
+    // capture r.URL.Query(), r.Header, etc. into atomic values
+    w.Write(fixture)
 }))
 ```
+
+Assert the recorded values from the test body, never from the handler: `t.Fatal` and `t.FailNow` stop only the goroutine they run on.
 
 ## Naming Conventions
 
