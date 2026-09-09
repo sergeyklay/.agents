@@ -165,8 +165,8 @@ type Client struct{}
 `//go:build` carries a second meaning the other two do not: it decides which platforms compile the file at all. Put only platform-dependent code behind a tag and move everything else into an untagged file. Code sharing a tagged file is absent from the excluded builds rather than skipped in them, so those builds report neither a failure nor a skip.
 
 ```go
-// ❌ One tag over the whole file. On Windows the key sanitizer is not
-// built, and nothing in the "go test" output says so.
+// ❌ One tag over the whole file. On Windows the key sanitizer's test is
+// not built, and nothing in the "go test" output says so.
 // workspace_test.go
 //go:build unix
 
@@ -174,8 +174,8 @@ func TestSymlinkResolution(t *testing.T) { ... }
 func TestSanitizeKey(t *testing.T)       { ... }
 
 // ✅ Only what depends on the platform sits behind the tag. The tag line
-// does that work: "_unix" is no GOOS and constrains nothing, unlike
-// "_windows".
+// does that work, not the name: "unix" is a build tag and no GOOS, so a
+// "_unix.go" suffix constrains nothing, while "_windows.go" does.
 // workspace_unix_test.go
 //go:build unix
 
