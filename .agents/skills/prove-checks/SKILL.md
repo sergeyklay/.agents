@@ -11,13 +11,14 @@ metadata:
 
 A green result is evidence only if red was reachable. Every check runs in a state, and when that state is wrong the check does not error — it passes, cheaply and convincingly. The failure is silent by construction: nothing in the output distinguishes "the system works" from "the system was never asked".
 
-Three ways a check goes green without testing anything:
+Five ways a check goes green without testing anything:
 
 | Shape | What happened | What green meant |
 |---|---|---|
 | Setup no-op | The mutation the check depends on never applied | The check compared the old state to itself |
 | Subject not exercised | Only the downstream half ran, or it ran its no-op branch | The upstream half is still unverified |
 | Failure suppressed | The failure path was routed to a warning or a forced exit 0 | Exit status carries no information |
+| Nothing executed | The gate was set and the run exercised none of the subject anyway | Zero checks ran, and exit 0 says what a full pass says |
 | Subject substituted | The named target was unreachable and the tool silently chose another one | The work was done correctly, on the wrong thing |
 
 ## Trigger
@@ -90,6 +91,10 @@ Restore, re-run, confirm green. A check never observed red is an unproven check.
 **A repeat run confirms nothing until its length is derived from the measured rate.** Zero failures in N runs bounds the true rate at roughly `3/N`, so a green series excludes a rate `p` only once N reaches `3/p`. Measure `p` before the fix, over a loop long enough to see failures, and report the bound rather than the count: a rate observed at one in six is not excluded by twelve green runs, which bound it only at one in four and which the unfixed code itself would produce about one time in nine. Group the failures by which assertion they land on, too — failures that alternate between opposite assertions are the two halves of one race, not two unrelated flakes.
 
 **Take a repeat loop's command from the project's own runner, and make it count itself.** A hand-rolled invocation drops whatever the real runner supplies — the gate variable that turns a suite on, its concurrency limit, its reporter — and each omission fails silently: a suite whose gate is unset skips by design and exits 0, so every iteration is green having executed nothing. Then require the number of iterations that produced a parsable result to equal the number requested, and abort when it is short. Without that guard a runner that rejected its own arguments, and so exited before doing any work, yields empty output that a tally reads as an unbroken series of passes.
+
+**A gate that is set proves the suite was selected, not that any of it ran.** The unset-gate case above is answered by counting iterations, and that guard is satisfied here, because every requested iteration ran and every one was green. What it cannot see is a run that entered the suite and executed none of it: a helper that turns a missing credential into a skip, a filter matching no test, a permission probe downgraded to a skip. Count this run's own result events instead of reading the exit code. For Go that is `go test -json` with a floor strictly above zero on `pass` events carrying a non-empty `Test` field, because the package-level `pass` event omits `Test` and is emitted even when every test in the package skipped. Pin `-count=1` in the same breath: a cached run replays the earlier run's `pass` events, elapsed times and all, and only a `(cached)` marker on a package-level output line says so. The floor alone still under-tests: an incidental helper test clears "greater than zero" without showing that the integration recovered, so keep a manifest of the tests each shard must run, key it by package and test name together, name leaf tests in it, and require each one to report its own pass, because a parent passes on its own account once every subtest under it has skipped and two packages in one shard can share a test name. A pass event proves a body ran, never that it asserted; [references/nothing-executed.md](references/nothing-executed.md) has the measured shapes and the ones no event count reaches.
+
+**A skip is a third outcome, not a cheap pass.** "Zero checks executed" and "this check never ran" are different states, the exit code separates neither from success, and folding both into green is the mechanism of false recovery. Where the monitoring is mandatory, give a skip its own state and record it as unrun, because a check that converts a failed permission probe into a skip reports green exactly where the operation it covers turned out to be unreachable.
 
 ### 6. Record the scope, not a verdict
 
