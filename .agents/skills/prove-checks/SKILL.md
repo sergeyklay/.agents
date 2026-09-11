@@ -71,6 +71,7 @@ Break the thing on purpose and confirm the check turns red:
 
 - Revert the fix, or point the check at the pre-fix revision. Copy the file aside before you break it and restore from that copy; never with `git checkout --`, `git restore` or `git reset`, which take every uncommitted change in the tree with them.
 - Run the control in a throwaway `git worktree` rather than in the tree you are working in. An interrupted control then cannot leave a half-broken file where the next command reads it, and a parallel session's uncommitted work is out of reach by construction rather than by care.
+- Leave the broken copy in place until the loop closes, then delete the worktree once. A control that tears it down whenever an attempt fails makes the next attempt rebuild it, so a three-attempt verification pays the setup cost three times.
 - Blank the secret, delete the fixture, or feed the old value.
 - Corrupt one field the assertion is supposed to notice.
 
