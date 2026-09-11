@@ -55,9 +55,9 @@ BEGIN {
   # The separator before the number keeps time.RFC3339 out of the exemption.
   RFC_CITATION = "(^|[^[:alnum:]])RFC[[:space:]-]+[0-9]"
 
-  # Byte literals, so the match holds under any locale.
+  # A byte literal, so the match holds under any locale.
   EM_DASH      = "—"
-  SECTION_MARK = "§"
+  SECTION_MARK = "§[[:space:]]*[0-9]"
 }
 {
   scan($0)
@@ -148,7 +148,7 @@ function classify(c) {
   if (c ~ DOC_REF) return "internal doc/ADR reference"
   if (c ~ FRAME && c !~ PREFORMATTED && c !~ EDITOR_DIRECTIVE && c !~ BOX_BORDER) return "banner decoration"
   if (index(c, EM_DASH) > 0) return "em-dash"
-  if (index(c, SECTION_MARK) > 0) return "section-mark reference"
+  if (c ~ SECTION_MARK) return "section-mark reference"
   if (c ~ ISSUE_REF) return "internal issue number"
   return ""
 }

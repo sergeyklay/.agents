@@ -302,6 +302,22 @@ PROBE
   assert_clean
 }
 
+# The contract calls the rule "a section sign followed by a number", and a bare
+# substring test rejects the sign used as a word.
+@test "the hook allows a section sign carrying no number" {
+  go_comment_probe 'section § is reserved'
+  run run_hook "$PROBE"
+  assert_clean
+}
+
+@test "the hook rejects a section sign with or without a space before its number" {
+  for comment in 'per § 4' 'per §4'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_flagged 'section-mark reference' || return 1
+  done
+}
+
 @test "the hook rejects an internal issue number" {
   write_probe probe.go <<'PROBE'
 package p
