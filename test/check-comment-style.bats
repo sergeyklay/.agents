@@ -64,6 +64,27 @@ PROBE
   assert_clean
 }
 
+# Lowercase is the spelling AGENTS.md and the rules files use, so a title-case
+# pattern misses the shape the guard exists to catch.
+@test "the hook rejects a sequence label in any case" {
+  for comment in 'Step 2: seed it' 'step 2: seed it' 'STEP 2: seed it' \
+    'section 3: the header'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    [ "$status" -eq 2 ] || fail "expected exit 2 for: $comment"$'\n'"$output"
+  done
+}
+
+@test "the hook keeps the genuinely case-sensitive tokens case-sensitive" {
+  for comment in 'pins the ac-1 contract' 'i-1 is a fixture row' \
+    'see Docs/Architecture.MD'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    [ "$status" -eq 0 ] || fail "expected exit 0 for: $comment"$'\n'"$output"
+    [ -z "$output" ] || fail "expected no output for: $comment"$'\n'"$output"
+  done
+}
+
 @test "the hook rejects a spec artefact and number" {
   write_probe probe.go <<'PROBE'
 package p

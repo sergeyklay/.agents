@@ -31,7 +31,7 @@ BEGIN {
   QUOTES = "\"" SQ
   if (marker == "//") QUOTES = QUOTES "`"
 
-  SEQ_LABEL = "(^|[^[:alnum:]])(Step|Phase|Check|Rule|Section|Part|Case|Pass|Stage|Round|Scenario)[[:space:]]+[0-9]"
+  SEQ_LABEL = "(^|[^[:alnum:]])(step|phase|check|rule|section|part|case|pass|stage|round|scenario)[[:space:]]+[0-9]"
   SPEC_NOUN = "(^|[^[:alnum:]])(Table|Tables|Appendix|Figure|Diagram|Criterion|Criteria|Requirement|Spec)[-[:space:]]+[0-9]"
   DOC_REF   = "(docs/architecture|docs/decisions|architecture\\.md|architecture-digest|\\.specs/|\\.plans/|ADR-?[0-9])"
   SPEC_PREFIX = "(^|[^[:alnum:]])(AC|FR|NFR|REQ|US)-[0-9]"
@@ -141,7 +141,7 @@ function report(kind) { printf("  line %d [%s]: %s\n", NR, kind, $0) }
 
 function classify(c) {
   if (c ~ RFC_CITATION) return ""
-  if (c ~ SEQ_LABEL) return "sequence/section label"
+  if (tolower(c) ~ SEQ_LABEL) return "sequence/section label"
   if (c ~ SPEC_NOUN) return "spec-criteria reference"
   if (c ~ SPEC_PREFIX) return "spec-criteria reference"
   if (c ~ TEST_TYPE) return "test-type reference"
@@ -164,6 +164,7 @@ function classify(c) {
   echo "This project forbids these in comments, doc comments included, because they"
   echo "rot, renumber, and point at documents that move or do not exist in the tree:"
   echo "  - sequence/section labels: Step N, Phase N, Check N, Case N, Section N.N"
+  echo "                             (in any case: step 2, STEP 2, Step 2)"
   echo "  - spec-criteria refs:      AC-7, FR-1, NFR-2, REQ-3, US-4"
   echo "  - test-type refs:          I-1, U-1, Q-1"
   echo "  - spec artefact + number:  Table 3.1-B, Table-3, Appendix 2, Figure 4, Spec-706"
