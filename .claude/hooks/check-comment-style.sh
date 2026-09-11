@@ -25,6 +25,12 @@ violations=$(awk -v marker="$marker" '
 # No apostrophe may appear in this awk source. It lives in a single-quoted shell
 # string, and one apostrophe would end that string and silently void the guard.
 BEGIN {
+  SQ = sprintf("%c", 39)
+  FENCE_DOUBLE = "\"\"\""
+  FENCE_SINGLE = SQ SQ SQ
+  QUOTES = "\"" SQ
+  if (marker == "//") QUOTES = QUOTES "`"
+
   SEQ_LABEL = "(^|[^[:alnum:]])(Step|Phase|Check|Rule|Section|Part|Case|Pass|Stage|Round|Scenario)[[:space:]]+[0-9]"
   SPEC_NOUN = "(^|[^[:alnum:]])(Table|Tables|Appendix|Figure|Diagram|Criterion|Criteria|Requirement|Spec)[-[:space:]]+[0-9]"
   DOC_REF   = "(docs/architecture|docs/decisions|architecture\\.md|architecture-digest|\\.specs/|\\.plans/|ADR-?[0-9])"
@@ -43,9 +49,6 @@ BEGIN {
   EDITOR_DIRECTIVE = "^[[:space:]]*-\\*-.*-\\*-"
   BOX_BORDER       = "^[[:space:]]*\\+-+\\+"
 
-  SQ = sprintf("%c", 39)
-  DOCSTRING_FENCE = "\"\"\"|" SQ SQ SQ
-
   # Behind an owner/repo prefix the number is upstream, which the rules allow.
   ISSUE_REF = "(^|[^[:alnum:]_./-])#[0-9][0-9]+"
 
@@ -54,41 +57,9 @@ BEGIN {
   SECTION_MARK = "§"
 }
 {
-  # A hash inside a docstring is prose, and the per-line quote scan below cannot
-  # see an enclosing fence opened on an earlier line. Track the fence instead.
-  if (marker == "#") {
-    fenced = $0
-    opened_inside = in_docstring
-    if (gsub(DOCSTRING_FENCE, "&", fenced) % 2 == 1) in_docstring = !in_docstring
-    if (opened_inside) next
-  }
-
-  code = $0
-  content = ""
-
-  if (in_block) {
-    stop = index($0, "*/")
-    content = stop > 0 ? substr($0, 1, stop - 1) : $0
-    code = stop > 0 ? substr($0, stop + 2) : ""
-    if (stop > 0) in_block = 0
-    sub(/^[[:space:]]*\*/, "", content)
-  } else {
-    line_at = marker_outside_quotes($0, marker)
-    block_at = marker == "//" ? marker_outside_quotes($0, "/*") : 0
-
-    if (block_at > 0 && (line_at == 0 || block_at < line_at)) {
-      stop = index(substr($0, block_at), "*/")
-      content = stop > 0 ? substr($0, block_at + 2, stop - 3) : substr($0, block_at + 2)
-      code = substr($0, 1, block_at - 1)
-      if (stop == 0) in_block = 1
-    } else if (line_at > 0) {
-      content = substr($0, line_at + length(marker))
-      code = substr($0, 1, line_at - 1)
-    }
-  }
-
-  if (content != "") {
-    kind = classify(content)
+  scan($0)
+  for (i = 1; i <= comment_count; i++) {
+    kind = classify(comment_text[i])
     if (kind != "") { report(kind); next }
   }
 
@@ -96,17 +67,69 @@ BEGIN {
   if (code ~ SPEC_NOUN || code ~ DOC_REF) report("spec reference outside a comment")
 }
 
-function marker_outside_quotes(s, m,   i, last, ch, quote, escaped) {
-  last = length(s) - length(m) + 1
-  quote = ""
-  escaped = 0
-  for (i = 1; i <= length(s); i++) {
+# A block comment, a backtick string and a docstring fence stay open into the
+# next record; a plain quote closes at the end of its own.
+function scan(s,   i, n, ch, three) {
+  comment_count = 0
+  code = ""
+  i = 1
+  n = length(s)
+  while (i <= n) {
+    if (open_span != "") { i = close_span(s, i); continue }
     ch = substr(s, i, 1)
-    if (escaped) { escaped = 0; continue }
-    if (ch == "\\") { escaped = 1; continue }
-    if (quote != "") { if (ch == quote) quote = ""; continue }
-    if (ch == "\"" || ch == "\047" || ch == "`") { quote = ch; continue }
-    if (i <= last && substr(s, i, length(m)) == m) return i
+    three = substr(s, i, 3)
+    if (marker == "#" && (three == FENCE_DOUBLE || three == FENCE_SINGLE)) {
+      open_span = three
+      span_kind = "prose"
+      i += 3
+    } else if (substr(s, i, length(marker)) == marker) {
+      add_comment(substr(s, i + length(marker)))
+      i = n + 1
+    } else if (marker == "//" && substr(s, i, 2) == "/*") {
+      open_span = "*/"
+      span_kind = "comment"
+      i += 2
+    } else if (index(QUOTES, ch) > 0) {
+      open_span = ch
+      span_kind = "code"
+      code = code ch
+      i++
+    } else {
+      code = code ch
+      i++
+    }
+  }
+  if (open_span == "\"" || open_span == SQ) open_span = ""
+}
+
+function close_span(s, from,   at, width) {
+  width = length(open_span)
+  at = span_end(s, from, open_span)
+  collect(at > 0 ? substr(s, from, at - from) : substr(s, from), from == 1)
+  if (at == 0) return length(s) + 1
+  if (span_kind == "code") code = code open_span
+  open_span = ""
+  return at + width
+}
+
+function collect(text, block_continuation) {
+  if (span_kind == "comment") {
+    if (block_continuation) sub(/^[[:space:]]*\*/, "", text)
+    add_comment(text)
+  } else if (span_kind == "code") {
+    code = code text
+  }
+}
+
+function add_comment(text) { comment_text[++comment_count] = text }
+
+# A backslash escapes the next character inside a quote, never inside a comment.
+function span_end(s, from, delim,   i, last, width) {
+  width = length(delim)
+  last = length(s) - width + 1
+  for (i = from; i <= last; i++) {
+    if (delim != "*/" && substr(s, i, 1) == "\\") { i++; continue }
+    if (substr(s, i, width) == delim) return i
   }
   return 0
 }

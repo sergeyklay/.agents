@@ -407,6 +407,35 @@ PROBE
   assert_flagged 'spec-criteria reference'
 }
 
+# The control is the same line without the block comment: it was already
+# flagged, so what the block changed is the extractor, not the rule.
+@test "a closed block comment hides no comment later on its line" {
+  for prefix in 'var x = 1 /* fine */ ' 'var x = 1 '; do
+    printf 'package p\n\n%s// Phase 2: seed it\n' "$prefix" >"$BATS_TEST_TMPDIR/probe.go"
+    run run_hook "$BATS_TEST_TMPDIR/probe.go"
+    assert_flagged 'sequence/section label' || return 1
+  done
+}
+
+@test "a closed block comment hides no code later on its line" {
+  for prefix in 'var x = 1 /* fine */ ; ' 'var x = 1 ; '; do
+    printf 'package p\n\n%suseTable(%s)\n' "$prefix" '"Table 3.1-B"' \
+      >"$BATS_TEST_TMPDIR/probe.go"
+    run run_hook "$BATS_TEST_TMPDIR/probe.go"
+    assert_flagged 'spec reference outside a comment' || return 1
+  done
+}
+
+@test "the hook classifies every block comment on a line, not the first" {
+  write_probe probe.go <<'PROBE'
+package p
+
+var x = 1 /* fine */ /* also fine */ /* Phase 2 */
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'sequence/section label'
+}
+
 @test "the hook reads no comment out of a block marker inside a string" {
   write_probe probe.go <<'PROBE'
 package p
@@ -415,6 +444,45 @@ var pat = "/* Step 8: not a comment */"
 PROBE
   run run_hook "$PROBE"
   assert_clean
+}
+
+# A false positive costs more than a miss: it rejects a write the rules allow
+# and the author has no rule to point at.
+@test "a Go raw string spanning lines carries no comment" {
+  write_probe probe.go <<'PROBE'
+package p
+
+var s = `first
+// Phase 2 inside a raw string
+`
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
+@test "a TypeScript template literal spanning lines carries no comment" {
+  write_probe probe.ts <<'PROBE'
+const s = `first
+// Phase 2 inside a template literal
+`;
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
+# The second arm of the false-positive proof: silence on the literal must not
+# be silence on the comment that follows it.
+@test "a comment after a raw string closes is still read" {
+  write_probe probe.go <<'PROBE'
+package p
+
+var s = `first
+`
+
+// Phase 2 warms the cache
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'sequence/section label'
 }
 
 @test "the hook reads no comment out of a Python docstring body" {
@@ -428,6 +496,60 @@ def f():
 PROBE
   run run_hook "$PROBE"
   assert_clean
+}
+
+@test "a comment after the closing docstring fence is read" {
+  write_probe probe.py <<'PROBE'
+def f():
+    """Notes.
+
+    body
+    """  # Phase 2 warms the cache
+    return 1
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'sequence/section label'
+}
+
+@test "a comment after a one-line docstring is read" {
+  write_probe probe.py <<'PROBE'
+def f():
+    """Summary."""  # Phase 2 warms the cache
+    return 1
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'sequence/section label'
+}
+
+# The control for the two above: on the opening fence the hash is still inside
+# the docstring, so the fence decides, not the count of quotes on the line.
+@test "a hash on the docstring opening line stays inside the docstring" {
+  write_probe probe.py <<'PROBE'
+def f():
+    """Notes.  # Phase 2 is not a comment
+
+    body
+    """
+    return 1
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
+@test "a triple quote inside a string opens no docstring" {
+  for first in "value = '\"\"\"'" "value = 'x'"; do
+    printf '%s\n# Phase 2 warms the cache\n' "$first" >"$BATS_TEST_TMPDIR/probe.py"
+    run run_hook "$BATS_TEST_TMPDIR/probe.py"
+    assert_flagged 'sequence/section label' || return 1
+  done
+}
+
+@test "a triple quote inside a comment opens no docstring" {
+  for first in '# mention """' '# mention'; do
+    printf '%s\n# Phase 2 warms the cache\n' "$first" >"$BATS_TEST_TMPDIR/probe.py"
+    run run_hook "$BATS_TEST_TMPDIR/probe.py"
+    assert_flagged 'sequence/section label' || return 1
+  done
 }
 
 @test "the hook reads the same line as a comment outside a docstring" {
