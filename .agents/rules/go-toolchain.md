@@ -17,17 +17,21 @@ Compare on normalized text. The pin files carry a bare `1.26.2`, while `go versi
 
 `go` on a bare PATH is usually a shim that re-reads the pin on every call, and that is the right way to invoke it (`~/.asdf/shims/go`, `~/.local/share/mise/shims/go`). A shim resolves the pin from the working directory, so run every one of these commands from inside the repository. The same command in a temporary directory reports whatever the home pin says.
 
-An exported `GOROOT` overrides the shim only in part: the shim still dispatches to the pinned `go` binary, while the compiler, linker and standard library come from the tree `GOROOT` names. A shell that exports it from an older install therefore fails every build, and the message names the split:
+An exported `GOROOT` overrides the shim only in part: the shim still dispatches to the pinned `go` binary, while the compiler, linker and standard library come from the tree `GOROOT` names. The build fails when those two name different releases, and the message names the split:
 
 ```
 compile: version "go1.26.1" does not match go tool version "go1.26.2"
 ```
 
-Clear it and let the shim resolve, or point it at the install that carries the pin. Do it once for the whole session, not per command. `GOPATH` and `GOBIN` inherited from that same older install do not cause this failure, but they aim the module cache and `go install` at the wrong tree, so clear all three together.
+A green build is not proof that `GOROOT` is right: the two agree by accident whenever the upward `.tool-versions` search lands on the same version `GOROOT` names, or a `toolchain` directive sends Go to a downloaded toolchain that carries its own `GOROOT`.
+
+Clear `GOROOT` and let the shim resolve, or point it at the install that carries the pin. Do it once for the whole session, not per command.
 
 ```
-unset GOROOT GOPATH GOBIN
+unset GOROOT
 ```
+
+`GOPATH` and `GOBIN` never cause this failure. They name the module cache and the `go install` destination, so a pair inherited from an install that no longer matches the pin misplaces downloads and binaries instead of breaking the compile. Read where they point, and clear them only when they point into that install.
 
 Never reference an absolute system path (`/usr/bin/go`, `/usr/local/go/bin/go`).
 
