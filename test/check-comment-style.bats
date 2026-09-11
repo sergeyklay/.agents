@@ -284,6 +284,44 @@ PROBE
   assert_clean
 }
 
+@test "the hook allows an upstream RFC citation" {
+  write_probe probe.go <<'PROBE'
+package p
+
+// Phase 2 of the handshake is RFC 7231 section 6
+var x = 1
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
+# time.RFC3339 is stdlib Go, so a whole-line exemption disarms the guard on
+# ordinary code rather than on the citation it was written for.
+@test "an RFC constant in code does not exempt the comment beside it" {
+  write_probe probe.go <<'PROBE'
+package p
+
+func f(t time.Time) string {
+	return t.Format(time.RFC3339) // Phase 2 stamps it
+}
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'sequence/section label'
+}
+
+@test "a docstring citing an RFC still hides its body" {
+  write_probe probe.py <<'PROBE'
+def f():
+    """Notes on RFC 7231.
+
+    # Phase 2 is not a comment
+    """
+    return 1
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
 @test "the hook rejects a spec artefact in a string literal" {
   write_probe probe.go <<'PROBE'
 package p

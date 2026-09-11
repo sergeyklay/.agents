@@ -54,8 +54,6 @@ BEGIN {
   SECTION_MARK = "§"
 }
 {
-  if ($0 ~ /RFC/) next                 # an upstream RFC citation is allowed
-
   # A hash inside a docstring is prose, and the per-line quote scan below cannot
   # see an enclosing fence opened on an earlier line. Track the fence instead.
   if (marker == "#") {
@@ -116,6 +114,7 @@ function marker_outside_quotes(s, m,   i, last, ch, quote, escaped) {
 function report(kind) { printf("  line %d [%s]: %s\n", NR, kind, $0) }
 
 function classify(c) {
+  if (c ~ /RFC/) return ""             # an upstream RFC citation is allowed
   if (c ~ SEQ_LABEL) return "sequence/section label"
   if (c ~ SPEC_NOUN) return "spec-criteria reference"
   if (c ~ SPEC_PREFIX) return "spec-criteria reference"
