@@ -28,6 +28,13 @@ assert_clean() {
   [ -z "$output" ] || fail "expected no output"$'\n'"$output"
 }
 
+# A case and the control that makes it a defect differ by one comment, which a
+# heredoc cannot vary.
+go_comment_probe() {
+  PROBE="$BATS_TEST_TMPDIR/probe.go"
+  printf 'package p\n\n// %s\nvar x = 1\n' "$1" >"$PROBE"
+}
+
 # jq cannot be shadowed off a PATH, so the probe PATH carries nothing at all.
 path_without_jq() {
   local dir="$BATS_TEST_TMPDIR/nojq"
@@ -319,6 +326,35 @@ func f(t time.Time) string {
 PROBE
   run run_hook "$PROBE"
   assert_flagged 'sequence/section label'
+}
+
+# Without the number the three letters are a bypass of every rule in the
+# classifier, and three letters is what an author has to type to disarm it.
+@test "the hook exempts nothing for an RFC mention carrying no number" {
+  for comment in 'Step 2 handles RFC input' 'RFC Step 2: seed it' \
+    'RFC: see docs/architecture.md' 'no retry — RFC'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    [ "$status" -eq 2 ] || fail "expected exit 2 for: $comment"$'\n'"$output"
+  done
+}
+
+# time.RFC3339 is stdlib Go, so the exemption has to need a separator as well
+# as a number or ordinary date handling disarms the guard by accident.
+@test "an RFC constant inside the comment exempts nothing" {
+  go_comment_probe 'Phase 2 stamps it with time.RFC3339'
+  run run_hook "$PROBE"
+  assert_flagged 'sequence/section label'
+}
+
+@test "an RFC mention in a comment does not exempt the code beside it" {
+  write_probe probe.go <<'PROBE'
+package p
+
+var x = "docs/architecture.md" // RFC note
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'spec reference outside a comment'
 }
 
 @test "a docstring citing an RFC still hides its body" {

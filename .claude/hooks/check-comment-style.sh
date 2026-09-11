@@ -52,6 +52,9 @@ BEGIN {
   # Behind an owner/repo prefix the number is upstream, which the rules allow.
   ISSUE_REF = "(^|[^[:alnum:]_./-])#[0-9][0-9]+"
 
+  # The separator before the number keeps time.RFC3339 out of the exemption.
+  RFC_CITATION = "(^|[^[:alnum:]])RFC[[:space:]-]+[0-9]"
+
   # Byte literals, so the match holds under any locale.
   EM_DASH      = "—"
   SECTION_MARK = "§"
@@ -137,7 +140,7 @@ function span_end(s, from, delim,   i, last, width) {
 function report(kind) { printf("  line %d [%s]: %s\n", NR, kind, $0) }
 
 function classify(c) {
-  if (c ~ /RFC/) return ""             # an upstream RFC citation is allowed
+  if (c ~ RFC_CITATION) return ""
   if (c ~ SEQ_LABEL) return "sequence/section label"
   if (c ~ SPEC_NOUN) return "spec-criteria reference"
   if (c ~ SPEC_PREFIX) return "spec-criteria reference"
@@ -184,7 +187,9 @@ function classify(c) {
   echo "Not a violation (do not change): test-data IDs in strings (\"PROJ-42\") or in"
   echo "comments (\"C-1\", \"D-1\"), standard tokens (ISO-8601, UTF-8, SHA-256), ordered"
   echo "lists in a doc comment, a \"---\" inside a preformatted block, upstream issue"
-  echo "refs carrying an owner/repo prefix (golang/go#22315), and a spaced en-dash,"
-  echo "which is the sanctioned replacement for an em-dash."
+  echo "refs carrying an owner/repo prefix (golang/go#22315), an upstream RFC citation"
+  echo "carrying a number (\"RFC 7231 Section 6\", but not a bare \"RFC\" and not"
+  echo "time.RFC3339), and a spaced en-dash, which is the sanctioned replacement for"
+  echo "an em-dash."
 } >&2
 exit 2
