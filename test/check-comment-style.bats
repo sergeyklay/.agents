@@ -767,9 +767,28 @@ PAYLOAD
   assert_clean
 }
 
-@test "Claude settings run the hook after every edit" {
+# Every case above runs the hook out of the working tree, which says nothing
+# about what a host ends up with.
+@test "the installer ships the hook and the settings that run it" {
+  run install_into --hooks --settings --claude
+  [ "$status" -eq 0 ] || fail "installer exited $status"$'\n'"$output"
+
+  installed="$TEST_HOME/.claude/hooks/check-comment-style.sh"
+  assert_file "$installed"
+  [ -x "$installed" ] || fail "expected the installed hook to be executable"
   jq -e '
     .hooks.PostToolUse[] | select(.matcher == "Edit|Write|MultiEdit")
     | .hooks[] | select(.command | endswith("check-comment-style.sh"))
-  ' "$ROOT/.claude/settings.json" >/dev/null
+  ' "$TEST_HOME/.claude/settings.json" >/dev/null
+
+  write_probe probe.go <<'PROBE'
+package p
+
+// Phase 2 warms the cache
+var x = 1
+PROBE
+  run "$installed" <<PAYLOAD
+{"tool_name":"Edit","tool_input":{"file_path":"$PROBE"}}
+PAYLOAD
+  assert_flagged 'sequence/section label'
 }
