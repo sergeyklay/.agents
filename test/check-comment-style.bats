@@ -329,6 +329,24 @@ PROBE
   assert_flagged 'internal issue number'
 }
 
+@test "the hook rejects a single-digit issue number" {
+  go_comment_probe 'see #7 for the cause'
+  run run_hook "$PROBE"
+  assert_flagged 'internal issue number'
+}
+
+# An issue number never carries a leading zero and never ends in a hex letter,
+# which is what separates it from a color the guard must leave alone.
+@test "the hook reads no issue number out of a hex color" {
+  for comment in 'the color #000000 is the default' \
+    'the color #1a2b3c is the default' 'the color #fff is the default'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    [ "$status" -eq 0 ] || fail "expected exit 0 for: $comment"$'\n'"$output"
+    [ -z "$output" ] || fail "expected no output for: $comment"$'\n'"$output"
+  done
+}
+
 @test "the hook allows an upstream issue reference behind an owner prefix" {
   write_probe probe.go <<'PROBE'
 package p

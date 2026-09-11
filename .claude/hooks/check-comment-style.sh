@@ -49,11 +49,11 @@ BEGIN {
   EDITOR_DIRECTIVE = "^[[:space:]]*-\\*-.*-\\*-"
   BOX_BORDER       = "^[[:space:]]*\\+-+\\+"
 
-  # Behind an owner/repo prefix the number is upstream, which the rules allow.
-  ISSUE_REF = "(^|[^[:alnum:]_./-])#[0-9][0-9]+"
-
   # The separator before the number keeps time.RFC3339 out of the exemption.
   RFC_CITATION = "(^|[^[:alnum:]])RFC[[:space:]-]+[0-9]"
+
+  # A leading zero or a trailing hex letter marks a color, not an issue number.
+  ISSUE_REF = "(^|[^[:alnum:]_./-])#[1-9][0-9]*($|[^0-9a-fA-F])"
 
   # A byte literal, so the match holds under any locale.
   EM_DASH      = "—"
@@ -171,7 +171,7 @@ function classify(c) {
   echo "                             (these are flagged in string literals too)"
   echo "  - internal doc/ADR refs:   docs/architecture.md, docs/decisions/, ADR-3, .specs/, .plans/"
   echo "  - section-mark refs:       a section sign followed by a number"
-  echo "  - internal issue numbers:  see #811"
+  echo "  - internal issue numbers:  see #7, see #811"
   echo
   echo "It also forbids two decorations that carry no information for the reader:"
   echo "  - banner/frame comments:   --- Tests ---, ======, #####"
@@ -188,9 +188,9 @@ function classify(c) {
   echo "Not a violation (do not change): test-data IDs in strings (\"PROJ-42\") or in"
   echo "comments (\"C-1\", \"D-1\"), standard tokens (ISO-8601, UTF-8, SHA-256), ordered"
   echo "lists in a doc comment, a \"---\" inside a preformatted block, upstream issue"
-  echo "refs carrying an owner/repo prefix (golang/go#22315), an upstream RFC citation"
-  echo "carrying a number (\"RFC 7231 Section 6\", but not a bare \"RFC\" and not"
-  echo "time.RFC3339), and a spaced en-dash, which is the sanctioned replacement for"
-  echo "an em-dash."
+  echo "refs carrying an owner/repo prefix (golang/go#22315), a hex color (#000000),"
+  echo "an upstream RFC citation carrying a number (\"RFC 7231 Section 6\", but not a"
+  echo "bare \"RFC\" and not time.RFC3339), and a spaced en-dash, which is the"
+  echo "sanctioned replacement for an em-dash."
 } >&2
 exit 2
