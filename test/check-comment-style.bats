@@ -664,7 +664,7 @@ PROBE
 }
 
 @test "every hash-marker extension is checked" {
-  for ext in py pyi; do
+  for ext in py pyi bats bash sh; do
     write_probe "probe.$ext" <<'PROBE'
 # Phase 2 warms the cache
 PROBE
@@ -692,7 +692,7 @@ PROBE
 }
 
 @test "an extension the hook does not handle blocks nothing" {
-  for name in probe.rb probe.md probe.sh probe; do
+  for name in probe.rb probe.md probe; do
     write_probe "$name" <<'PROBE'
 # Phase 2 warms the cache
 PROBE
