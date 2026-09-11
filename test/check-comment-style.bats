@@ -189,6 +189,18 @@ PROBE
   assert_clean
 }
 
+@test "the hook allows an ordered list in a doc comment" {
+  write_probe probe.go <<'PROBE'
+package p
+
+// 1. warm the cache
+// 2. read it back
+var x = 1
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
 @test "the hook allows a dash run inside a preformatted block" {
   printf 'package p\n\n// Sample output:\n//\t---\n//\tname: probe\nvar x = 1\n' \
     >"$BATS_TEST_TMPDIR/preformatted.go"
