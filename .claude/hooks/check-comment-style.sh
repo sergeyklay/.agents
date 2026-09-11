@@ -16,7 +16,7 @@ file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null
 [ -n "$file" ] || exit 0
 case "$file" in
 *.go | *.ts | *.tsx | *.js | *.jsx | *.mjs | *.cjs) marker='//' ;;
-*.py | *.pyi) marker='#' ;;
+*.py | *.pyi | *.bats | *.bash | *.sh ) marker='#' ;;
 *) exit 0 ;;
 esac
 [ -f "$file" ] || exit 0
