@@ -5,7 +5,13 @@ Go carries its version in two places at once: the pin the project declares, and 
 
 ## Detect
 
-**Version pin**: first file present - `.tool-versions`, the `toolchain` directive in `go.mod`, the `go` directive in `go.mod`, `.go-version`. Match exactly. Do not switch the active version manager (asdf / mise / goenv).
+Two resolvers run in sequence over different files, and a version claim has to account for both.
+
+**The version manager picks which `go` binary runs.** asdf, mise and goenv read `.tool-versions` or `.go-version`, searching the working directory and then each parent up to `$HOME`. A `.tool-versions` carrying no `golang` line is not a Go pin; the search keeps walking up, and it never falls through to `go.mod`. Do not switch the active version manager (asdf / mise / goenv).
+
+**That binary then picks which toolchain compiles.** It reads `go.mod`, where the `go` and `toolchain` directives are both floors rather than exact pins. The effective toolchain is the highest requirement among the two directives and the running binary, so a `toolchain` line older than the binary is ignored and a `go` line above the `toolchain` line wins. When a floor sits above the running binary, `GOTOOLCHAIN` decides the outcome: `auto` downloads that toolchain and re-execs into it, `local` refuses to build.
+
+Compare on normalized text. The pin files carry a bare `1.26.2`, while `go version`, `go env GOVERSION` and `compile -V=full` all carry the `go` prefix (`go1.26.2`). Strip or add it before comparing, and never write a prefixed version back into a pin file: asdf's `parse-legacy-file` returns empty for a `go`-prefixed `.go-version`, so the pin reads as absent.
 
 ## Activate
 
