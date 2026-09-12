@@ -46,6 +46,7 @@ These constraints protect canonical source files and installed host views.
 
 ### Never
 
+- Put a project-specific fact into any artifact here. Everything tracked in this repository installs into every project on the host, so a repository or service name, a schema, a port, a ticket prefix or a team convention belongs in that project's own context file; this repository carries only what is explicitly useful to every project.
 - Edit installed files under `$HOME` as a substitute for updating this source repository.
 - Copy a path-scoped Claude rule into OpenCode's global rules.
 - Run the destructive git commands the Working Agreement lists under "Surgical Changes". In a shared checkout they destroy a parallel session's uncommitted work.

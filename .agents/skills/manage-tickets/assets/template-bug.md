@@ -19,11 +19,11 @@ h2. Steps to reproduce
 
 h2. Expected behaviour
 
-{The documented or intended behaviour. If a spec or constant defines it, cite by file:line: "the polling cadence is governed by {{SCAN_PROGRESS_POLL_INTERVAL_MS}} (src/hooks/constants.ts:11)".}
+{The documented or intended behaviour. If a spec or constant defines it, cite by file:line: "the polling cadence is governed by {{STATUS_POLL_INTERVAL_MS}} (path/to/constants.ts:11)".}
 
 h2. Observed behaviour
 
-{What happens instead. Anchor each observation to the code path that produces it: "After the final scan:progress event fires from inside processEmailBatch (src/services/pipeline/workflow.ts:757-769), the dialog displays emailsProcessed === emailsTotal but scanStatus.status is still RUNNING."}
+{What happens instead. Anchor each observation to the code path that produces it: "After the final progress event fires from inside processBatch (path/to/worker.ts:757-769), the dialog displays processed === total but status is still RUNNING."}
 
 h2. [Root cause]
 
@@ -67,7 +67,7 @@ h3. Manual
 
 h2. Context
 
-{Origin (where this bug came from - MC1 validation, production incident, customer report, internal review). Verbatim quote of the original report if any: "After scan finished I still see dialog window with scan progress 1000/1000 with no autoclose." Investigation trace summary: who looked, what was ruled out, what evidence anchors the Root cause section. Related tickets and links to logs.}
+{Origin (where this bug came from - manual validation, production incident, customer report, internal review). Verbatim quote of the original report if any: "After the job finished I still see the dialog with the progress bar full and no autoclose." Investigation trace summary: who looked, what was ruled out, what evidence anchors the Root cause section. Related tickets and links to logs.}
 ```
 
 ## Filled example
@@ -75,72 +75,72 @@ h2. Context
 ```
 h2. Summary
 
-After a synthetic seed scan reaches 100% progress, the admin seed dialog displays "1000/1000 - Seed run in progress" with the spinner for an extended period before transitioning to the "Seed run completed" success view. Once the success view appears, the dialog never auto-closes; the operator must click Close manually.
+After an API key is revoked from the keys list, the confirmation dialog keeps showing "Revoking..." with the spinner for an extended period before switching to the success view. Once the success view appears, the dialog never auto-closes; the operator must click Close manually.
 
 h2. Steps to reproduce
 
-# Sign in as an admin user.
-# Navigate to {{/admin/users}}.
-# Open {{AdminSeedDialog}} on any user row and upload a synthetic mailbox archive (e.g. {{atlanticmedicalnj@gmail.com.zip}}).
-# Confirm the destructive preview to start the seed.
-# Watch the dialog enter the progress phase; the progress bar climbs to 100% and the count reaches emailsTotal/emailsTotal.
-# Observe that the dialog continues to show 1000/1000 with the spinner and the message "Seed run in progress" for tens of seconds.
-# Eventually the dialog flips to "Seed run completed" with the green check and "Back to users" button.
+# Sign in as a user holding the {{admin:keys.revoke}} permission.
+# Navigate to {{/admin/keys}}.
+# Choose any active key row and press Revoke.
+# Confirm the destructive preview to start the revocation.
+# Watch the dialog enter its progress phase; the spinner appears and the row is marked pending.
+# Observe that the dialog keeps showing "Revoking..." for tens of seconds after the key has already stopped authenticating.
+# Eventually the dialog flips to "Key revoked" with the green check and a "Back to keys" button.
 # Note that the dialog never auto-closes; it stays open until the operator clicks Close.
 
 h2. Expected behaviour
 
-When the back-end pipeline reaches {{ScanJob.status = COMPLETED}}, the dialog transitions to the success view within one polling interval ({{SCAN_PROGRESS_POLL_INTERVAL_MS = 2_000}} at {{src/hooks/constants.ts:11}}). After the success view is shown, the dialog auto-closes within 2-3 seconds via a toast notification so the operator can return to the user roster without an extra click.
+When the back end marks the key {{revoked}}, the dialog transitions to the success view within one polling interval ({{STATUS_POLL_INTERVAL_MS = 2_000}} at {{path/to/constants.ts:11}}). After the success view is shown, the dialog auto-closes within 2-3 seconds via a toast notification so the operator can return to the key roster without an extra click.
 
 h2. Observed behaviour
 
-After the throttler's final scan:progress event fires from inside {{processEmailBatch}} (src/services/pipeline/workflow.ts:757-769), the dialog displays emailsProcessed === emailsTotal but {{scanStatus.status}} is still RUNNING. {{AdminSeedProgressView}} (src/components/admin/admin-seed-progress-view.tsx:180-209) keeps rendering the in-progress spinner and the "1000/1000" counter while the back end runs {{extractBusinessProfile}} (src/services/pipeline/workflow.ts:778-782) and {{tagContactRelationships}} (src/services/pipeline/workflow.ts:785-789); each takes 10-30 seconds. Only after both finish does {{transitionScanJob(scanJobId, 'COMPLETED')}} at src/services/pipeline/workflow.ts:792 flip the DB status. {{AdminSeedDialog.handleTerminalStatusChange}} at src/components/admin/admin-seed-dialog.tsx:321-331 sets the phase to 'completed' but never calls {{onOpenChange(false)}}.
+The revoke endpoint flips the key state and returns, but the dialog polls a status field that the audit-log write updates only afterwards ({{path/to/revoke-handler.ts:120-148}}). {{RevokeProgressView}} ({{path/to/revoke-progress-view.tsx:180-209}}) keeps rendering the spinner while the handler emits the {{api_key.revoked}} event and waits for the emitter to acknowledge it; that acknowledgement takes 10-30 seconds under load. {{RevokeDialog.handleTerminalStatusChange}} at {{path/to/revoke-dialog.tsx:321-331}} then sets the phase to 'completed' but never calls {{onOpenChange(false)}}.
 
 h2. Root cause
 
 Two independent issues compose into the observed UX.
 
-*Issue A - No auto-close on terminal status (primary).* {{handleTerminalStatusChange}} (src/components/admin/admin-seed-dialog.tsx:321-331) renders the success view but never asks the dialog to close. Missing UX affordance since the component shipped.
+*Issue A - No auto-close on terminal status (primary).* {{handleTerminalStatusChange}} ({{path/to/revoke-dialog.tsx:321-331}}) renders the success view but never asks the dialog to close. Missing UX affordance since the component shipped.
 
-*Issue B - Post-batch LLM work delays COMPLETED (visibility amplifier).* {{processEmailBatch}} runs {{extractBusinessProfile}} (LLM, 10-30 s) and {{tagContactRelationships}} (LLM, 10-30 s) between the final progress event and the COMPLETED transition. The dialog faithfully shows the truth - the scan is still running - but the progress bar is full and the operator perceives the dialog as stuck.
+*Issue B - Audit acknowledgement delays the terminal state (visibility amplifier).* The handler awaits the audit emitter before reporting the terminal state. The dialog faithfully shows the truth - the operation is still in flight - but the key is already unusable and the operator perceives the dialog as stuck.
 
 h2. Proposed solution
 
-Confine the fix to {{src/components/admin/admin-seed-dialog.tsx}}. Add an auto-close {{useEffect}} that watches {{phase}}; when {{phase}} becomes 'completed', schedule a {{setTimeout}} to call {{onOpenChange(false)}} after 2500 ms. Clear the timer on unmount and when {{phase}} changes (e.g. if the operator closes the dialog manually before the timer fires). Pair the auto-close with a toast notification (existing project toast utility) so the completion signal is not lost.
+Confine the fix to {{path/to/revoke-dialog.tsx}}. Add an auto-close {{useEffect}} that watches {{phase}}; when {{phase}} becomes 'completed', schedule a {{setTimeout}} to call {{onOpenChange(false)}} after 2500 ms. Clear the timer on unmount and when {{phase}} changes, so an operator who closes the dialog manually before the timer fires sees no late side effect. Pair the auto-close with a toast notification so the completion signal is not lost.
 
-Issue B (post-batch LLM delay) is acknowledged but explicitly out of scope; track it in a follow-up if the "stuck at 1000/1000" perception persists after the auto-close lands.
+Issue B (audit acknowledgement delay) is acknowledged but explicitly out of scope; track it in a follow-up if the "stuck on Revoking" perception persists after the auto-close lands.
 
 h2. Out of scope
 
-* No edits to {{AdminSeedProgressView}}, the event bus, the orchestration, or any service-layer file. The fix is UI-only.
-* No new scan:phase event type.
-* No change to {{SCAN_PROGRESS_POLL_INTERVAL_MS}}.
+* No edits to {{RevokeProgressView}}, the event emitter, the revoke handler, or any service-layer file. The fix is UI-only.
+* No new event type.
+* No change to {{STATUS_POLL_INTERVAL_MS}}.
 
 h2. Requirements
 
-* After {{ScanJob.status}} transitions to COMPLETED and {{AdminSeedDialog}} enters the 'completed' phase, the dialog MUST auto-close within 3 seconds via {{onOpenChange(false)}}.
-* A toast notification confirming "Seed run completed" MUST appear when the dialog auto-closes so the completion signal is preserved.
+* After the key reaches the revoked state and {{RevokeDialog}} enters the 'completed' phase, the dialog MUST auto-close within 3 seconds via {{onOpenChange(false)}}.
+* A toast notification confirming "Key revoked" MUST appear when the dialog auto-closes so the completion signal is preserved.
 * The auto-close MUST be cancellable: if the operator clicks Close before the timer fires, the dialog closes immediately and the timer is cleared with no further side effects.
-* The auto-close MUST NOT fire on FAILED status; the dialog stays open with the failure view.
-* The auto-close MUST NOT fire while {{phase}} is 'progress', even if emailsProcessed === emailsTotal. The trigger is {{phase === 'completed'}}, not visual progress.
-* The change MUST be confined to {{src/components/admin/admin-seed-dialog.tsx}}. {{AdminSeedProgressView}}, the event bus, the orchestration, the workflow, and all service files MUST be untouched.
+* The auto-close MUST NOT fire on a failed revocation; the dialog stays open with the failure view.
+* The auto-close MUST NOT fire while {{phase}} is 'progress', even if the row already reads as pending. The trigger is {{phase === 'completed'}}, not visual progress.
+* The change MUST be confined to {{path/to/revoke-dialog.tsx}}. {{RevokeProgressView}}, the emitter, the handler, and all service files MUST be untouched.
 
 h2. Self-checks
 
 h3. Automated (CI)
 
-* Unit test: drive {{AdminSeedDialog}} from QUEUED → RUNNING → COMPLETED via mocked {{onTerminalStatusChange}}; assert {{onOpenChange(false)}} is called exactly once within 3000 ms.
+* Unit test: drive {{RevokeDialog}} from pending to revoked via a mocked terminal-status callback; assert {{onOpenChange(false)}} is called exactly once within 3000 ms.
 * Unit test: drive to 'completed', then trigger manual Close before the auto-close timer fires; assert {{onOpenChange(false)}} is called exactly once.
-* Unit test: drive to FAILED; advance fake timers past the auto-close delay; assert {{onOpenChange(false)}} was NOT called.
+* Unit test: drive to the failed state; advance fake timers past the auto-close delay; assert {{onOpenChange(false)}} was NOT called.
 * Unit test: drive to 'completed', unmount; advance fake timers; assert no call after unmount.
-* {{npm run typecheck}} and {{npm run lint}} pass.
+* The repository's type-check and lint commands pass.
 
 h3. Manual
 
-* Seed {{atlanticmedicalnj@gmail.com.zip}} against a clean user; observe the dialog auto-closes 2-3 seconds after the "Seed run completed" view appears; observe the success toast.
-* Trigger a deliberate failure (invalid token, network-blocked LLM); observe the dialog stays open showing the failure message; no auto-close.
+* Revoke a disposable key on a scratch account; observe the dialog auto-closes 2-3 seconds after the "Key revoked" view appears; observe the success toast.
+* Trigger a deliberate failure (revoke a key that another session already revoked); observe the dialog stays open showing the failure message; no auto-close.
 
 h2. Context
 
-Surfaced during the manual MC1 validation step for the synthetic-seed end-to-end check. The operator reported: "After scan finished I still see dialog window with scan progress 1000/1000 with no autoclose." Investigation traced the symptom to two independent factors (no auto-close logic in the dialog, and the multi-second post-batch LLM work before COMPLETED transitions). This ticket scopes the fix to the primary user-visible complaint; the post-batch LLM-work visibility issue is acknowledged and left for a separate ticket if it remains a complaint after this fix lands.
+Surfaced during manual validation of the self-serve key revocation flow. The operator reported: "After the key was revoked I still see the dialog with the spinner and no autoclose." Investigation traced the symptom to two independent factors (no auto-close logic in the dialog, and the audit acknowledgement that precedes the terminal state). This ticket scopes the fix to the primary user-visible complaint; the acknowledgement-delay visibility issue is acknowledged and left for a separate ticket if it remains a complaint after this fix lands.
 ```
