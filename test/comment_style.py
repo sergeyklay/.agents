@@ -23,15 +23,6 @@ LABELED_BANNER = re.compile(r"^#\s*[#=*-]{2,}.*[#=*-]{2,}\s*$")
 STEP_LABEL = re.compile(r"^#\s*(?:step\s*\d+|\d+\s*[.):]|section\s*:)", re.IGNORECASE)
 HEREDOC = re.compile(r"<<(-?)\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
 
-# These files predate the gate. It freezes what each already carries as its
-# ceiling, so anything added to them from now on still fails.
-LEGACY_BANNERS = {
-    ".agents/skills/context-files/scripts/validate_context_file.py": 9,
-    ".agents/skills/improve-self/scripts/discover_skills.py": 7,
-    ".agents/skills/jira-syntax/scripts/validate_jira_syntax.py": 8,
-    ".agents/skills/make-skill/scripts/validate_skill.py": 13,
-}
-
 
 def tracked_sources(root: Path) -> list[str]:
     result = subprocess.run(
@@ -96,14 +87,11 @@ def docstring_spans(source: str) -> list[tuple[int, int]]:
 
 
 def banner_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:
-    hits = [
+    return [
         f"{path}:{row}: banner separator, not a why: {text}"
         for row, text in comments
         if BANNER.match(text) or LABELED_BANNER.match(text)
     ]
-    if len(hits) <= LEGACY_BANNERS.get(path, 0):
-        return []
-    return hits
 
 
 def label_violations(path: str, comments: list[tuple[int, str]]) -> list[str]:

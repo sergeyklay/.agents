@@ -403,7 +403,7 @@ PROBE
 }
 
 @test "an RFC mention in a comment does not exempt the code beside it" {
-  write_probe probe.go <<'PROBE'
+  write_probe probe_test.go <<'PROBE'
 package p
 
 var x = "docs/architecture.md" // RFC note
@@ -425,8 +425,8 @@ PROBE
   assert_clean
 }
 
-@test "the hook rejects a spec artefact in a string literal" {
-  write_probe probe.go <<'PROBE'
+@test "the hook rejects a spec artefact in a test string literal" {
+  write_probe probe_test.go <<'PROBE'
 package p
 
 var name = "Table 3.1-B"
@@ -435,8 +435,8 @@ PROBE
   assert_flagged 'spec reference outside a comment'
 }
 
-@test "the hook rejects an internal doc path in a string literal" {
-  write_probe probe.go <<'PROBE'
+@test "the hook rejects an internal doc path in a test string literal" {
+  write_probe probe_test.go <<'PROBE'
 package p
 
 var doc = "docs/decisions/0001.md"
@@ -447,8 +447,8 @@ PROBE
 
 # The code path carries two of the nine rules, not all of them, so a token the
 # comment rules reject has to survive in a string literal.
-@test "the hook allows a test-data ID in a string literal" {
-  write_probe probe.go <<'PROBE'
+@test "the hook allows a test-data ID in a test string literal" {
+  write_probe probe_test.go <<'PROBE'
 package p
 
 var key = "PROJ-42"
@@ -456,6 +456,38 @@ var criterion = "AC-1"
 PROBE
   run run_hook "$PROBE"
   assert_clean
+}
+
+# Outside a test, a doc path in a string is a --help line or a warning message,
+# where the path is the payload the reader needs.
+@test "the code path reaches a test filename and nothing beside it" {
+  for name in probe_test.go probe.test.ts probe.spec.ts test_probe.py probe.bats; do
+    write_probe "$name" <<'PROBE'
+doc = "docs/decisions/0001.md"
+PROBE
+    run run_hook "$PROBE"
+    assert_flagged 'spec reference outside a comment' || return 1
+  done
+
+  for name in probe.go probe.ts probe.py probe.sh; do
+    write_probe "$name" <<'PROBE'
+doc = "docs/decisions/0001.md"
+PROBE
+    run run_hook "$PROBE"
+    assert_clean || return 1
+  done
+}
+
+# Narrowing the code path must leave the comment path reaching every file.
+@test "a doc reference inside a comment is flagged under any filename" {
+  for name in probe.go probe_test.go; do
+    write_probe "$name" <<'PROBE'
+// docs/decisions/0001.md fixes the retry budget
+var x = 1
+PROBE
+    run run_hook "$PROBE"
+    assert_flagged 'internal doc/ADR reference' || return 1
+  done
 }
 
 @test "the hook reads no comment out of a slash inside a string literal" {
@@ -511,8 +543,8 @@ PROBE
 @test "a closed block comment hides no code later on its line" {
   for prefix in 'var x = 1 /* fine */ ; ' 'var x = 1 ; '; do
     printf 'package p\n\n%suseTable(%s)\n' "$prefix" '"Table 3.1-B"' \
-      >"$BATS_TEST_TMPDIR/probe.go"
-    run run_hook "$BATS_TEST_TMPDIR/probe.go"
+      >"$BATS_TEST_TMPDIR/probe_test.go"
+    run run_hook "$BATS_TEST_TMPDIR/probe_test.go"
     assert_flagged 'spec reference outside a comment' || return 1
   done
 }

@@ -29,7 +29,15 @@ case "$file" in
 esac
 [ -f "$file" ] || exit 0
 
-violations=$(awk -v marker="$marker" '
+# The code-side rule below exists for test names and assertion messages. In
+# ordinary source a spec path inside a string is the payload of a help text or a
+# warning, and stripping it would degrade what the reader is shown.
+case "$file" in
+*.bats | *_test.* | */test_*.* | *.test.* | *.spec.*) in_test=1 ;;
+*) in_test=0 ;;
+esac
+
+violations=$(awk -v marker="$marker" -v in_test="$in_test" '
 # No apostrophe may appear in this awk source. It lives in a single-quoted shell
 # string, and one apostrophe would end that string and silently void the guard.
 BEGIN {
@@ -75,7 +83,8 @@ BEGIN {
   }
 
   # A test name or an assertion message carries a spec reference into CI output.
-  if (code ~ SPEC_NOUN || code ~ DOC_REF) report("spec reference outside a comment")
+  if (in_test == 1 && (code ~ SPEC_NOUN || code ~ DOC_REF))
+    report("spec reference outside a comment")
 }
 
 # A block comment, a backtick string and a docstring fence stay open into the
@@ -176,8 +185,9 @@ function classify(c) {
   echo "  - spec-criteria refs:      AC-7, FR-1, NFR-2, REQ-3, US-4"
   echo "  - test-type refs:          I-1, U-1, Q-1"
   echo "  - spec artefact + number:  Table 3.1-B, Table-3, Appendix 2, Figure 4, Spec-706"
-  echo "                             (these are flagged in string literals too)"
   echo "  - internal doc/ADR refs:   docs/architecture.md, docs/decisions/, ADR-3, .specs/, .plans/"
+  echo "                             (the last two are flagged in string literals"
+  echo "                              as well, but only in a test file)"
   echo "  - section-mark refs:       a section sign followed by a number"
   echo "  - internal issue numbers:  see #7, see #811"
   echo
