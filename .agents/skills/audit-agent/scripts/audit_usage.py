@@ -187,7 +187,10 @@ def _load(path: Path) -> list[dict[str, object]]:
                 records.append(cast(dict[str, object], item))
         return records
 
-    for line_number, line in enumerate(text.splitlines(), start=1):
+    # Newlines only: JSON leaves U+0085, U+2028 and U+2029 unescaped inside a
+    # string literal, and splitlines() breaks on all three, tearing one valid
+    # record into two unparsable halves.
+    for line_number, line in enumerate(text.split("\n"), start=1):
         if not line.strip():
             continue
         try:

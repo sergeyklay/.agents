@@ -5,6 +5,8 @@
 from __future__ import annotations
 
 import json
+import re
+import shlex
 import sqlite3
 import sys
 import tempfile
@@ -549,6 +551,37 @@ class StreamUsageAuditTest(unittest.TestCase):
                 [self.log], "message.id", "message.usage", "message.stop"
             )
 
+    def test_keeps_a_record_carrying_unicode_line_separators(self) -> None:
+        # ensure_ascii=False writes the separators raw, the way the runner does.
+        # JSON permits them unescaped inside a string; splitlines() would break
+        # on all three and tear this one record into four unparsable pieces.
+        self.log.write_text(
+            json.dumps(
+                {
+                    "message": {
+                        "id": "m1",
+                        "usage": {"input": 10, "output": 3},
+                        "stop": "end",
+                        "note": "a\u2028b\u2029c\x85d",
+                    }
+                },
+                ensure_ascii=False,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        written = self.log.read_text(encoding="utf-8")
+        for separator in ("\u2028", "\u2029", "\x85"):
+            self.assertIn(separator, written)
+
+        report, failed = audit_usage.aggregate(
+            [self.log], "message.id", "message.usage", "message.stop"
+        )
+
+        self.assertFalse(failed)
+        self.assertEqual(report["files"][0]["records"], 1)
+        self.assertEqual(report["totals"]["by_message_max"], {"input": 10, "output": 3})
+
     def test_probe_fails_closed_on_an_empty_array(self) -> None:
         self.log.write_text("[]\n", encoding="utf-8")
 
@@ -786,6 +819,152 @@ class ClaudeCodeAuditTest(unittest.TestCase):
         self.assertEqual(modes["agent-ddd"], "fork")
         self.assertEqual(report["reconciliation"]["unreadable_meta_sidecars"], [])
         self.assertEqual(code, 0)
+
+
+# Transcribed from one host's transcripts rather than invented, because the
+# adapter names these seven and the script rejects any of them left unselected.
+OBSERVED_NONNUMERIC_USAGE: dict[str, object] = {
+    "cache_creation": {
+        "ephemeral_1h_input_tokens": 28292,
+        "ephemeral_5m_input_tokens": 0,
+    },
+    "output_tokens_details": {"thinking_tokens": 0},
+    "server_tool_use": {"web_fetch_requests": 0, "web_search_requests": 0},
+    "iterations": [
+        {
+            "type": "message",
+            "input_tokens": 2,
+            "output_tokens": 335,
+            "cache_read_input_tokens": 13121,
+            "cache_creation_input_tokens": 28292,
+        }
+    ],
+    "service_tier": "standard",
+    "inference_geo": "not_available",
+    "speed": "standard",
+}
+
+
+def _observed_usage(**counters: int) -> dict[str, object]:
+    return {**counters, **OBSERVED_NONNUMERIC_USAGE}
+
+
+class ClaudeCodeReferenceCommandTest(unittest.TestCase):
+    """Runs the aggregation command the Claude Code adapter prints, read out of
+    the adapter itself, because no other gate executes a documented command."""
+
+    reference = REPO_ROOT / ".agents/skills/audit-agent/references/claude-code.md"
+
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.log = Path(self.tempdir.name) / "transcript.jsonl"
+        block_usage = _observed_usage(
+            input_tokens=5,
+            output_tokens=200,
+            cache_read_input_tokens=1000,
+            cache_creation_input_tokens=40,
+        )
+        blocks: list[dict[str, object]] = [
+            {
+                "apiBlockIndex": index,
+                "message": {
+                    "id": "msg_blocks",
+                    "stop_reason": "tool_use",
+                    "usage": block_usage,
+                },
+            }
+            for index in range(3)
+        ]
+        records: list[dict[str, object]] = [
+            {
+                "message": {
+                    "id": "msg_single",
+                    "stop_reason": "end_turn",
+                    "usage": _observed_usage(
+                        input_tokens=3,
+                        output_tokens=11,
+                        cache_read_input_tokens=100,
+                        cache_creation_input_tokens=7,
+                    ),
+                }
+            },
+            *blocks,
+        ]
+        self.log.write_text(
+            "".join(json.dumps(record) + "\n" for record in records),
+            encoding="utf-8",
+        )
+
+    def _documented_argv(self) -> list[str]:
+        text = self.reference.read_text(encoding="utf-8")
+        blocks = re.findall(r"^```[a-z]*\n(.*?)^```", text, re.MULTILINE | re.DOTALL)
+        commands = [shlex.split(block.replace("\\\n", " ")) for block in blocks]
+        aggregations = [
+            command
+            for command in commands
+            if any(word.endswith("audit_usage.py") for word in command)
+            and "--usage-path" in command
+        ]
+        self.assertEqual(
+            len(aggregations),
+            1,
+            f"{self.reference} should print exactly one audit_usage.py "
+            f"aggregation command, found {len(aggregations)}",
+        )
+        argv = aggregations[0]
+        script = next(
+            index for index, word in enumerate(argv) if word.endswith("audit_usage.py")
+        )
+        self.assertRegex(
+            argv[-1],
+            r"^<.+>$",
+            "the documented command should end in a placeholder standing for "
+            "the input files",
+        )
+        return [*argv[script + 1 : -1], str(self.log)]
+
+    def _run_documented_command(self) -> tuple[int, audit_usage.AggregateReport]:
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            exit_code = audit_usage.main(self._documented_argv())
+        printed = stdout.getvalue()
+        self.assertTrue(printed, f"command printed no report, exit {exit_code}")
+        return exit_code, cast(audit_usage.AggregateReport, json.loads(printed))
+
+    def test_documented_command_aggregates_a_mixed_usage_object(self) -> None:
+        exit_code, report = self._run_documented_command()
+
+        self.assertNotEqual(exit_code, 2)
+        self.assertEqual(
+            report["usage_fields"],
+            [
+                "input_tokens",
+                "output_tokens",
+                "cache_read_input_tokens",
+                "cache_creation_input_tokens",
+            ],
+        )
+        self.assertEqual(
+            report["totals"]["by_message_max"],
+            {
+                "cache_creation_input_tokens": 47,
+                "cache_read_input_tokens": 1100,
+                "input_tokens": 8,
+                "output_tokens": 211,
+            },
+        )
+
+    def test_documented_command_reports_a_repeated_stop_reason(self) -> None:
+        exit_code, report = self._run_documented_command()
+
+        self.assertEqual(exit_code, 1)
+        terminal_check = report["terminal_check"]
+        assert terminal_check is not None
+        self.assertEqual(terminal_check["groups_checked"], 1)
+        self.assertEqual(terminal_check["groups_without_terminal_record"], 0)
+        self.assertEqual(terminal_check["groups_with_invalid_terminal_marker"], 1)
+        self.assertEqual(terminal_check["mismatched_groups"], 0)
 
 
 if __name__ == "__main__":
