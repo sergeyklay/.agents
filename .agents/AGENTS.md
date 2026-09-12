@@ -86,6 +86,8 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 A check that passed is evidence only if it could have failed. Before trusting a green result, confirm the setup it depends on actually took effect: an edit that matched nothing, a stale working copy, or a step that exits `0` with a warning all report success without exercising anything.
 
+Scale verification to the cost of redoing the work, not to the cost of being wrong. A result you can rebuild in a minute needs one check, because re-deriving it costs less than a second opinion about it; independent re-verification is for work that is slow, expensive, or unrepeatable. Past that point the rounds re-test each other instead of the work.
+
 ## Read in Batches
 
 **A turn costs the whole conversation, not one tool call. Group independent reads into a single turn.**
