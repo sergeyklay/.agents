@@ -98,6 +98,8 @@ Run these against the artifacts, in this order. Each is cheaper than the one bel
 3. **Quotes.** Grep each quoted string in the file it is attributed to. A quote that matches nothing is fabricated, and a plausible fabricated quote is the single most damaging thing a report can carry downstream.
 4. **Propagated premises.** Any claim the report inherited from your brief is still your claim wearing the delegate's authority. It has been through no check at all. Mark these before relaying anything.
 
+A second agent is a purchase, and the price is judged against what a wrong result costs to recover from, not against how much the work mattered. Recovery usually means redoing the work, so a result you can rebuild in a minute is cheaper to re-derive than to get a second opinion on: one check is the whole budget. Reserve the rounds below for work where redoing is not recovery, because it is slow or unrepeatable, or because a wrong result reaches something you cannot take back.
+
 **When the work is expensive or unrepeatable, verify with a second agent, and do not hand it the first report, unless the orchestrator's own protocol caps its delegations.** An agent given the first report reads it, agrees with it, and returns a confirmation; anchoring is the failure mode, not laziness. Give the second agent the brief and the tree, and ask it to rebuild the checks independently. Two roles that pay for themselves: one reading the run's own transcript for whether cited sources were actually fetched and whether gates ran in the claimed order, and one reconstructing the negative controls from scratch. The second routinely finds defects the first report's own self-check reported clean.
 
 ### 6. When the verdict is reject, run the next round
@@ -149,4 +151,5 @@ Any unticked box makes the result unverified, not wrong. Say which.
 - **Retyping the guardrails.** Four copies of a block are four different blocks within a week, and no copy announces that it is the stale one.
 - **Welding your own arithmetic into the brief.** The delegate will build on it, and the error becomes structural rather than local. Give it provenance and standing to disagree.
 - **Re-asking the same agent.** A delegate confirming its own report is the writing path verifying itself. Verify through the tree.
+- **Buying a verifier the work does not need.** When redoing the work is cheaper than a second opinion about it, the second opinion buys nothing, and the rounds past that point re-test each other instead of the work.
 - **Fixing the round count in advance.** Three rounds is not a budget, it is what convergence cost once. A loop that stops on a number stops mid-defect, or runs past the point where the rounds began re-testing each other.
