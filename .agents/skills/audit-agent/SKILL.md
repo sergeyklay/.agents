@@ -1,7 +1,7 @@
 ---
 name: audit-agent
 description: "Audits AI-agent runs and session snapshots for token usage, cache traffic, cost, duration, turns, tool calls, failures, retries, subagent attribution, duplicated reads, and artifact yield. Use when reporting or comparing a Codex CLI rollout, GitHub Copilot CLI, Gemini CLI, OpenCode, Claude Code, a runner export, or transcript logs. Do NOT use to monitor live CI, prove a check can fail, or sandbox a CLI."
-compatibility: "Requires filesystem access. Bundled auditors require Python 3.10+; shell examples use POSIX sh. Manual fallbacks are provided."
+compatibility: "Requires filesystem access. Bundled auditors require Python 3.9+; shell examples use POSIX sh. Manual fallbacks are provided."
 metadata:
   author: Serghei Iakovlev
   version: "2.2"

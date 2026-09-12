@@ -664,7 +664,7 @@ PROBE
 }
 
 @test "every hash-marker extension is checked" {
-  for ext in py pyi; do
+  for ext in py pyi bats bash sh; do
     write_probe "probe.$ext" <<'PROBE'
 # Phase 2 warms the cache
 PROBE
@@ -692,7 +692,7 @@ PROBE
 }
 
 @test "an extension the hook does not handle blocks nothing" {
-  for name in probe.rb probe.md probe.sh probe; do
+  for name in probe.rb probe.md probe; do
     write_probe "$name" <<'PROBE'
 # Phase 2 warms the cache
 PROBE
@@ -765,6 +765,39 @@ PAYLOAD
 @test "a file that does not exist blocks nothing" {
   run run_hook "$BATS_TEST_TMPDIR/nosuch.go"
   assert_clean
+}
+
+# The guard and the suites that probe it are written out of the patterns it
+# forbids, so a report on them is noise that teaches the reader to skip the next
+# one.
+@test "the hook is silent on the guard and on the suites that probe it" {
+  for path in "$ROOT/.claude/hooks/check-comment-style.sh" \
+    "$ROOT/test/check-comment-style.bats" "$ROOT/test/comment-style.bats"; do
+    run run_hook "$path"
+    [ "$status" -eq 0 ] || fail "expected exit 0 for $path"$'\n'"$output"
+    [ -z "$output" ] || fail "expected no output for $path"$'\n'"$output"
+  done
+}
+
+# A basename the exemption does not name has to stay guarded, or the carve-out
+# is a directory exemption wearing a filename.
+@test "the exemption reaches the guard family and nothing beside it" {
+  for name in check-comment-style.sh check-comment-style.bats comment-style.bats; do
+    write_probe "$name" <<'PROBE'
+# Phase 2 warms the cache
+PROBE
+    run run_hook "$PROBE"
+    [ "$status" -eq 0 ] || fail "expected exit 0 for $name"$'\n'"$output"
+    [ -z "$output" ] || fail "expected no output for $name"$'\n'"$output"
+  done
+
+  for name in my-check-comment-style.sh check-comment-style.py comment-style.sh; do
+    write_probe "$name" <<'PROBE'
+# Phase 2 warms the cache
+PROBE
+    run run_hook "$PROBE"
+    [ "$status" -eq 2 ] || fail "expected exit 2 for $name"$'\n'"$output"
+  done
 }
 
 # Every case above runs the hook out of the working tree, which says nothing

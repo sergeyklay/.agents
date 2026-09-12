@@ -14,9 +14,17 @@ input=$(cat) || exit 0
 file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
 
 [ -n "$file" ] || exit 0
+
+# The comment-style guards and their suites are made of the patterns they
+# forbid, so a report there is noise, and noise trains the reader to ignore
+# the reports that matter.
+case "$file" in
+*/check-comment-style.sh | */check-comment-style.bats | */comment-style.bats) exit 0 ;;
+esac
+
 case "$file" in
 *.go | *.ts | *.tsx | *.js | *.jsx | *.mjs | *.cjs) marker='//' ;;
-*.py | *.pyi | *.bats | *.bash | *.sh ) marker='#' ;;
+*.py | *.pyi | *.bats | *.bash | *.sh) marker='#' ;;
 *) exit 0 ;;
 esac
 [ -f "$file" ] || exit 0
