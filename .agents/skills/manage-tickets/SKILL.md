@@ -109,12 +109,13 @@ Cheapness alone does not admit an edit. Create the ticket regardless of size whe
 - **Tone.** Professional, concise, no filler.
 - **Privacy.** Never include usernames, API keys, internal URLs, tokens, or personal information, regardless of whether the project is private or read-restricted. Jira is observed by people outside the immediate authoring team.
 - **Self-contained.** A reader who has never seen this work must understand the ticket from the body alone.
-- **Cite source by file:line.** When the ticket refers to existing code, constants, or behaviour, anchor each claim to a path and line range (e.g. `src/services/foo.ts:123-145`). File:line citations turn the ticket into a self-auditable record.
+- **Cite source by file:line.** When the ticket refers to existing code, constants, or behaviour, anchor each claim to a path and line range (e.g. `path/to/module.ts:123-145`). File:line citations turn the ticket into a self-auditable record.
 - **Preserve verbatim quotes.** When the ticket originates from a specific operator, reviewer, or customer report, include the exact wording in the Context section. Paraphrasing loses the reporter's mental model and removes the literal phrase a future searcher will type.
 - **No hard wrapping mid-sentence.** Write each paragraph as a single line; Jira handles flow at render time. Hard-wrapping mid-paragraph creates spurious paragraph breaks in wiki markup and noisy diffs on edit.
 - **Bugs describe problems, not solutions.** Steps to reproduce, Expected, Observed describe the problem. When the reporter investigated and has a concrete fix in mind, it goes into the optional `Proposed solution` section as a suggestion, not as a mandate that bypasses Requirements.
 - **Requirements.** Required for `Story` and `Bug`. Optional for `Task`, `Spike`, `Epic`, `Sub-task` (include when a concrete completion signal exists). Write each requirement in MUST / MUST NOT form. Each is independently verifiable. Reserve MAY for genuinely optional outcomes.
 - **Markup.** Jira wiki markup via `jira-syntax` (NOT Markdown).
+- **Composition.** Draft any description or comment longer than a screen into the session scratchpad first, then send the file's contents. An edit replaces the whole field, so a one-word correction after the fact costs a second full-body send; with the draft on disk the correction is a one-line edit and the resend is mechanical.
 - **Never reference internal artefacts.** ADR numbers, architecture section IDs, doc paths, ticket IDs in source-code comments - none of these belong inside the ticket body unless the user explicitly asked. Those identifiers live in specs, not in work items.
 
 ### Body templates
@@ -152,7 +153,7 @@ When creating multiple related tickets (e.g. an Epic with child Stories):
 
 1. Present all planned tickets as a numbered list (title, type, parent, labels) before creating any.
 2. Wait for user confirmation.
-3. Order the batch so each ticket is created after every ticket its body names. Jira allocates keys in submission order, which is rarely the order the drafts sit in, and a parallel agent can take the numbers in between: the next free number is a guess, not a key. When two tickets reference each other and no order satisfies both, create with a placeholder naming the target (`BP-???(PNG/JPG drop zone)`), then substitute the real keys via `editJiraIssue` in one pass, reading each off the create report. A predicted key renders as a valid link, points at the wrong ticket, and nothing downstream checks it.
+3. Order the batch so each ticket is created after every ticket its body names. Jira allocates keys in submission order, which is rarely the order the drafts sit in, and a parallel agent can take the numbers in between: the next free number is a guess, not a key. When two tickets reference each other and no order satisfies both, create with a placeholder naming the target (`{KEY}-???(<subject of the target ticket>)`), then substitute the real keys via `editJiraIssue` in one pass, reading each off the create report. A predicted key renders as a valid link, points at the wrong ticket, and nothing downstream checks it.
 4. Create sequentially. Report each ticket key after creation.
 5. Print a summary table when done:
 
