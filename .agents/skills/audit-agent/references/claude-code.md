@@ -42,12 +42,18 @@ python3 scripts/audit_usage.py \
   --id-path message.id \
   --usage-path message.usage \
   --stop-path message.stop_reason \
+  --usage-field input_tokens \
+  --usage-field output_tokens \
+  --usage-field cache_read_input_tokens \
+  --usage-field cache_creation_input_tokens \
   <root-and-child-jsonl-files>
 ```
 
-The script exits `1` when terminal evidence is missing or disagrees. Without the script, group by `(file, message id)`, compare terminal values with per-field maxima, and sum only after they agree.
+Name every counter. One observation of both root and child transcripts carried the same seven non-numeric members beside the four counters in `message.usage`: `cache_creation`, `service_tier` and `inference_geo` on every usage record, `output_tokens_details`, `server_tool_use`, `iterations` and `speed` on a subset. The script rejects an unselected non-numeric member rather than dropping it silently, so without those four flags the command exits `2` and aggregates nothing. Take the current split from the probe's `fields` and `other_fields` rather than from this list.
 
-That comparison validates the reduction, not the counter. The terminal record is the per-field maximum by construction here, so the check cannot fail and passing it says nothing about whether the terminal record holds the message's true final value. Validate `output_tokens` separately, from its distribution against the content it accompanies:
+Read the verdict from `terminal_check`, not from the exit code, and expect that code to be `1`: on one host a zero reached only 38 of 451 transcripts and no multi-file run. The script wants a marker that is null or absent on every record of a group and a single nonempty string on the last, and it counts each way that fails apart: `groups_without_terminal_record`, `groups_with_invalid_terminal_marker` for a marker present but repeated, and `mismatched_groups` for a maximum that disagreed. Which of the first two dominates differs between the two halves of this input, so measure both rather than generalising either. On that host roots failed almost only on the repeated marker (3,029 of 3,766 groups), because one assistant message is written once per content block and every one of those records carries the whole message's usage and its final `stop_reason`, so a message of more than one block cannot satisfy the uniqueness test. Children failed almost only on the absent marker (7,856 of 17,866 groups), where `stop_reason` stayed null on every record of the group. Without the script, group by `(file, message id)`, compare terminal values with per-field maxima, and sum only after they agree.
+
+That comparison validates the reduction, not the counter. `mismatched_groups` of zero says the per-field maximum equalled the terminal record wherever the marker test admitted a group, and says nothing about whether the terminal record holds the message's true final value. On the same host the marker test admitted 10,654 of 21,632 groups and no maximum disagreed, in those or in a direct check of every one of the 17,823 groups that hold more than one usage record. Validate `output_tokens` separately, from its distribution against the content it accompanies:
 
 ```sh
 python3 scripts/audit_claude_code.py --counters <transcript.jsonl>
