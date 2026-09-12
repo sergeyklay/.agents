@@ -26,7 +26,6 @@ YamlValue = Union[
     list["YamlValue"],
 ]
 
-# --- Public limits and patterns ------------------------------------------------
 
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 XML_TAG_PATTERN = re.compile(r"<[^>]+>")
@@ -75,9 +74,6 @@ FIRST_OR_SECOND_PERSON_PREFIXES: tuple[str, ...] = (
 )
 
 
-# --- Issue model ---------------------------------------------------------------
-
-
 class Severity(enum.Enum):
     ERROR = "ERROR"
     WARN = "WARN"
@@ -98,9 +94,6 @@ class Issue:
 
     def __str__(self) -> str:
         return f"  [{_SEVERITY_MARKER[self.severity]}] {self.message}"
-
-
-# --- Frontmatter parsing -------------------------------------------------------
 
 
 class FrontmatterError(ValueError):
@@ -145,8 +138,6 @@ class _Parser:
         self._lines = text.splitlines()
         self._pos = 0
 
-    # --- Public entry points --------------------------------------------------
-
     def parse_root(self) -> YamlValue:
         head = self._peek()
         if head is None:
@@ -162,8 +153,6 @@ class _Parser:
             line_no, _, body = head
             raise FrontmatterError(f"line {line_no}: unexpected content {body!r}")
 
-    # --- Cursor helpers -------------------------------------------------------
-
     def _peek(self) -> tuple[int, int, str] | None:
         """Return (line_no, indent, body) for the next significant line."""
         while self._pos < len(self._lines):
@@ -178,8 +167,6 @@ class _Parser:
 
     def _advance(self) -> None:
         self._pos += 1
-
-    # --- Mapping --------------------------------------------------------------
 
     def _parse_mapping(self, indent: int) -> dict[str, YamlValue]:
         result: dict[str, YamlValue] = {}
@@ -208,8 +195,6 @@ class _Parser:
                 raise FrontmatterError(f"line {line_no}: duplicate key {key!r}")
             result[key] = value
         return result
-
-    # --- Value dispatch -------------------------------------------------------
 
     def _parse_value(
         self, value_text: str, parent_indent: int, line_no: int
@@ -240,8 +225,6 @@ class _Parser:
         if _is_sequence_item(body):
             return self._parse_sequence(indent)
         return self._parse_mapping(indent)
-
-    # --- Sequence -------------------------------------------------------------
 
     def _parse_sequence(self, indent: int) -> list[YamlValue]:
         items: list[YamlValue] = []
@@ -278,8 +261,6 @@ class _Parser:
             else:
                 items.append(cleaned)
         return items
-
-    # --- Block scalars --------------------------------------------------------
 
     def _parse_block_scalar(
         self, indicator: str, parent_indent: int, line_no: int
@@ -325,9 +306,6 @@ class _Parser:
         if chomp == "+":  # keep
             return joined + "\n" * (1 + trailing_blanks)
         return joined + "\n"  # clip (default)
-
-
-# --- Parser helpers ------------------------------------------------------------
 
 
 def _is_sequence_item(body: str) -> bool:
@@ -455,9 +433,6 @@ def _decode_single_quoted(text: str, line_no: int) -> str:
     if len(text) < 2 or not text.endswith("'"):
         raise FrontmatterError(f"line {line_no}: unterminated single-quoted string")
     return text[1:-1].replace("''", "'")
-
-
-# --- Individual checks ---------------------------------------------------------
 
 
 def _check_name(fm: dict[str, YamlValue], skill_dir: Path) -> Iterable[Issue]:
@@ -780,9 +755,6 @@ def _check_reference_files(skill_dir: Path) -> Iterable[Issue]:
         )
 
 
-# --- Orchestrator --------------------------------------------------------------
-
-
 def validate(skill_dir: Path, warnings_as_errors: bool = False) -> list[Issue]:
     """Run every check and return all issues, ending with a summary INFO line."""
     if not skill_dir.is_dir():
@@ -831,9 +803,6 @@ def _summary(issues: Iterable[Issue], warnings_as_errors: bool) -> Issue:
         f"{errors} error{'s' if errors != 1 else ''}, "
         f"{warns} warning{'s' if warns != 1 else ''}",
     )
-
-
-# --- CLI -----------------------------------------------------------------------
 
 
 def _build_parser() -> argparse.ArgumentParser:

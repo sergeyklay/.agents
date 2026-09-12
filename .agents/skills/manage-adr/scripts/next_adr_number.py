@@ -12,7 +12,7 @@ import re
 import sys
 from pathlib import Path
 
-# scripts/ → manage-adr/ → skills/ → .claude/ → <project root>/docs/decisions
+# 4 is the depth an installed skill nests at, so a layout change breaks this.
 DEFAULT_DECISIONS_DIR = Path(__file__).resolve().parents[4] / "docs" / "decisions"
 
 ADR_FILENAME_PATTERN = re.compile(r"^(\d{4})-.+\.md$")

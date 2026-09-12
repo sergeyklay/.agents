@@ -18,8 +18,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-# --- Public constants ---------------------------------------------------------
-
 # Vendor names differ between project and home scope on some platforms (Copilot
 # uses `.github/skills/` for project skills, `.copilot/skills/` for user ones).
 # One set holds them all; the agent passes whichever exist on the host.
@@ -40,9 +38,6 @@ SUPPORTED_VENDORS: frozenset[str] = frozenset(
 DEFAULT_FORMAT: str = "xml"
 DEFAULT_ORDER_BY: str = "category"
 FRONTMATTER_DELIMITER: str = "---"
-
-
-# --- Data model ---------------------------------------------------------------
 
 
 class Scope(enum.Enum):
@@ -105,9 +100,6 @@ class DiscoveryError:
 
     path: Path
     reason: str
-
-
-# --- Frontmatter parser -------------------------------------------------------
 
 
 class FrontmatterError(ValueError):
@@ -230,9 +222,6 @@ def _unquote(value: str) -> str:
     return value
 
 
-# --- Discovery ----------------------------------------------------------------
-
-
 def discover(
     vendors: Sequence[str],
     project_root: Path,
@@ -288,9 +277,6 @@ def _scan_directory(
         )
 
 
-# --- Precedence ---------------------------------------------------------------
-
-
 def sort_entries(
     entries: Sequence[SkillEntry],
     order_by: str,
@@ -320,8 +306,6 @@ def resolve_precedence(entries: Sequence[SkillEntry]) -> list[SkillEntry]:
 
     return [e for e in entries if e.path in keep]
 
-
-# --- Formatters ---------------------------------------------------------------
 
 Formatter = Callable[[Sequence[SkillEntry], Sequence[str]], str]
 
@@ -457,9 +441,6 @@ FORMATTERS: dict[str, Formatter] = {
     "markdown": format_markdown,
     "csv": format_csv,
 }
-
-
-# --- CLI ----------------------------------------------------------------------
 
 
 def _validate_vendor(name: str) -> str:

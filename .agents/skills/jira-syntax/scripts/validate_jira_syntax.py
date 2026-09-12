@@ -16,8 +16,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-# --- Issue model ---------------------------------------------------------------
-
 
 class Severity(enum.Enum):
     ERROR = "ERROR"
@@ -38,8 +36,6 @@ class Issue:
     matches: tuple[LineMatch, ...] = field(default_factory=tuple)
 
 
-# --- ANSI rendering ------------------------------------------------------------
-
 _ANSI_BY_SEVERITY: dict[Severity, str] = {
     Severity.ERROR: "\033[0;31m",
     Severity.WARN: "\033[1;33m",
@@ -53,8 +49,6 @@ def _paint(use_color: bool, severity: Severity, label: str) -> str:
         return label
     return f"{_ANSI_BY_SEVERITY[severity]}{label}{_ANSI_RESET}"
 
-
-# --- Patterns ------------------------------------------------------------------
 
 # Line-anchored patterns (used with re.MULTILINE).
 RE_MD_HEADING = re.compile(r"^##+ ", re.MULTILINE)
@@ -83,9 +77,6 @@ MAX_EXAMPLES_PER_ISSUE = 5
 MAX_BOLD_LINK_EXAMPLES = 3
 
 
-# --- Search helpers ------------------------------------------------------------
-
-
 def _line_matches(
     text: str, pattern: re.Pattern[str], limit: int
 ) -> tuple[LineMatch, ...]:
@@ -97,9 +88,6 @@ def _line_matches(
             if len(examples) >= limit:
                 break
     return tuple(examples)
-
-
-# --- Individual checks ---------------------------------------------------------
 
 
 def _check_markdown_headings(text: str) -> Iterable[Issue]:
@@ -228,8 +216,6 @@ def _check_jira_features_present(text: str) -> Iterable[Issue]:
         yield Issue(Severity.OK, "Issue links ([PROJ-123])")
 
 
-# --- Per-file orchestrator -----------------------------------------------------
-
 CheckFn = Callable[[str], Iterable[Issue]]
 
 CHECKS: tuple[CheckFn, ...] = (
@@ -261,9 +247,6 @@ def validate_file(path: Path) -> list[Issue]:
     for check in CHECKS:
         issues.extend(check(text))
     return issues
-
-
-# --- Output --------------------------------------------------------------------
 
 
 def _format_issue(issue: Issue, use_color: bool) -> str:
@@ -300,9 +283,6 @@ def _print_summary(
                 f"{errors} error(s) found. Fix before submitting to Jira.",
             )
         )
-
-
-# --- CLI -----------------------------------------------------------------------
 
 
 def _resolve_color(flag: bool | None) -> bool:

@@ -22,8 +22,6 @@ class Heading(TypedDict):
     line: int
 
 
-# --- Anti-pattern detectors ---
-
 # Phrases that indicate discoverable project structure descriptions
 STRUCTURE_PATTERNS = [
     re.compile(r"##\s*project\s+structure", re.IGNORECASE),
@@ -103,7 +101,6 @@ def validate(file_path: str, project_dir: Optional[str] = None) -> list[Issue]:
     def info(msg: str, line: int = 0) -> None:
         issues.append({"level": "INFO", "message": msg, "line": line})
 
-    # --- File existence ---
     if not path.exists():
         error(f"File not found: {path}")
         return issues
@@ -112,7 +109,6 @@ def validate(file_path: str, project_dir: Optional[str] = None) -> list[Issue]:
     lines = content.splitlines()
     line_count = len(lines)
 
-    # --- Line count ---
     if line_count > 100:
         error(
             f"File has {line_count} lines (max 100 for root context file). "
@@ -126,7 +122,6 @@ def validate(file_path: str, project_dir: Optional[str] = None) -> list[Issue]:
     elif line_count < 5:
         warn(f"File has only {line_count} lines. Likely too short to be useful.")
 
-    # --- Anti-pattern checks ---
     for i, line in enumerate(lines, 1):
         for pattern in STRUCTURE_PATTERNS:
             if pattern.search(line):
@@ -180,7 +175,6 @@ def validate(file_path: str, project_dir: Optional[str] = None) -> list[Issue]:
                 )
                 break
 
-    # --- Section structure ---
     headings: list[Heading] = []
     for i, line in enumerate(lines, 1):
         match = re.match(r"^(#{1,3})\s+(.+)", line)
@@ -197,7 +191,6 @@ def validate(file_path: str, project_dir: Optional[str] = None) -> list[Issue]:
             "Omit only if nothing non-discoverable exists for that category."
         )
 
-    # --- Boundary subsections ---
     has_boundaries = any(h["title"] == "boundaries" for h in headings)
     if has_boundaries:
         h3_titles = {h["title"] for h in headings if h["level"] == 3}
@@ -209,7 +202,6 @@ def validate(file_path: str, project_dir: Optional[str] = None) -> list[Issue]:
                 "Use Always / Ask first / Never."
             )
 
-    # --- Empty sections ---
     for idx, heading in enumerate(headings):
         next_heading_line = (
             headings[idx + 1]["line"] if idx + 1 < len(headings) else line_count + 1
@@ -225,7 +217,6 @@ def validate(file_path: str, project_dir: Optional[str] = None) -> list[Issue]:
                 heading["line"],
             )
 
-    # --- Stale file references ---
     if project_dir:
         proj = Path(project_dir).resolve()
         file_ref_pattern = re.compile(r"`([^`]+\.\w{1,5})`")
@@ -239,7 +230,6 @@ def validate(file_path: str, project_dir: Optional[str] = None) -> list[Issue]:
                 if not ref_path.exists() and not any(proj.glob(f"**/{Path(ref).name}")):
                     warn(f"Referenced file may not exist: `{ref}`", i)
 
-    # --- Summary ---
     error_count = sum(1 for i in issues if i["level"] == "ERROR")
     warn_count = sum(1 for i in issues if i["level"] == "WARN")
     info_count = sum(1 for i in issues if i["level"] == "INFO")
