@@ -37,7 +37,8 @@ Where the authoritative behavior is readable depends on how the tool ships:
 
 | Delivery shape | What is readable | How to enter it |
 |---|---|---|
-| Shim or wrapper script | The script and whatever it exec's | Follow the shebang or the exec line to the real entry point |
+| Shim or wrapper script | The script and whatever it exec's | Follow the shebang or the exec line to the real entry point; `readlink -f` stops at a version-manager shim, so ask the manager from the run's directory |
+| Loader or self-updater | An entry that spawns a platform package or a copy from its own versioned cache | Follow each spawn, read the copy it selects, and record that version rather than the manifest's |
 | Interpreted package tree (site-packages, gems, node_modules, vendored sources) | Full sources, unminified | Grep the installed tree for a distinctive literal, then read the module that defines it |
 | Single-file bundle (bundled JS, PEX, self-extracting archive) | Usually plain text; build banners with upstream file paths often survive | Locate the chunk with `grep -rlc`, then slice by byte offset, never by line |
 | Split bundle (a directory of generated chunks beside one entry file) | The same as a single-file bundle, but only for the reachable subset | Resolve the import graph from the entry the package manifest names, then locate within that set only |
@@ -90,6 +91,8 @@ A configuration the tool cannot compile is frequently dropped, noted on stderr, 
 - Anchor that check to the tool's own diagnostics, not to the whole stream. For an agentic CLI the second stream carries the transcript, so text the tool merely read and echoed will trip a substring match: a guard scanning everything once fired on a sentence of prose out of the repository under review. Match on the tool's diagnostic prefix, or read its structured log, and prove the guard still fires by feeding it a genuinely broken configuration.
 
 ### 5. Give every run its own state root, and know what that buys and costs
+
+`HOME` alone is not a state root. An XDG-aware tool prefers `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME`, and `XDG_CACHE_HOME` when they are exported, so a run under a swapped `HOME` still writes to the operator's real directories. Point all four into the root, keep the real roots in the step 2 snapshot so a leak reaches the diff, and re-resolve the version afterward: moving the cache can change which copy a self-updater runs.
 
 The throwaway root that keeps a run from leaving state behind is also what makes a series comparable, and the mechanism is worth stating because it is easy to optimise away. A per-run directory changes the absolute paths the tool stamps into the front of its own request - the working directory, its temporary directory - and a prefix that never repeats defeats any implicit prompt cache the provider runs. Runs in the series are therefore independent of each other by construction rather than by discipline: verify it by reading the provider's own per-request accounting and confirming the cached-token count on the first request of every run is zero.
 
