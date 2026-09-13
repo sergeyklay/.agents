@@ -55,19 +55,22 @@ load 'test_helper'
 @test "agent views answer to their canonical name on every host" {
   run install_into --agents
   [ "$status" -eq 0 ]
-  local spec dir suffix source_body agent view views
+  local spec host dir suffix source_body agent view views
   for spec in \
-    "$TEST_HOME/.claude/agents|.md" \
-    "$TEST_HOME/.copilot/agents|.agent.md" \
-    "$TEST_HOME/.gemini/agents|.md" \
-    "$TEST_HOME/.config/opencode/agents|.md"; do
-    IFS='|' read -r dir suffix <<<"$spec"
+    "claude|$TEST_HOME/.claude/agents|.md" \
+    "copilot|$TEST_HOME/.copilot/agents|.agent.md" \
+    "gemini|$TEST_HOME/.gemini/agents|.md" \
+    "opencode|$TEST_HOME/.config/opencode/agents|.md"; do
+    IFS='|' read -r host dir suffix <<<"$spec"
     views=0
     for source_body in "$ROOT"/.agents/agents/*.md; do
       agent=$(basename -- "$source_body" .md)
       view="$dir/$agent$suffix"
       # Gemini receives no orchestrator; see gemini-agents.bats.
-      [ -f "$view" ] || continue
+      case "$host:$agent" in
+      gemini:composer | gemini:conductor) continue ;;
+      esac
+      assert_file "$view"
       assert_frontmatter "$view" "name: $agent"
       views=$((views + 1))
     done
