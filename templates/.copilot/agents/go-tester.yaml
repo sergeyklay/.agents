@@ -1,4 +1,3 @@
-name: GoTester
 model: Claude Sonnet 4.6 (copilot)
 reasoning-effort: high
 tools:

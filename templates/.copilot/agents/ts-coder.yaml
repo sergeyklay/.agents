@@ -1,4 +1,3 @@
-name: TSCoder
 model: GPT-5.5 (copilot)
 reasoning-effort: high
 tools:

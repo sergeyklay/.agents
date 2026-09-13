@@ -1,4 +1,3 @@
-name: Architect
 model: GPT-5.5 (copilot)
 reasoning-effort: xhigh
 tools:

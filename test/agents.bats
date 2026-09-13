@@ -48,3 +48,29 @@ load 'test_helper'
     assert_no_frontmatter_key "$view" 'tools'
   done
 }
+
+# Every host dispatches an agent by its `name:`, so a template that overrides
+# it makes one call, typed by the user or written in a delegating body, reach
+# the agent on one host and miss it on the next.
+@test "agent views answer to their canonical name on every host" {
+  run install_into --agents
+  [ "$status" -eq 0 ]
+  local spec dir suffix source_body agent view views
+  for spec in \
+    "$TEST_HOME/.claude/agents|.md" \
+    "$TEST_HOME/.copilot/agents|.agent.md" \
+    "$TEST_HOME/.gemini/agents|.md" \
+    "$TEST_HOME/.config/opencode/agents|.md"; do
+    IFS='|' read -r dir suffix <<<"$spec"
+    views=0
+    for source_body in "$ROOT"/.agents/agents/*.md; do
+      agent=$(basename -- "$source_body" .md)
+      view="$dir/$agent$suffix"
+      # Gemini receives no orchestrator; see gemini-agents.bats.
+      [ -f "$view" ] || continue
+      assert_frontmatter "$view" "name: $agent"
+      views=$((views + 1))
+    done
+    [ "$views" -gt 0 ] || fail "no agent view under $dir to check"
+  done
+}
