@@ -247,12 +247,27 @@ Keep portable skill metadata in `SKILL.md` frontmatter. Codex-specific UI metada
 
 ### agents/openai.yaml
 
-This is an illustrative subset of the [official Codex skill metadata example](https://developers.openai.com/codex/skills), not an exhaustive schema. Include only the fields the skill needs and verify them for its target installation:
+This is an illustrative subset of the [official Codex skill metadata example](https://developers.openai.com/codex/skills), not an exhaustive schema. Include only the fields the skill needs; consult the target documentation for additions and changes.
+
+**`interface`** describes how a skill is presented to a person. These documented fields provide the useful authoring vocabulary:
+
+| Field | Purpose |
+|---|---|
+| `display_name` | Human-facing title in UI skill lists and chips. |
+| `short_description` | Concise UI description for quick scanning. |
+| `icon_small` | Path to a small icon asset, relative to the skill directory. |
+| `icon_large` | Path to a larger logo asset, relative to the skill directory. |
+| `brand_color` | Hex color used for UI accents, such as badges. |
+| `default_prompt` | Prompt snippet inserted when invoking the skill; mention the skill as `$skill-name`. |
 
 ```yaml
 interface:
   display_name: "Human-Friendly Name"
   short_description: "A concise picker description"
+  icon_small: "./assets/icon-small.png"
+  icon_large: "./assets/logo.svg"
+  brand_color: "#3B82F6"
+  default_prompt: "Use $skill-name to draft a concise project update."
 policy:
   allow_implicit_invocation: false
 dependencies:
