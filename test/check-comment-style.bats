@@ -129,6 +129,32 @@ PROBE
   assert_clean
 }
 
+# A plan numbers its properties V5 or P9 and is discarded after landing, so
+# the ID a test claims to verify outlives the only document that defines it.
+@test "the hook rejects a bare spec ID that a verb attests" {
+  for comment in 'TestApplyTurnStarted verifies V5: sets the tally' \
+    'TestCheckAuth pins P9 for the handshake' 'Covers A13 and the retry' \
+    'the replay proves R11' "covers A1's second clause" \
+    'pins AB12, then the retry' 'TestApplyTurnStarted verifies V5.'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_flagged 'spec-criteria reference' || fail "for: $comment"
+  done
+}
+
+# A standard name follows an attesting verb as readily as a plan ID does, so
+# these cases carry a shape or a continuation that no plan ID takes.
+@test "the hook allows a standard name beside a verb" {
+  for comment in 'verify HS256 tokens before use' 'verifies the X509 chain' \
+    'pins the V5 wire format' 'TestIPv6 verifies that a V4 address maps' \
+    'verifies X509 certificates' 'pins RC4' 'covers C99 compliance' \
+    'the validator verifies V5_value'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_clean || fail "for: $comment"
+  done
+}
+
 @test "the hook rejects a test-type reference" {
   write_probe probe.go <<'PROBE'
 package p

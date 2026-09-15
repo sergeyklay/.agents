@@ -52,6 +52,11 @@ BEGIN {
   DOC_REF   = "(docs/architecture|docs/decisions|architecture\\.md|architecture-digest|\\.specs/|\\.plans/|ADR-?[0-9])"
   SPEC_PREFIX = "(^|[^[:alnum:]])(AC|FR|NFR|REQ|US)-[0-9]"
 
+  # A letter-and-digits token is as often a register, a standard or a cipher
+  # (R0, C99, RC4) as a plan property, so only an attesting verb before it and a
+  # continuation that a plan ID takes after it mark the citation.
+  ATTESTED_ID = "(^|[^[:alnum:]_])([Vv]erifies|[Cc]overs|[Pp]ins|[Pp]roves)[[:space:]]+([A-Z]|[A-Z][A-Z][0-9])[0-9][0-9]?(:|,|/|" SQ "s|\\.([[:space:]]|$)|[[:space:]]+(and|for)([^[:alnum:]]|$)|[[:space:]]*$)"
+
   # Only I, U and Q. Every other single letter is fixture issue data here, and
   # no pattern separates C-1 the fixture row from C-1 the spec citation.
   TEST_TYPE = "(^|[^[:alnum:]])(I|U|Q)-[0-9]"
@@ -161,6 +166,7 @@ function classify(c) {
   if (tolower(c) ~ SEQ_LABEL) return "sequence/section label"
   if (c ~ SPEC_NOUN) return "spec-criteria reference"
   if (c ~ SPEC_PREFIX) return "spec-criteria reference"
+  if (c ~ ATTESTED_ID) return "spec-criteria reference"
   if (c ~ TEST_TYPE) return "test-type reference"
   if (c ~ DOC_REF) return "internal doc/ADR reference"
   if (c ~ FRAME && c !~ PREFORMATTED && c !~ EDITOR_DIRECTIVE && c !~ BOX_BORDER) return "banner decoration"
@@ -183,6 +189,7 @@ function classify(c) {
   echo "  - sequence/section labels: Step N, Phase N, Check N, Case N, Section N.N"
   echo "                             (in any case: step 2, STEP 2, Step 2)"
   echo "  - spec-criteria refs:      AC-7, FR-1, NFR-2, REQ-3, US-4"
+  echo "                             and a bare ID a test claims: verifies V5, pins P9"
   echo "  - test-type refs:          I-1, U-1, Q-1"
   echo "  - spec artefact + number:  Table 3.1-B, Table-3, Appendix 2, Figure 4, Spec-706"
   echo "  - internal doc/ADR refs:   docs/architecture.md, docs/decisions/, ADR-3, .specs/, .plans/"
