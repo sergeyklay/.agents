@@ -58,6 +58,11 @@ for corpus in "$@"; do
   dir=${corpus%:*}
   name=${corpus##*:}
   files=0 before_total=0 after_total=0 added=""
+  manifest=$work/manifest
+  if ! find "$dir" -type f -name "$name" ${excludes[@]+"${excludes[@]}"} -print0 >"$manifest"; then
+    echo "  find could not read all of $dir; the counts cover part of the corpus" >&2
+    status=1
+  fi
   while IFS= read -r -d '' file; do
     before=$(reports "$before_hook" "$file")
     after=$(reports "$after_hook" "$file")
@@ -66,7 +71,7 @@ for corpus in "$@"; do
     after_total=$((after_total + $(count "$after")))
     new=$(comm -13 <(printf '%s\n' "$before" | sort) <(printf '%s\n' "$after" | sort))
     [ -z "$new" ] || added+=$(printf '%s\n' "$new" | awk -v f="$file" '{ sub(/^ +/, ""); print "  + " f ": " $0 }')$'\n'
-  done < <(find "$dir" -type f -name "$name" ${excludes[@]+"${excludes[@]}"} -print0)
+  done <"$manifest"
   printf '%-50s %7d %7d %7d\n' "$dir" "$files" "$before_total" "$after_total"
   printf '%s' "$added"
   if [ "$files" -eq 0 ]; then

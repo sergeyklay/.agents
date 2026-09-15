@@ -34,3 +34,21 @@ fixture_repo() {
   [ "$status" -eq 1 ] || fail "expected exit 1, got $status"$'\n'"$output"
   assert_contains "$output" 'a zero here is not a clean corpus'
 }
+
+@test "a corpus find cannot fully read fails the measurement" {
+  [ "$(id -u)" -ne 0 ] || skip 'root reads a mode-000 directory, so the partial corpus goes unchecked'
+  fixture_repo || return 1
+  local corpus="$BATS_TEST_TMPDIR/partial"
+  mkdir -p "$corpus/locked"
+  printf 'package p\n' >"$corpus/open.go"
+  printf 'package p\n' >"$corpus/locked/hidden.go"
+  chmod 000 "$corpus/locked"
+  if ls "$corpus/locked" >/dev/null 2>&1; then
+    chmod 755 "$corpus/locked"
+    fail 'mode 000 left the directory readable'
+  fi
+  run "$REPO/test/measure-comment-style.bash" -r HEAD "$corpus:*.go"
+  chmod 755 "$corpus/locked"
+  [ "$status" -eq 1 ] || fail "expected exit 1, got $status"$'\n'"$output"
+  assert_contains "$output" 'the counts cover part of the corpus'
+}
