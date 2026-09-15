@@ -18,6 +18,17 @@ assert_disabled_once() {
   ' "$TEST_HOME/.claude/settings.json" >/dev/null
 }
 
+@test "Codex settings install native thread status visibility" {
+  run install_into --settings --codex
+  [ "$status" -eq 0 ]
+  config="$TEST_HOME/.codex/config.toml"
+  assert_file "$config"
+  assert_same "$ROOT/.codex/config.toml" "$config"
+  assert_toml_parses "$config"
+  assert_file_contains "$config" \
+    'status_line = ["run-state", "used-tokens"]'
+}
+
 @test "Gemini settings merge preserves host-local keys" {
   printf '{"general": {"vimMode": true}}\n' >"$TEST_HOME/.gemini/settings.json"
   run install_into --settings --gemini

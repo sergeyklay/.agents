@@ -1,0 +1,2 @@
+[tui]
+status_line = ["run-state", "used-tokens"]

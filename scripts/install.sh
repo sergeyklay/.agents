@@ -842,11 +842,12 @@ merge_settings() {
 }
 
 sync_settings() {
-  any_host_active claude gemini opencode || return 0
+  any_host_active claude codex gemini opencode || return 0
   progress_section "Host settings"
 
   for_host claude merge_settings "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
   for_host claude sync_to "$REPO_ROOT/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
+  for_host codex sync_to "$REPO_ROOT/.codex/config.toml" "$HOME/.codex/config.toml"
   for_host gemini merge_settings "$REPO_ROOT/.gemini/settings.json" \
     "$HOME/.gemini/settings.json" "$GEMINI_UNION_KEYS"
   for_host gemini sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"
