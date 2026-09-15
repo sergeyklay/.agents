@@ -135,7 +135,7 @@ PROBE
   for comment in 'TestApplyTurnStarted verifies V5: sets the tally' \
     'TestCheckAuth pins P9 for the handshake' 'Covers A13 and the retry' \
     'the replay proves R11' "covers A1's second clause" \
-    'pins AB12, then the retry'; do
+    'pins AB12, then the retry' 'TestApplyTurnStarted verifies V5.'; do
     go_comment_probe "$comment"
     run run_hook "$PROBE"
     assert_flagged 'spec-criteria reference' || fail "for: $comment"
