@@ -841,12 +841,36 @@ merge_settings() {
   rm -f -- "$tmp"
 }
 
+# Codex writes trust decisions and notices into the same file as user settings,
+# so repository values must be overlaid without discarding that host state.
+merge_toml_settings() {
+  src=$1
+  dst=$2
+  if [ ! -f "$dst" ]; then
+    sync_to "$src" "$dst"
+    return 0
+  fi
+  if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import tomllib' 2>/dev/null; then
+    die "python3 3.11+ is required to merge existing Codex settings: $dst"
+  fi
+  tmp=$(mktemp) || die "mktemp failed"
+  if ! python3 "$REPO_ROOT/scripts/merge_toml.py" "$dst" "$src" "$tmp"; then
+    rm -f -- "$tmp"
+    die "settings merge failed: $src onto $dst"
+  fi
+  SYNC_TO_LABEL=$src
+  sync_to "$tmp" "$dst"
+  unset SYNC_TO_LABEL
+  rm -f -- "$tmp"
+}
+
 sync_settings() {
-  any_host_active claude gemini opencode || return 0
+  any_host_active claude codex gemini opencode || return 0
   progress_section "Host settings"
 
   for_host claude merge_settings "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
   for_host claude sync_to "$REPO_ROOT/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
+  for_host codex merge_toml_settings "$REPO_ROOT/.codex/config.toml" "$HOME/.codex/config.toml"
   for_host gemini merge_settings "$REPO_ROOT/.gemini/settings.json" \
     "$HOME/.gemini/settings.json" "$GEMINI_UNION_KEYS"
   for_host gemini sync_to "$REPO_ROOT/.gemini/policies" "$HOME/.gemini/policies"

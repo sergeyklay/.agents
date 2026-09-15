@@ -1,0 +1,12 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+
+[marketplaces.diagram-design]
+source_type = "git"
+source = "https://github.com/cathrynlavery/diagram-design.git"
+
+[plugins."diagram-design@diagram-design"]
+enabled = true
+
+[tui]
+status_line = ["run-state", "used-tokens"]
