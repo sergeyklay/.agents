@@ -64,6 +64,11 @@ for corpus in "$@"; do
     status=1
   fi
   while IFS= read -r -d '' file; do
+    if [ ! -r "$file" ]; then
+      echo "  cannot read $file; the counts cover part of the corpus" >&2
+      status=1
+      continue
+    fi
     before=$(reports "$before_hook" "$file")
     after=$(reports "$after_hook" "$file")
     files=$((files + 1))

@@ -52,3 +52,19 @@ fixture_repo() {
   [ "$status" -eq 1 ] || fail "expected exit 1, got $status"$'\n'"$output"
   assert_contains "$output" 'the counts cover part of the corpus'
 }
+
+# find lists a file it cannot open, and the hook passes a file it cannot read,
+# so only a check on the file itself keeps the gap out of a clean count.
+@test "a corpus file the hook cannot read fails the measurement" {
+  [ "$(id -u)" -ne 0 ] || skip 'root reads a mode-000 file, so the unreadable file goes unchecked'
+  fixture_repo || return 1
+  local corpus="$BATS_TEST_TMPDIR/unreadable"
+  mkdir -p "$corpus"
+  printf 'package p\n' >"$corpus/open.go"
+  printf 'package p\n' >"$corpus/locked.go"
+  chmod 000 "$corpus/locked.go"
+  [ ! -r "$corpus/locked.go" ] || fail 'mode 000 left the file readable'
+  run "$REPO/test/measure-comment-style.bash" -r HEAD "$corpus:*.go"
+  [ "$status" -eq 1 ] || fail "expected exit 1, got $status"$'\n'"$output"
+  assert_contains "$output" "cannot read $corpus/locked.go"
+}
