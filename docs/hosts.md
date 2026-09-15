@@ -6,6 +6,8 @@ What the installer writes, where each host reads it, and the quirks that follow.
 
 Clone the repo, then either symlink (or copy) what you need into the directory your agent reads from, or run `scripts/install.sh` to mirror the whole set into the host directories under `$HOME`.
 
+Merging repository settings into an existing Codex `config.toml` uses only the Python 3.11+ standard library. A clean Codex settings install does not require Python.
+
 Asset flags such as `--agents` and `--skills` combine with host filters such as `--claude` and `--opencode`: `scripts/install.sh --agents --opencode` installs only opencode agents, while `scripts/install.sh --claude` installs every supported asset type for Claude Code. Multiple host filters can be combined, and omitting them preserves the default of targeting every registered host. Pass `--help` for the full flag list; each host is skipped unless its directory already exists.
 
 ## Global context

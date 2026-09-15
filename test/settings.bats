@@ -1,11 +1,29 @@
-# Repository values win merge conflicts; without jq, existing host-local
-# files are skipped.
+# Repository values win settings merge conflicts. JSON merges skip existing
+# host-local files when jq is unavailable.
 load 'test_helper'
 
 assert_disabled_once() {
   jq -e --arg skill "$1" \
     '[.skills.disabled[] | select(. == $skill)] | length == 1' \
     "$TEST_HOME/.gemini/settings.json" >/dev/null
+}
+
+assert_codex_settings() {
+  python3 - "$1" <<'PY'
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as config_file:
+    config = tomllib.load(config_file)
+
+marketplace = config["marketplaces"]["diagram-design"]
+assert marketplace["source_type"] == "git"
+assert marketplace["source"] == "https://github.com/cathrynlavery/diagram-design.git"
+assert config["model"] == "gpt-5.6-sol"
+assert config["model_reasoning_effort"] == "high"
+assert config["plugins"]["diagram-design@diagram-design"]["enabled"] is True
+assert config["tui"]["status_line"] == ["run-state", "used-tokens"]
+PY
 }
 
 @test "Claude settings deny .env reads" {
@@ -25,8 +43,61 @@ assert_disabled_once() {
   assert_file "$config"
   assert_same "$ROOT/.codex/config.toml" "$config"
   assert_toml_parses "$config"
-  assert_file_contains "$config" \
-    'status_line = ["run-state", "used-tokens"]'
+  assert_codex_settings "$config"
+}
+
+@test "Codex settings merge preserves host-local state" {
+  cat >"$TEST_HOME/.codex/config.toml" <<'TOML'
+model = "host-model"
+model_reasoning_effort = "low"
+
+[projects."/tmp/local-project"]
+trust_level = "trusted"
+
+[notice.model_migrations]
+"old-model" = "new-model"
+
+[marketplaces.diagram-design]
+last_updated = "2026-09-15T16:53:24Z"
+last_revision = "host-revision"
+source_type = "directory"
+source = "/tmp/host-plugin"
+
+[plugins."diagram-design@diagram-design"]
+enabled = false
+
+[tui]
+status_line = ["model-name"]
+
+[tui.model_availability_nux]
+"gpt-5.6-sol" = 4
+TOML
+
+  run install_into --settings --codex
+  [ "$status" -eq 0 ]
+  config="$TEST_HOME/.codex/config.toml"
+  assert_toml_parses "$config"
+  assert_codex_settings "$config"
+  python3 - "$config" <<'PY'
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as config_file:
+    config = tomllib.load(config_file)
+
+assert config["model"] == "gpt-5.6-sol"
+assert config["model_reasoning_effort"] == "high"
+assert config["projects"]["/tmp/local-project"]["trust_level"] == "trusted"
+assert config["notice"]["model_migrations"] == {"old-model": "new-model"}
+assert config["tui"]["model_availability_nux"] == {"gpt-5.6-sol": 4}
+assert config["marketplaces"]["diagram-design"]["last_updated"] == "2026-09-15T16:53:24Z"
+assert config["marketplaces"]["diagram-design"]["last_revision"] == "host-revision"
+PY
+
+  cp "$config" "$BATS_TEST_TMPDIR/expected-config.toml"
+  run install_into --settings --codex
+  [ "$status" -eq 0 ]
+  assert_same "$BATS_TEST_TMPDIR/expected-config.toml" "$config"
 }
 
 @test "Gemini settings merge preserves host-local keys" {
