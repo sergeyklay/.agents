@@ -196,7 +196,7 @@ load 'test_helper'
 copilot_skill_list() {
   (
     cd "$1" &&
-      HOME="$TEST_HOME" TERM=dumb NO_COLOR=1 "$NODE" "$LOADER" skill list --json </dev/null
+      isolated_home env COPILOT_AUTO_UPDATE=false TERM=dumb NO_COLOR=1 "$NODE" "$LOADER" skill list --json </dev/null
   )
 }
 

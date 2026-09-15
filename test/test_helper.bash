@@ -22,19 +22,29 @@ SPLIT_GUIDANCE='Ask the user whether to split it into two'
 setup() {
   TEST_HOME="$BATS_TEST_TMPDIR/home"
   mkdir -p "$TEST_HOME/.claude" "$TEST_HOME/.codex" "$TEST_HOME/.copilot" \
-    "$TEST_HOME/.gemini" "$TEST_HOME/.config/opencode"
+    "$TEST_HOME/.gemini" "$TEST_HOME/.config/opencode" \
+    "$TEST_HOME/.local/share" "$TEST_HOME/.local/state" "$TEST_HOME/.cache"
+}
+
+isolated_home() {
+  env HOME="$TEST_HOME" \
+    XDG_CONFIG_HOME="$TEST_HOME/.config" \
+    XDG_DATA_HOME="$TEST_HOME/.local/share" \
+    XDG_STATE_HOME="$TEST_HOME/.local/state" \
+    XDG_CACHE_HOME="$TEST_HOME/.cache" \
+    "$@"
 }
 
 # Runs the installer against $TEST_HOME; use under `run` to capture output.
 install_into() {
-  NO_COLOR=1 TERM=xterm HOME="$TEST_HOME" sh "$INSTALLER" "$@"
+  isolated_home env NO_COLOR=1 TERM=xterm sh "$INSTALLER" "$@"
 }
 
 # Runs the installer from a copied repository whose sources the test mutates.
 install_from() {
   local repo=$1
   shift
-  NO_COLOR=1 TERM=xterm HOME="$TEST_HOME" sh "$repo/scripts/install.sh" "$@"
+  isolated_home env NO_COLOR=1 TERM=xterm sh "$repo/scripts/install.sh" "$@"
 }
 
 assert_file() {

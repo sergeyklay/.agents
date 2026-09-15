@@ -1,5 +1,26 @@
 load 'test_helper'
 
+@test "installer subprocess uses the test XDG roots" {
+  repo="$BATS_TEST_TMPDIR/xdg-probe"
+  mkdir -p "$repo/scripts"
+  printf '%s\n' \
+    "printf \"%s\\\\n\" \"\$HOME\" \"\$XDG_CONFIG_HOME\" \"\$XDG_DATA_HOME\" \"\$XDG_STATE_HOME\" \"\$XDG_CACHE_HOME\"" \
+    >"$repo/scripts/install.sh"
+  export XDG_CONFIG_HOME="$BATS_TEST_TMPDIR/operator-config"
+  export XDG_DATA_HOME="$BATS_TEST_TMPDIR/operator-data"
+  export XDG_STATE_HOME="$BATS_TEST_TMPDIR/operator-state"
+  export XDG_CACHE_HOME="$BATS_TEST_TMPDIR/operator-cache"
+
+  run install_from "$repo"
+
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$TEST_HOME" ]
+  [ "${lines[1]}" = "$TEST_HOME/.config" ]
+  [ "${lines[2]}" = "$TEST_HOME/.local/share" ]
+  [ "${lines[3]}" = "$TEST_HOME/.local/state" ]
+  [ "${lines[4]}" = "$TEST_HOME/.cache" ]
+}
+
 @test "--help documents usage, assets, hosts, and examples" {
   run env NO_COLOR=1 TERM=xterm sh "$INSTALLER" --help
   [ "$status" -eq 0 ]

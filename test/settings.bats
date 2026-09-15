@@ -131,7 +131,7 @@ assert_disabled_once() {
 # wrote it: on 0.58.0 an invented key merges with `errors: []` and nobody reads
 # it (settings-validation.ts builds the settings object with `.passthrough()`).
 settings_key_verdicts() {
-  HOME="$TEST_HOME" "$NODE" "$ROOT/test/settings_keys.mjs" \
+  isolated_home "$NODE" "$ROOT/test/settings_keys.mjs" \
     "$BUNDLE" "$TEST_HOME/.gemini/settings.json" "$BATS_TEST_TMPDIR/workspace"
 }
 
