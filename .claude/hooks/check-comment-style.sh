@@ -53,9 +53,9 @@ BEGIN {
   SPEC_PREFIX = "(^|[^[:alnum:]])(AC|FR|NFR|REQ|US)-[0-9]"
 
   # A bare letter and digits is as often a register, a standard or a cipher
-  # (R0, C99, RC4) as a plan property, so only an attesting verb before it
-  # marks the citation.
-  ATTESTED_ID = "(^|[^[:alnum:]])([Vv]erifies|[Cc]overs|[Pp]ins|[Pp]roves)[[:space:]]+[A-Z][A-Z]?[0-9][0-9]?[0-9]?($|[^[:alnum:]])"
+  # (R0, C99, RC4) as a plan property, so only an attesting verb before it and a
+  # continuation that a plan ID takes after it mark the citation.
+  ATTESTED_ID = "(^|[^[:alnum:]_])([Vv]erifies|[Cc]overs|[Pp]ins|[Pp]roves)[[:space:]]+([A-Z]|[A-Z][A-Z][0-9])[0-9][0-9]?(:|,|/|" SQ "s|[[:space:]]+(and|for)([^[:alnum:]]|$)|[[:space:]]*$)"
 
   # Only I, U and Q. Every other single letter is fixture issue data here, and
   # no pattern separates C-1 the fixture row from C-1 the spec citation.
