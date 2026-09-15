@@ -1,6 +1,22 @@
 model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 
+approval_policy = "never"
+default_permissions = "full-access"
+
+[permissions.full-access.filesystem]
+":root" = "read"
+"~" = "write"
+":slash_tmp" = "write"
+glob_scan_max_depth = 16
+
+[permissions.full-access.filesystem.":workspace_roots"]
+".env" = "deny"
+"**/.env" = "deny"
+
+[permissions.full-access.network]
+enabled = true
+
 [marketplaces.diagram-design]
 source_type = "git"
 source = "https://github.com/cathrynlavery/diagram-design.git"
@@ -9,4 +25,5 @@ source = "https://github.com/cathrynlavery/diagram-design.git"
 enabled = true
 
 [tui]
-status_line = ["run-state", "used-tokens"]
+status_line = ["model", "context-used", "context-window-size", "five-hour-limit", "weekly-limit"]
+status_line_use_colors = true

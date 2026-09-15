@@ -21,8 +21,24 @@ assert marketplace["source_type"] == "git"
 assert marketplace["source"] == "https://github.com/cathrynlavery/diagram-design.git"
 assert config["model"] == "gpt-5.6-sol"
 assert config["model_reasoning_effort"] == "high"
+assert config["approval_policy"] == "never"
+assert config["default_permissions"] == "full-access"
+filesystem = config["permissions"]["full-access"]["filesystem"]
+assert filesystem[":root"] == "read"
+assert filesystem["~"] == "write"
+assert filesystem[":slash_tmp"] == "write"
+assert filesystem[":workspace_roots"][".env"] == "deny"
+assert filesystem[":workspace_roots"]["**/.env"] == "deny"
+assert config["permissions"]["full-access"]["network"]["enabled"] is True
 assert config["plugins"]["diagram-design@diagram-design"]["enabled"] is True
-assert config["tui"]["status_line"] == ["run-state", "used-tokens"]
+assert config["tui"]["status_line"] == [
+    "model",
+    "context-used",
+    "context-window-size",
+    "five-hour-limit",
+    "weekly-limit",
+]
+assert config["tui"]["status_line_use_colors"] is True
 PY
 }
 
@@ -44,6 +60,18 @@ PY
   assert_same "$ROOT/.codex/config.toml" "$config"
   assert_toml_parses "$config"
   assert_codex_settings "$config"
+  assert_same "$ROOT/.codex/rules/default.rules" "$TEST_HOME/.codex/rules/default.rules"
+}
+
+@test "Codex settings replace the default policy and preserve other rules" {
+  mkdir -p "$TEST_HOME/.codex/rules"
+  printf 'stale default policy\n' >"$TEST_HOME/.codex/rules/default.rules"
+  printf 'host-local rule\n' >"$TEST_HOME/.codex/rules/custom.rules"
+
+  run install_into --settings --codex
+  [ "$status" -eq 0 ]
+  assert_same "$ROOT/.codex/rules/default.rules" "$TEST_HOME/.codex/rules/default.rules"
+  assert_file_contains "$TEST_HOME/.codex/rules/custom.rules" 'host-local rule'
 }
 
 @test "Codex settings merge preserves host-local state" {

@@ -1,0 +1,29 @@
+prefix_rule(
+    pattern = ["sudo"],
+    decision = "forbidden",
+    justification = "sudo is explicitly prohibited",
+)
+
+prefix_rule(
+    pattern = ["su"],
+    decision = "forbidden",
+    justification = "su is explicitly prohibited",
+)
+
+prefix_rule(
+    pattern = ["shutdown"],
+    decision = "forbidden",
+    justification = "shutdown is explicitly prohibited",
+)
+
+prefix_rule(
+    pattern = ["reboot"],
+    decision = "forbidden",
+    justification = "reboot is explicitly prohibited",
+)
+
+prefix_rule(
+    pattern = ["rm", "-rf", "/"],
+    decision = "forbidden",
+    justification = "Removing the filesystem root is explicitly prohibited",
+)
