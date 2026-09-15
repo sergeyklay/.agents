@@ -46,4 +46,4 @@ Your task is to commit staged changes and manage pull requests (PR).
 - Never push directly to `main` - always use a feature branch.
 - Never skip pre-commit hooks (`--no-verify`).
 - If a hook fails, fix the underlying issue and create a new commit.
-- DO NOT run tests, write code, validate solution, etc. Your task SOLELY is to create PR.
+- Apart from fixing a failed hook, DO NOT run tests, write code, validate solution, etc. Your task SOLELY is to create PR.
