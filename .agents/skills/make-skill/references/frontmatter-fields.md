@@ -243,24 +243,33 @@ Claude Code also caps each entry at 1,536 characters of `description` plus `when
 
 ## OpenAI Codex extensions
 
-Codex scans `.agents/skills/` from the working directory upward, and `$CODEX_HOME/skills/` for user-scope skills, which is `~/.codex/skills/` unless `CODEX_HOME` says otherwise. Its SKILL.md parser reads `name` and `description`, and parses `metadata.short-description` without using it in the model-visible listing. Every other frontmatter key is discarded at load time, so Claude Code fields cost nothing on Codex and do nothing either. Loading is not the only gate, though: the plugin validator Codex ships (`~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py:468-474`) rejects a skill whose `disable-model-invocation` is anything but `false` or absent: ``skill `X` frontmatter field `disable-model-invocation` must be false``. A skill distributed inside a Codex plugin therefore cannot carry that field set. UI metadata, invocation policy, and MCP dependencies go in a sibling file instead.
+Keep portable skill metadata in `SKILL.md` frontmatter. Codex-specific UI metadata, invocation policy, and tool dependencies belong in the optional `<skill>/agents/openai.yaml` sidecar. Support for a field in one host or file does not establish support in another.
 
 ### agents/openai.yaml
 
-The sidecar lives at `<skill>/agents/openai.yaml`. The directory name is `agents`, with no leading dot, and the filename is `openai.yaml`; there is no `.yml` spelling in the loader. Codex compares the directory name case-insensitively while loading the literal lowercase path, so a differently cased directory works only on a case-insensitive filesystem. Write it lowercase.
+This is an illustrative subset of the [official Codex skill metadata example](https://developers.openai.com/codex/skills), not an exhaustive schema. Include only the fields the skill needs; consult the target documentation for additions and changes.
 
-Three sections, and Codex rejects any other key in them:
+**`interface`** describes how a skill is presented to a person. These documented fields provide the useful authoring vocabulary:
+
+| Field | Purpose |
+|---|---|
+| `display_name` | Human-facing title in UI skill lists and chips. |
+| `short_description` | Concise UI description for quick scanning. |
+| `icon_small` | Path to a small icon asset, relative to the skill directory. |
+| `icon_large` | Path to a larger logo asset, relative to the skill directory. |
+| `brand_color` | Hex color used for UI accents, such as badges. |
+| `default_prompt` | Prompt snippet inserted when invoking the skill; mention the skill as `$skill-name`. |
 
 ```yaml
 interface:
   display_name: "Human-Friendly Name"
-  short_description: "Shown in the picker"   # 25-64 chars
-  icon_small: "./assets/icon.svg"            # must resolve under assets/
-  icon_large: "./assets/icon-large.png"      # must resolve under assets/
-  brand_color: "#3B82F6"                     # exactly #RRGGBB
-  default_prompt: "Optional surrounding prompt"
+  short_description: "A concise picker description"
+  icon_small: "./assets/icon-small.png"
+  icon_large: "./assets/logo.svg"
+  brand_color: "#3B82F6"
+  default_prompt: "Use $skill-name to draft a concise project update."
 policy:
-  allow_implicit_invocation: false  # boolean; default true
+  allow_implicit_invocation: false
 dependencies:
   tools:
     - type: "mcp"
@@ -270,21 +279,16 @@ dependencies:
       url: "https://example.com/mcp"
 ```
 
-**`interface`** is UI metadata for the ChatGPT desktop app: how the skill is named and rendered in the picker.
+The documented purpose of `interface` is human-facing presentation; `policy.allow_implicit_invocation` controls implicit invocation; `dependencies.tools` declares tool dependencies. A dependency declaration is not a substitute for an access-control policy. Keep model-routing triggers in the skill description and check presentation separately from invocation.
 
-Each comment above names a constraint some shipped artifact enforces, and they do not all come from the same one. Codex CLI 0.153.4's own validator (`plugin-creator/scripts/validate_plugin.py:531-559`) requires `display_name` and `short_description` to be non-empty strings, `default_prompt` to be a non-empty string when present, `brand_color` to match `#RRGGBB`, and each icon path to be a relative path resolving to a file inside the package; it checks no lengths at all. The `assets/` rule is the loader's, not the validator's: `skills/src/interface.rs` refuses an icon whose first path segment is anything else, and `ext/skills/src/loader/metadata.rs` is the second module that reads the sidecar. The 25-64 range for `short_description` comes from Codex's own reference (`skill-creator/references/openai_yaml.md:37`, stated as advice) and from its generator (`skill-creator/scripts/generate_openai_yaml.py:169`, which errors outside that range).
+Before using vendor-specific fields or relying on validation behavior:
 
-Character caps do exist in the Rust loader, and they are wider. The sidecar caps `display_name` at 64 characters, `short_description` and `default_prompt` at 1,024. An over-cap field is dropped whole rather than trimmed, and the drop is per field: on 0.153.4 a 1,025-character `short_description` comes back `null` from the app server's `skills/list` while `display_name` in the same sidecar survives, and at exactly 1,024 it is kept in full. The log warning names the field and the cap: `ignoring interface.short_description: exceeds maximum length of 1024 characters`. Frontmatter `description` is truncated instead of dropped: a 1,994-character value renders in the model-visible listing at exactly 1,024 characters, the last three an ellipsis. Where the constants are declared is contested. The installed 0.153.4 build emits these warnings from `skills/src/interface.rs`, while upstream `main` declares `MAX_NAME_LEN = 64` and `MAX_DESCRIPTION_LEN = 1024` in `codex-rs/ext/skills/src/loader/mod.rs` and reuses `MAX_DESCRIPTION_LEN` for dependency fields as well. Trust the measured behavior over the module name.
+1. Identify the target Codex installation, version, and distribution path: a standalone skill and a packaged plugin can encounter different validators.
+2. Read the official documentation for that target. Use the installed CLI's help, bundled references, schema or source when available to resolve missing details. Match source to the target release; upstream `main` may describe a different implementation. If the target or behavior cannot be established, leave the claim unverified rather than filling it from an older observation.
+3. Validate the artifact with the tool that consumes it. A standalone skill validator, plugin-package validator, and runtime loader check different boundaries; do not transfer an allow-list, successful result, or rejection rule from one to another.
+4. Check the intended effect on the relevant surface: model-visible discovery and invocation, human-facing UI metadata, or dependency resolution. Use the target's available inspection commands or a small isolated probe with a known working control and an invalid input. Record the tool version and observed result so later users can reproduce the check without treating it as a permanent guarantee.
 
-**`policy`** carries one key. `allow_implicit_invocation: false` keeps the whole catalog entry out of the model's context while explicit `$skill-name` invocation keeps working, which is the Codex equivalent of Claude Code's `disable-model-invocation: true`. The default is `true`.
-
-**`dependencies.tools`** declares the MCP servers the skill needs. It is a declaration, not a restriction: nothing in Codex disables a skill whose declared server is absent, and nothing confines the skill to the servers it lists. Each entry names `type`, `value`, and `description`, then the connection: `transport` with `url` for an HTTP server, or `command` for a stdio one. `command` is in the 0.153.4 loader's field set and in neither shipped reference cited above.
-
-The loader is fail-open by design, with a source comment that says so: "Fail open: optional metadata should not block loading SKILL.md." Malformed YAML drops the entire sidecar with a log warning while SKILL.md still loads; one rejected field drops only that field and its siblings survive. Nothing surfaces to the author, so a typo here is silent. Validate the file by reading it back, not by watching for an error.
-
-Two short-description spellings exist, and neither reaches the model. `interface.short_description` styles the human picker; the model-visible listing renders frontmatter `description` and sees neither `metadata.short-description` nor the sidecar. Tune `description` for implicit routing, and put the load-bearing trigger first because the tail is what truncation removes.
-
-The sidecar is Codex-specific and ignored elsewhere: it is an ordinary file in the skill directory, and the spec allows a skill to contain any files beyond SKILL.md. Include it only when targeting Codex.
+Unknown or ill-typed fields may be ignored, rejected, or affect neighboring metadata. Treat this as version-dependent implementation behavior unless the official contract promises an outcome. A successful load, a validator pass, or silence in the terminal alone does not prove that a field took effect. Keep exhaustive field lists, numeric limits, parser internals, and release-specific failure observations in task evidence; look up the target's contract when those details matter.
 
 ## Cross-platform compatibility cheat sheet
 
