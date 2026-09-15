@@ -12,12 +12,12 @@ DOTENV_DENIAL='Tool execution denied by policy. Reading dotenv files is denied b
 gemini_cli() {
   (
     cd "$TEST_HOME" &&
-      HOME="$TEST_HOME" "$NODE" "$BUNDLE" "$@" </dev/null
+      isolated_home "$NODE" "$BUNDLE" "$@" </dev/null
   )
 }
 
 policy_decisions() {
-  HOME="$TEST_HOME" "$NODE" "$ROOT/test/policy_decision.mjs" \
+  isolated_home "$NODE" "$ROOT/test/policy_decision.mjs" \
     "$BUNDLE" "$POLICY" "$@"
 }
 
