@@ -42,5 +42,51 @@
       "url": "https://mcp.context7.com/mcp",
       "enabled": true
     }
+  },
+  "provider": {
+    "litellm": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LiteLLM",
+      "options": {
+        "baseURL": "https://litellm-proxy.infrateam-dev.xyz/v1"
+      },
+      "models": {
+        "openai/gpt-5.6-sol": {
+          "name": "GPT-5.6 Sol",
+          "limit": {
+            "context": 1050000,
+            "output": 128000
+          }
+        },
+        "openai/gpt-5.6-terra": {
+          "name": "GPT-5.6 Terra",
+          "limit": {
+            "context": 1050000,
+            "output": 128000
+          }
+        },
+        "openai/gpt-5.6-luna": {
+          "name": "GPT-5.6 Luna",
+          "limit": {
+            "context": 1050000,
+            "output": 128000
+          }
+        },
+        "anthropic/claude-opus-5": {
+          "name": "Claude Opus 5",
+          "limit": {
+            "context": 1000000,
+            "output": 128000
+          }
+        },
+        "anthropic/claude-sonet-5": {
+          "name": "Claude Sonet 5",
+          "limit": {
+            "context": 1000000,
+            "output": 128000
+          }
+        }
+      }
+    }
   }
 }
