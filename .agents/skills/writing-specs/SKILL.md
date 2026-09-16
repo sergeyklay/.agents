@@ -78,7 +78,7 @@ Summary of the nine checks:
 6. **Data model**: schema location and ownership, migration policy, scoping rules (per-tenant, per-user, per-account), deduplication, retention, indexing policy per project conventions.
 7. **Runtime model**: caching strategy, rendering model, concurrency primitives, scheduling, deployment topology per project conventions. Where the project documents deprecated patterns, design against the current one.
 8. **Requirements source**: has the tracker reference (if any) been fetched and incorporated? Are acceptance criteria captured?
-9. **Prerequisites**: does the design depend on work that is not done? Is the feature scoped to a single implementation unit?
+9. **Prerequisites**: does the design depend on work that is not done, or on code that only tests have ever run? Is the feature scoped to a single implementation unit?
 
 After running all nine checks, record one verdict per check using the template at the end of `references/analysis-protocol.md`. Keep the full verdict list in the agent's reasoning trace. Copy only the exceptions into the spec's opening "Compliance check" section: a `GO` verdict is not recorded in the spec, because no downstream agent consumes it; every `FLAG` becomes one bullet naming the extension, and Check 9 (Prerequisites) is recorded when it names a pending dependency. A check the agent did not run is not acceptable; either run it or state explicitly why it does not apply.
 
