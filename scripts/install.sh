@@ -633,11 +633,9 @@ codex_agent_features() {
   esac
 }
 
-# Codex has no per-role skill preload: skills.config entries can only disable.
-# A template allow-list therefore ships the complement of the installed skills
-# as disable rules, so the role's catalog shows exactly the allowed skills;
-# `none` drops the skills catalog block for agents Claude gives no skills at
-# all.
+# Codex cannot preload skills: skills.config entries only disable, so an
+# allow-list ships the complement as disable rules and `none` drops the
+# catalog block for agents Claude gives no skills at all.
 codex_agent_skills() {
   fm=$1
   name=$2
@@ -681,10 +679,9 @@ codex_agent_skills() {
   rm -f -- "$allow"
 }
 
-# A Codex role file is a whole TOML document, so frontmatter_overlay still
-# merges the template over the canonical frontmatter but the result feeds a
-# TOML render: the canonical body becomes the developer_instructions literal
-# and the template contributes role settings, in the shape of sync_view_toml.
+# A Codex role file is a whole TOML document: frontmatter_overlay still merges
+# the template over the canonical frontmatter, but the canonical body becomes
+# the developer_instructions literal, rendered in the shape of sync_view_toml.
 sync_codex_agent() {
   src=$1
   dst=$2

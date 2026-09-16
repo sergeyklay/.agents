@@ -4,9 +4,9 @@
 
 load 'test_helper'
 
-# Compares one installed Codex role file against its canonical body and Codex
-# template, and refuses keys the 0.154.0 loader accepts but silently ignores,
-# so a template can never promise a restriction the host does not enforce.
+# Compares an installed Codex role file against its canonical body and the
+# Claude template (the behavioral reference), so a field dropped from the
+# Codex template cannot hide behind the renderer that reads the same file.
 assert_codex_role() {
   local role=$1
   local src=$2
@@ -37,43 +37,82 @@ for line in lines[1:i]:
                 value = value[1:-1]
             frontmatter[key] = value
 
-# The template format is the fixed shape the renderer reads.
-effort = None
-skills = None
-features = {}
-tmpl_lines = tmpl_path.read_text().splitlines()
-j = 0
-while j < len(tmpl_lines):
-    line = tmpl_lines[j]
-    if line.startswith("model_reasoning_effort:"):
-        effort = line.split(":", 1)[1].strip()
-    elif line.startswith("skills:"):
-        inline = line.split(":", 1)[1].strip()
-        if inline:
-            skills = inline
-        else:
-            listed = []
-            j += 1
-            while j < len(tmpl_lines) and (
-                tmpl_lines[j].startswith("  - ") or not tmpl_lines[j].strip()
-            ):
-                if tmpl_lines[j].startswith("  - "):
-                    listed.append(tmpl_lines[j][4:].strip())
+# Parsed separately for clarity: the codex template is three flat constructs.
+def parse_codex_template(path):
+    text = path.read_text().splitlines()
+    effort = None
+    skills = None
+    features = {}
+    j = 0
+    while j < len(text):
+        line = text[j]
+        if line.startswith("model_reasoning_effort:"):
+            effort = line.split(":", 1)[1].strip()
+        elif line.startswith("skills:"):
+            inline = line.split(":", 1)[1].strip()
+            if inline:
+                skills = inline
+            else:
+                listed = []
                 j += 1
-            skills = listed
-            j -= 1
-    elif line.startswith("features:"):
-        j += 1
-        while j < len(tmpl_lines) and (
-            tmpl_lines[j].startswith("  ") or not tmpl_lines[j].strip()
-        ):
-            entry = tmpl_lines[j].strip()
-            if ":" in entry:
-                key, value = entry.split(":", 1)
-                features[key.strip()] = value.strip()
+                while j < len(text) and (
+                    text[j].startswith("  - ") or not text[j].strip()
+                ):
+                    if text[j].startswith("  - "):
+                        listed.append(text[j][4:].strip())
+                    j += 1
+                skills = listed
+                j -= 1
+        elif line.startswith("features:"):
             j += 1
-        j -= 1
-    j += 1
+            while j < len(text) and (text[j].startswith("  ") or not text[j].strip()):
+                entry = text[j].strip()
+                if ":" in entry:
+                    key, value = entry.split(":", 1)
+                    features[key.strip()] = value.strip()
+                j += 1
+            j -= 1
+        j += 1
+    return effort, skills, features
+
+# The Claude template is the behavioral reference: its tools and effort
+# decide what the Codex role must pin.
+def parse_claude_template(path):
+    text = path.read_text().splitlines()
+    tools = []
+    skills = []
+    effort = None
+    j = 0
+    while j < len(text):
+        line = text[j]
+        if line.startswith("tools:"):
+            j += 1
+            while j < len(text) and (
+                text[j].startswith("  - ") or text[j].strip().startswith("#") or not text[j].strip()
+            ):
+                if text[j].startswith("  - "):
+                    tools.append(text[j][4:].strip())
+                j += 1
+            j -= 1
+        elif line.startswith("skills:"):
+            j += 1
+            while j < len(text) and (
+                text[j].startswith("  - ") or text[j].strip().startswith("#") or not text[j].strip()
+            ):
+                if text[j].startswith("  - "):
+                    skills.append(text[j][4:].strip())
+                j += 1
+            j -= 1
+        elif line.startswith("effort:"):
+            effort = line.split(":", 1)[1].strip()
+        j += 1
+    return tools, skills, effort
+
+name = src_path.stem
+claude_tools, claude_skills, claude_effort = parse_claude_template(
+    root / "templates/.claude/agents" / f"{name}.yaml"
+)
+effort, tmpl_skills, tmpl_features = parse_codex_template(tmpl_path)
 
 with open(role_path, "rb") as f:
     doc = tomllib.load(f)
@@ -87,15 +126,22 @@ assert doc["developer_instructions"] == body, (
     f"{role_path}: developer_instructions is not the canonical body"
 )
 
-if effort is None:
-    assert "model_reasoning_effort" not in doc, (
-        f"{role_path}: reasoning effort present without a template pin"
-    )
-else:
-    assert doc.get("model_reasoning_effort") == effort, (
-        f"{role_path}: reasoning effort {doc.get('model_reasoning_effort')!r}"
-        f" != template {effort!r}"
-    )
+# Reasoning effort mirrors the Claude pin; the ladder is the one measured for
+# the pinned gpt-5.6-sol on codex-cli 0.154.0.
+assert claude_effort is not None, (
+    f"{role_path}: the Claude reference pins no effort to mirror"
+)
+assert effort == claude_effort, (
+    f"{role_path}: codex effort {effort!r} != Claude reference {claude_effort!r}"
+)
+ladder = {"low", "medium", "high", "xhigh", "max", "ultra"}
+assert effort in ladder, (
+    f"{role_path}: effort {effort!r} is outside the pinned model's ladder"
+)
+assert doc.get("model_reasoning_effort") == effort, (
+    f"{role_path}: reasoning effort {doc.get('model_reasoning_effort')!r}"
+    f" != template {effort!r}"
+)
 
 # The global config pins one model; a per-role pin would fork the fleet.
 assert "model" not in doc, f"{role_path}: per-role model pin breaks the global pin"
@@ -114,40 +160,52 @@ for inert in (
 ):
     assert inert not in doc, f"{role_path}: inert key {inert} promises an unenforced setting"
 
-if features.get("shell_tool") == "false":
+# Claude grants no Bash exactly to the agents whose Codex role must drop the
+# shell; codex cannot split search from the shell, so those roles lose
+# codex-side search too - narrower than Claude, never wider.
+if "Bash" not in claude_tools:
+    assert tmpl_features.get("shell_tool") == "false", (
+        f"{role_path}: Claude grants no Bash but the codex template keeps the shell"
+    )
     assert doc.get("features", {}).get("shell_tool") is False, (
-        f"{role_path}: template disables the shell but the role file does not"
+        f"{role_path}: the role file does not disable the shell"
     )
 else:
     assert "features" not in doc, f"{role_path}: unexpected features block"
 
-if skills is None:
-    assert "skills" not in doc, f"{role_path}: unexpected skills block"
-elif skills == "none":
+# Claude agents holding the Skill tool load any skill on demand, so their
+# Codex catalog stays unrestricted; the others see exactly Claude's preload
+# list, and agents with neither see no catalog at all.
+if "Skill" in claude_tools:
+    assert "skills" not in doc, (
+        f"{role_path}: Claude allows on-demand skills but the codex role narrows"
+    )
+elif claude_skills:
+    installed = {p.name for p in (root / ".agents/skills").iterdir() if p.is_dir()}
+    assert set(claude_skills) <= installed, (
+        f"{role_path}: Claude preload names uninstalled skills: "
+        f"{sorted(set(claude_skills) - installed)}"
+    )
+    assert doc.get("skills", {}).get("bundled", {}).get("enabled") is False, (
+        f"{role_path}: bundled skills stay visible outside the allow-list"
+    )
+    disabled = {entry["name"] for entry in doc.get("skills", {}).get("config", [])}
+    expected_disabled = installed - set(claude_skills)
+    assert disabled == expected_disabled, (
+        f"{role_path}: disable rules {sorted(disabled)} != complement "
+        f"{sorted(expected_disabled)}"
+    )
+    for entry in doc.get("skills", {}).get("config", []):
+        assert entry["enabled"] is False, (
+            f"{role_path}: enable rule survives the renderer"
+        )
+else:
     assert doc.get("skills", {}).get("include_instructions") is False, (
         f"{role_path}: skills catalog block must be dropped"
     )
     assert "config" not in doc.get("skills", {}), (
         f"{role_path}: `none` must not carry per-skill rules"
     )
-else:
-    installed = {p.name for p in (root / ".agents/skills").iterdir() if p.is_dir()}
-    assert set(skills) <= installed, (
-        f"{role_path}: allow-list names uninstalled skills: "
-        f"{sorted(set(skills) - installed)}"
-    )
-    got = doc.get("skills", {})
-    assert got.get("bundled", {}).get("enabled") is False, (
-        f"{role_path}: bundled skills stay visible outside the allow-list"
-    )
-    disabled = {entry["name"] for entry in got.get("config", [])}
-    expected_disabled = installed - set(skills)
-    assert disabled == expected_disabled, (
-        f"{role_path}: disable rules {sorted(disabled)} != complement "
-        f"{sorted(expected_disabled)}"
-    )
-    for entry in got.get("config", []):
-        assert entry["enabled"] is False, f"{role_path}: enable rule survives the renderer"
 PY
 }
 
@@ -179,7 +237,7 @@ PY
   run install_into --agents --codex
   [ "$status" -eq 0 ]
   role="$TEST_HOME/.codex/agents/go-tester.toml"
-  sed -i '/^model_reasoning_effort = /d' "$role"
+  grep -v '^model_reasoning_effort = ' "$role" >"$role.new" && mv "$role.new" "$role"
   src="$ROOT/.agents/agents/go-tester.md"
   run assert_codex_role "$role" "$src" "$ROOT/templates/.codex/agents/go-tester.yaml"
   [ "$status" -ne 0 ]
@@ -190,7 +248,7 @@ PY
   run install_into --agents --codex
   [ "$status" -eq 0 ]
   role="$TEST_HOME/.codex/agents/sleuth.toml"
-  sed -i '/^You are an investigator/d' "$role"
+  grep -v '^You are an investigator' "$role" >"$role.new" && mv "$role.new" "$role"
   src="$ROOT/.agents/agents/sleuth.md"
   run assert_codex_role "$role" "$src" "$ROOT/templates/.codex/agents/sleuth.yaml"
   [ "$status" -ne 0 ]
@@ -203,11 +261,31 @@ PY
   role="$TEST_HOME/.codex/agents/planner.toml"
   # Re-enabling one disabled skill widens the catalog beyond the allow-list;
   # an enable rule is a no-op the spawned role never sees.
-  sed -i '/^name = "test-go"$/ {n; s/enabled = false/enabled = true/}' "$role"
+  awk '/^name = "test-go"$/ { print; getline; sub(/enabled = false/, "enabled = true"); print; next }
+       { print }' "$role" >"$role.new" && mv "$role.new" "$role"
   src="$ROOT/.agents/agents/planner.md"
   run assert_codex_role "$role" "$src" "$ROOT/templates/.codex/agents/planner.yaml"
   [ "$status" -ne 0 ]
   assert_contains "$output" "enable rule survives the renderer"
+}
+
+# Renderer and comparator both read the Codex template, so a dropped template
+# field would hide if the expectation came from the same file; it comes from
+# the Claude reference instead, and this control proves that catches the drop.
+@test "the content check catches a template that dropped the Claude effort" {
+  repo="$BATS_TEST_TMPDIR/effort-drop"
+  mkdir -p "$repo/scripts"
+  cp -R "$ROOT/.agents" "$repo/.agents"
+  cp -R "$ROOT/templates" "$repo/templates"
+  cp "$INSTALLER" "$repo/scripts/install.sh"
+  broken="$repo/templates/.codex/agents/arch-review.yaml"
+  grep -v '^model_reasoning_effort: ' "$broken" >"$broken.new" && mv "$broken.new" "$broken"
+  run install_from "$repo" --agents --codex
+  [ "$status" -eq 0 ]
+  run assert_codex_role "$TEST_HOME/.codex/agents/arch-review.toml" \
+    "$ROOT/.agents/agents/arch-review.md" "$broken"
+  [ "$status" -ne 0 ]
+  assert_contains "$output" "Claude reference"
 }
 
 # Codex discovers $CODEX_HOME/agents/*.toml recursively; the installer writes
