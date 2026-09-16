@@ -14,7 +14,12 @@ from contextlib import contextmanager
 from fcntl import LOCK_EX, LOCK_UN, flock
 from importlib import import_module
 from pathlib import Path
-from typing import Literal, cast
+from typing import Any, Literal, NoReturn, Protocol, cast
+
+
+class TomlReader(Protocol):
+    def loads(self, value: str) -> dict[str, Any]: ...
+
 
 SUPPORTED_FIELDS = {"name", "description"}
 SUPPORTED_TEMPLATE_FIELDS = {
@@ -25,11 +30,11 @@ SUPPORTED_TEMPLATE_FIELDS = {
     "visible_skills",
 }
 SUPPORTED_FEATURES = {"apps", "plugins", "shell_tool"}
-SUPPORTED_EFFORTS = {"high", "max", "xhigh"}
-tomllib = import_module("tomllib")
+SUPPORTED_EFFORTS = {"high", "xhigh"}
+tomllib = cast(TomlReader, import_module("tomllib"))
 
 
-def fail(message: str) -> None:
+def fail(message: str) -> NoReturn:
     raise ValueError(message)
 
 
@@ -42,14 +47,15 @@ def scalar(value: str, label: str) -> str:
             parsed_value: object = json.loads(value)
         except json.JSONDecodeError as error:
             fail(f"{label} has invalid quoting: {error.msg}")
-            raise AssertionError from error
         if not isinstance(parsed_value, str):
             raise ValueError(f"{label} must be a string")
-        return parsed_value
-    if value.startswith("'"):
+        value = parsed_value
+    elif value.startswith("'"):
         if len(value) < 2 or not value.endswith("'"):
             fail(f"{label} has invalid quoting")
-        return value[1:-1].replace("''", "'")
+        value = value[1:-1].replace("''", "'")
+    if not value.strip():
+        fail(f"{label} cannot be blank")
     return value
 
 
@@ -143,11 +149,11 @@ def load_template(path: Path, skill_names: set[str]) -> dict[str, object]:
 def render(path: Path, template: dict[str, object], skill_names: set[str]) -> bytes:
     name, description, body = parse_agent(path)
     lines = [
-        f"name = {json.dumps(name, ensure_ascii=False)}\n"
-        f"description = {json.dumps(description, ensure_ascii=False)}\n"
-        f"model = {json.dumps(template['model'])}\n"
-        f"model_reasoning_effort = {json.dumps(template['model_reasoning_effort'])}\n"
-        f"developer_instructions = {json.dumps(body, ensure_ascii=False)}\n"
+        f"name = {json.dumps(name, ensure_ascii=False)}\n",
+        f"description = {json.dumps(description, ensure_ascii=False)}\n",
+        f"model = {json.dumps(template['model'])}\n",
+        f"model_reasoning_effort = {json.dumps(template['model_reasoning_effort'])}\n",
+        f"developer_instructions = {json.dumps(body, ensure_ascii=False)}\n",
     ]
     features = cast(list[str], template.get("disabled_features", []))
     if features:
@@ -194,7 +200,7 @@ def load_manifest(
     if set(manifest_dict) != {"state", "roles"}:
         fail(f"ownership manifest has an unsupported shape: {path}")
     state = manifest_dict["state"]
-    if state not in {"stable", "pending"}:
+    if not isinstance(state, str) or state not in {"stable", "pending"}:
         fail(f"ownership manifest has an unsupported state: {path}")
     roles = manifest_dict["roles"]
     if not isinstance(roles, dict):
@@ -263,7 +269,7 @@ def atomic_write(path: Path, content: bytes) -> None:
 def transaction_lock(path: Path) -> Generator[None, None, None]:
     if path.is_symlink():
         fail(f"transaction lock is not a regular file: {path}")
-    flags = os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW
+    flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
     descriptor = os.open(path, flags, 0o600)
     try:
         if not stat.S_ISREG(os.fstat(descriptor).st_mode):
@@ -283,7 +289,10 @@ def fail_after(phase: str, index: int) -> None:
 
 
 def reconcile(repository: Path, codex_home: Path) -> None:
-    sources = sorted((repository / ".agents/agents").glob("*.md"))
+    source_dir = repository / ".agents/agents"
+    if not source_dir.is_dir():
+        fail(f"canonical agent directory is missing: {source_dir}")
+    sources = sorted(source_dir.glob("*.md"))
     skill_names = {
         path.parent.name for path in (repository / ".agents/skills").glob("*/SKILL.md")
     }
@@ -300,14 +309,21 @@ def reconcile(repository: Path, codex_home: Path) -> None:
         )
         for source in sources
     }
-    if not rendered:
-        fail("no canonical agents found")
-
     destination = codex_home / "agents"
     manifest_path = codex_home / ".agents-install-state.json"
     _, manifest = load_manifest(manifest_path)
     stale: list[Path] = []
+    destination_names: dict[str, Path] = {}
     for path in sorted(destination.glob("*.toml")):
+        folded = path.name.casefold()
+        if folded in destination_names:
+            fail(f"Codex role names differ only by case: {path}")
+        destination_names[folded] = path
+    for name in rendered:
+        collision = destination_names.get(name.casefold())
+        if collision is not None and collision.name != name:
+            fail(f"refusing to replace unrecognized Codex role: {collision}")
+    for path in destination_names.values():
         ownership_state = ownership(path, manifest.get(path.name))
         if path.name in rendered:
             if ownership_state != "owned":
@@ -342,6 +358,13 @@ def reconcile(repository: Path, codex_home: Path) -> None:
 
 
 def install(repository: Path, codex_home: Path) -> None:
+    if codex_home.is_symlink() or (codex_home.exists() and not codex_home.is_dir()):
+        fail(f"Codex home is not a real directory: {codex_home}")
+    codex_home.mkdir(parents=True, exist_ok=True)
+    destination = codex_home / "agents"
+    if destination.is_symlink() or (destination.exists() and not destination.is_dir()):
+        fail(f"Codex agent destination is not a real directory: {destination}")
+    destination.mkdir(exist_ok=True)
     with transaction_lock(codex_home / ".agents-install.lock"):
         reconcile(repository, codex_home)
 

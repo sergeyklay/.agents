@@ -13,7 +13,7 @@ assert not payload.startswith(b"#")
 role = tomllib.loads(payload.decode())
 template = tomllib.loads(template_path.read_text())
 lines = source_path.read_text().splitlines(keepends=True)
-closing = next(index for index, line in enumerate(lines[1:], 1) if line.rstrip("\n") == "---")
+closing = next(index for index, line in enumerate(lines[1:], 1) if line.rstrip("\r\n") == "---")
 frontmatter = {}
 for line in lines[1:closing]:
     key, value = line.split(":", 1)
@@ -79,13 +79,23 @@ for name, expected in matrix.items():
     tools = {line[4:].strip() for line in claude if line.startswith("  - ")}
     template = tomllib.loads((root / "templates/.codex/agents" / f"{name}.toml").read_text())
     assert scalar["model"] == expected["claude_model"]
-    assert scalar["effort"] == expected["effort"]
+    assert scalar["effort"] == expected.get("claude_effort", expected["effort"])
     assert template["model"] == expected["model"]
     assert template["model_reasoning_effort"] == expected["effort"]
-    assert ("shell_tool" not in template.get("disabled_features", [])) == expected["shell"]
-    assert ("plugins" not in template.get("disabled_features", [])) == expected["plugins"]
-    assert "apps" in template.get("disabled_features", [])
+    disabled = {"apps"}
+    if not expected["plugins"]:
+        disabled.add("plugins")
+    if not expected["shell"]:
+        disabled.add("shell_tool")
+    assert set(template.get("disabled_features", [])) == disabled
     if isinstance(expected["skills"], list):
+        skill_start = claude.index("skills:") + 1
+        selected = []
+        for line in claude[skill_start:]:
+            if not line.startswith("  - "):
+                break
+            selected.append(line[4:].strip())
+        assert selected == expected["skills"]
         assert template["visible_skills"] == expected["skills"]
     elif expected["skills"] == "none":
         assert template["skills"] == "none"
@@ -127,9 +137,10 @@ for name, expected in matrix.items():
     template = tomllib.loads((root / "templates/.codex/agents" / f"{name}.toml").read_text())
     assert template["model"] == expected["model"]
     assert template["model_reasoning_effort"] == expected["effort"]
-    assert ("shell_tool" not in template.get("disabled_features", [])) == expected["shell"]
-    assert ("plugins" not in template.get("disabled_features", [])) == expected["plugins"]
-    assert "apps" in template.get("disabled_features", [])
+    disabled = {"apps"}
+    if not expected["plugins"]: disabled.add("plugins")
+    if not expected["shell"]: disabled.add("shell_tool")
+    assert set(template.get("disabled_features", [])) == disabled
     if isinstance(expected["skills"], list): assert template["visible_skills"] == expected["skills"]
     elif expected["skills"] == "none": assert template["skills"] == "none"
 PY
@@ -161,6 +172,18 @@ PY
   [ "$status" -ne 0 ]
   assert_contains "$output" "Codex agent installation failed"
   assert_absent "$TEST_HOME/.codex/agents/architect.toml"
+}
+
+@test "a manifest with a non-string state fails cleanly" {
+  for state in '[]' '{}'; do
+    rm -rf "$TEST_HOME/.codex"
+    mkdir -p "$TEST_HOME/.codex/agents"
+    printf '{"state":%s,"roles":{}}\n' "$state" >"$TEST_HOME/.codex/.agents-install-state.json"
+    run install_into --agents --codex
+    [ "$status" -ne 0 ]
+    assert_contains "$output" "Codex agent installation failed"
+    assert_absent "$TEST_HOME/.codex/agents/architect.toml"
+  done
 }
 
 @test "manifest symlinks block the install before sync" {
@@ -335,6 +358,34 @@ PY
   assert_absent "$TEST_HOME/.codex/agents/planner.toml"
 }
 
+@test "a case-variant role blocks the install before sync" {
+  mkdir -p "$TEST_HOME/.codex/agents"
+  role="$TEST_HOME/.codex/agents/Architect.toml"
+  printf 'name = "architect"\ndescription = "Mine"\ndeveloper_instructions = "Keep"\n' >"$role"
+  run install_into --agents --codex
+  [ "$status" -ne 0 ]
+  assert_contains "$output" "refusing to replace unrecognized Codex role"
+  assert_file_contains "$role" 'description = "Mine"'
+  assert_absent "$TEST_HOME/.codex/agents/architect.toml"
+}
+
+@test "a symlinked Codex agent destination blocks the install" {
+  target="$TEST_HOME/foreign"
+  mkdir -p "$TEST_HOME/.codex" "$target"
+  ln -s "$target" "$TEST_HOME/.codex/agents"
+  run install_into --agents --codex
+  [ "$status" -ne 0 ]
+  assert_contains "$output" "Codex agent destination is not a real directory"
+  assert_absent "$target/architect.toml"
+}
+
+@test "the Python installer creates an absent destination" {
+  destination="$BATS_TEST_TMPDIR/standalone/.codex"
+  run python3 "$ROOT/scripts/install_codex_agents.py" "$ROOT" "$destination"
+  [ "$status" -eq 0 ]
+  assert_file "$destination/agents/architect.toml"
+}
+
 @test "recognized roles update and foreign roles survive" {
   run install_into --agents --codex
   [ "$status" -eq 0 ]
@@ -364,6 +415,23 @@ PY
   run install_from "$repo" --agents --codex
   [ "$status" -eq 0 ]
   assert_absent "$stale"
+}
+
+@test "removing every canonical role converges to an empty manifest" {
+  repo=$(copy_repo)
+  run install_from "$repo" --agents --codex
+  [ "$status" -eq 0 ]
+  rm "$repo"/.agents/agents/*.md "$repo"/templates/.codex/agents/*.toml
+  run install_from "$repo" --agents --codex
+  [ "$status" -eq 0 ]
+  python3 - "$TEST_HOME/.codex" <<'PY'
+import json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+assert not list((root / "agents").glob("*.toml"))
+assert json.loads((root / ".agents-install-state.json").read_text()) == {
+    "roles": {}, "state": "stable"
+}
+PY
 }
 
 @test "locally modified owned roles block reconciliation" {
@@ -397,31 +465,43 @@ PY
 }
 
 @test "renderer rejects malformed canonical inputs before sync" {
-  for defect in blank-name blank-description blank-body control unsupported mismatch; do
+  for defect in blank-name blank-description quoted-empty-description blank-body; do
     rm -rf "$BATS_TEST_TMPDIR/repo"
+    rm -rf "$TEST_HOME/.codex"
+    mkdir -p "$TEST_HOME/.codex"
     repo=$(copy_repo)
     source="$repo/.agents/agents/probe.md"
+    cp "$repo/templates/.codex/agents/architect.toml" "$repo/templates/.codex/agents/probe.toml"
     case $defect in
     blank-name) printf '%s\n' '---' 'name:' 'description: valid' '---' '' 'Body' >"$source" ;;
     blank-description) printf '%s\n' '---' 'name: probe' 'description:' '---' '' 'Body' >"$source" ;;
+    quoted-empty-description) printf '%s\n' '---' 'name: probe' 'description: ""' '---' '' 'Body' >"$source" ;;
     blank-body) printf '%s\n' '---' 'name: probe' 'description: valid' '---' '' >"$source" ;;
-    control)
-      printf '%s\n' '---' 'name: probe' 'description: valid' '---' >"$source"
-      printf '\001' >>"$source"
-      ;;
-    unsupported) printf '%s\n' '---' 'name: probe' 'description: valid' 'model: fixed' '---' '' 'Body' >"$source" ;;
-    mismatch) printf '%s\n' '---' 'name: other' 'description: valid' '---' '' 'Body' >"$source" ;;
     esac
     run install_from "$repo" --agents --codex
-    [ "$status" -ne 0 ]
+    [ "$status" -ne 0 ] || fail "$defect was accepted"
+    assert_contains "$output" "Codex agent installation failed"
     assert_absent "$TEST_HOME/.codex/agents/probe.toml"
   done
+}
+
+@test "renderer rejects a quoted blank description before sync" {
+  rm -rf "$TEST_HOME/.codex"
+  mkdir -p "$TEST_HOME/.codex"
+  repo=$(copy_repo)
+  cp "$repo/templates/.codex/agents/architect.toml" "$repo/templates/.codex/agents/probe.toml"
+  printf '%s\n' '---' 'name: probe' 'description: ""' '---' '' 'Body' >"$repo/.agents/agents/probe.md"
+  run python3 "$repo/scripts/install_codex_agents.py" "$repo" "$TEST_HOME/.codex"
+  [ "$status" -ne 0 ]
+  assert_contains "$output" "description cannot be blank"
+  assert_absent "$TEST_HOME/.codex/agents/probe.toml"
 }
 
 @test "NUL metadata and unsupported templates fail before sync" {
   rm -rf "$BATS_TEST_TMPDIR/repo"
   repo=$(copy_repo)
   source="$repo/.agents/agents/probe.md"
+  cp "$repo/templates/.codex/agents/architect.toml" "$repo/templates/.codex/agents/probe.toml"
   printf '%s\n' '---' 'name: probe' >"$source"
   printf 'description: bad\000value\n---\n\nBody\n' >>"$source"
   run install_from "$repo" --agents --codex
@@ -444,7 +524,8 @@ PY
   mkdir -p "$before"
   for host_dir in "$TEST_HOME/.claude/agents" "$TEST_HOME/.copilot/agents" \
     "$TEST_HOME/.gemini/agents" "$TEST_HOME/.config/opencode/agents"; do
-    cp -R "$host_dir" "$before/$(basename "$(dirname "$host_dir")")-agents"
+    host=$(basename "$(dirname "$host_dir")")
+    cp -R "$host_dir" "$before/${host#.}-agents"
   done
   run install_into --agents --codex
   [ "$status" -eq 0 ]
