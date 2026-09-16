@@ -501,6 +501,19 @@ assert_prompt_safe() {
   done
 }
 
+# A TOML multi-line literal admits any bytes except its ''' delimiter, tab, and
+# newline; a control character or a stray carriage return is a parse error.
+assert_toml_literal_safe() {
+  guard_file=$1
+  guard_label=$2
+  if grep -qF -- "'''" "$guard_file"; then
+    die "refusing to inline $guard_label: contains '''"
+  fi
+  if LC_ALL=C grep -q "$(printf '[\001-\010\013\014\015\016-\037\177]')" "$guard_file"; then
+    die "refusing to inline $guard_label: contains a control character"
+  fi
+}
+
 # Prompt fragments are inlined into a TOML literal and must not contain '''.
 # An "agent: <name>" template key inlines that agent's body: Gemini's command
 # schema has no agent binding, and only the primary session holds invoke_agent.
@@ -593,14 +606,141 @@ cleanup_skipped_gemini_agents() {
   done
 }
 
+# Codex applies role features as disables only; removing the shell from the
+# delegating orchestrators is the one enforced tool narrowing the role
+# schema offers (Claude gives them no Bash either).
+codex_agent_features() {
+  fm=$1
+  shell_tool=$(
+    awk '
+      index($0, "features:") == 1 { inside = 1; next }
+      inside && /^[^ \t]/         { inside = 0 }
+      inside {
+        line = $0
+        sub(/^[ \t]+/, "", line)
+        if (index(line, "shell_tool:") == 1) {
+          sub(/^shell_tool:[[:space:]]*/, "", line)
+          print line
+          exit
+        }
+      }
+    ' "$fm"
+  )
+  case $shell_tool in
+  "") return 0 ;;
+  false) printf '[features]\nshell_tool = false\n' ;;
+  *) die "unsupported features.shell_tool value: $shell_tool" ;;
+  esac
+}
+
+# Codex has no per-role skill preload: skills.config entries can only disable.
+# A template allow-list therefore ships the complement of the installed skills
+# as disable rules, so the role's catalog shows exactly the allowed skills;
+# `none` drops the skills catalog block for agents Claude gives no skills at
+# all.
+codex_agent_skills() {
+  fm=$1
+  name=$2
+  skills_mode=$(frontmatter_value "$fm" skills)
+  case $skills_mode in
+  none)
+    printf '[skills]\ninclude_instructions = false\n'
+    return 0
+    ;;
+  "") ;;
+  *) die "unsupported skills value in codex template for $name: $skills_mode" ;;
+  esac
+
+  allow=$(mktemp) || die "mktemp failed"
+  awk '
+    index($0, "skills:") == 1  { inside = 1; next }
+    inside && /^[ \t]*- / { sub(/^[ \t]*-[ \t]*/, ""); print; next }
+    inside && NF          { exit }
+  ' "$fm" >"$allow"
+
+  if [ ! -s "$allow" ]; then
+    rm -f -- "$allow"
+    return 0
+  fi
+
+  while IFS= read -r allowed; do
+    [ -n "$allowed" ] || continue
+    [ -d "$REPO_ROOT/.agents/skills/$allowed" ] ||
+      die "codex template for $name allows unknown skill: $allowed"
+  done <"$allow"
+
+  printf '[skills.bundled]\nenabled = false\n'
+  for skill_dir in "$REPO_ROOT/.agents/skills/"*/; do
+    [ -d "$skill_dir" ] || continue
+    skill=$(basename -- "$skill_dir")
+    if grep -qxF -- "$skill" "$allow"; then
+      continue
+    fi
+    printf '[[skills.config]]\nname = "%s"\nenabled = false\n' "$skill"
+  done
+  rm -f -- "$allow"
+}
+
+# A Codex role file is a whole TOML document, so frontmatter_overlay still
+# merges the template over the canonical frontmatter but the result feeds a
+# TOML render: the canonical body becomes the developer_instructions literal
+# and the template contributes role settings, in the shape of sync_view_toml.
+sync_codex_agent() {
+  src=$1
+  dst=$2
+  name=$(basename -- "$src" .md)
+  tmpl="$REPO_ROOT/templates/.codex/agents/$name.yaml"
+
+  merged=$(mktemp) || die "mktemp failed"
+  fm=$(mktemp) || die "mktemp failed"
+  body=$(mktemp) || die "mktemp failed"
+  frontmatter_overlay "$src" "$tmpl" "$merged"
+  split_frontmatter "$merged" "$fm" "$body"
+  [ -s "$body" ] || die "agent body missing: $src"
+
+  assert_toml_literal_safe "$body" "$src"
+
+  role_name=$(frontmatter_value "$fm" name)
+  [ -n "$role_name" ] || role_name=$name
+  description=$(frontmatter_value "$fm" description)
+  description_escaped=$(printf '%s' "$description" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
+  tmp=$(mktemp) || die "mktemp failed"
+  {
+    printf 'name = "%s"\n' "$role_name"
+    printf 'description = "%s"\n' "$description_escaped"
+    effort=$(frontmatter_value "$fm" model_reasoning_effort)
+    if [ -n "$effort" ]; then
+      printf 'model_reasoning_effort = "%s"\n' "$effort"
+    fi
+    printf "developer_instructions = '''\n"
+    cat -- "$body"
+    # Without a trailing newline the last body bytes would glue onto the
+    # closing delimiter; a body ending in a quote must not touch it.
+    if [ -n "$(tail -c 1 -- "$body")" ]; then
+      printf '\n'
+    fi
+    printf "'''\n"
+    codex_agent_features "$fm"
+    codex_agent_skills "$fm" "$name"
+  } >"$tmp"
+
+  SYNC_TO_LABEL=".codex/agents/$name"
+  sync_to "$tmp" "$dst"
+  unset SYNC_TO_LABEL
+
+  rm -f -- "$merged" "$fm" "$body" "$tmp"
+}
+
 sync_agents() {
-  any_host_active claude copilot gemini opencode || return 0
+  any_host_active claude codex copilot gemini opencode || return 0
   progress_section "Agent definitions"
 
   src_dir="$REPO_ROOT/.agents/agents"
   [ -d "$src_dir" ] || die "source missing: $src_dir"
 
   for_host claude ensure_subdir "$HOME/.claude" agents
+  for_host codex ensure_subdir "$HOME/.codex" agents
   for_host copilot ensure_subdir "$HOME/.copilot" agents
   for_host gemini ensure_subdir "$HOME/.gemini" agents
   for_host opencode ensure_subdir "$HOME/.config/opencode" agents
@@ -610,6 +750,7 @@ sync_agents() {
     name=$(basename -- "$f" .md)
 
     for_host claude sync_view ".claude/agents" "$f" "$HOME/.claude/agents/$name.md"
+    for_host codex sync_codex_agent "$f" "$HOME/.codex/agents/$name.toml"
     for_host copilot sync_view ".copilot/agents" "$f" "$HOME/.copilot/agents/$name.agent.md"
     if ! gemini_agent_skipped "$name"; then
       for_host gemini sync_view ".gemini/agents" "$f" "$HOME/.gemini/agents/$name.md"

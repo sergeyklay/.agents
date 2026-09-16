@@ -1,0 +1,8 @@
+model_reasoning_effort: high
+# Claude preloads these three skills and gives this agent no Skill tool, so it
+# can see nothing else; Codex cannot preload, so the renderer ships the
+# complement of this list as skills.config disable rules.
+skills:
+  - review-arch
+  - review-spec
+  - verify-impl

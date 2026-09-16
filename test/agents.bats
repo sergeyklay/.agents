@@ -9,7 +9,7 @@ load 'test_helper'
   assert_file "$TEST_HOME/.copilot/agents/arch-review.agent.md"
   assert_file "$TEST_HOME/.gemini/agents/arch-review.md"
   assert_file "$TEST_HOME/.config/opencode/agents/arch-review.md"
-  assert_absent "$TEST_HOME/.codex/agents"
+  assert_file "$TEST_HOME/.codex/agents/arch-review.toml"
 }
 
 @test "Claude agent views list no dead Task tool names" {

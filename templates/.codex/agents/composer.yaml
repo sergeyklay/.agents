@@ -1,0 +1,7 @@
+model_reasoning_effort: high
+# Claude gives this orchestrator no Bash and no skills at all; Codex cannot
+# remove apply_patch or delegation, so the shell removal below is the one
+# enforced narrowing available.
+features:
+  shell_tool: false
+skills: none
