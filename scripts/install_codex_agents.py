@@ -5,8 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import stat
 import sys
 import tempfile
+import time
+from collections.abc import Generator
+from contextlib import contextmanager
+from fcntl import LOCK_EX, LOCK_UN, flock
 from importlib import import_module
 from pathlib import Path
 from typing import Literal, cast
@@ -114,9 +119,11 @@ def render(path: Path) -> bytes:
 def load_manifest(
     path: Path,
 ) -> tuple[Literal["stable", "pending"], dict[str, set[str]]]:
+    if path.is_symlink():
+        fail(f"ownership manifest is not a regular file: {path}")
     if not path.exists():
         return "stable", {}
-    if path.is_symlink() or not path.is_file():
+    if not path.is_file():
         fail(f"ownership manifest is not a regular file: {path}")
     manifest: object = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(manifest, dict):
@@ -190,7 +197,30 @@ def atomic_write(path: Path, content: bytes) -> None:
             os.unlink(temporary)
 
 
-def install(repository: Path, codex_home: Path) -> list[tuple[str, Path]]:
+@contextmanager
+def transaction_lock(path: Path) -> Generator[None, None, None]:
+    if path.is_symlink():
+        fail(f"transaction lock is not a regular file: {path}")
+    flags = os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW
+    descriptor = os.open(path, flags, 0o600)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            fail(f"transaction lock is not a regular file: {path}")
+        flock(descriptor, LOCK_EX)
+        yield
+    finally:
+        flock(descriptor, LOCK_UN)
+        os.close(descriptor)
+
+
+def fail_after(phase: str, index: int) -> None:
+    if os.environ.get("AGENTS_INSTALL_FAIL_PHASE") == phase and os.environ.get(
+        "AGENTS_INSTALL_FAIL_INDEX"
+    ) == str(index):
+        fail(f"injected failure during {phase}")
+
+
+def reconcile(repository: Path, codex_home: Path) -> None:
     templates = [
         path
         for path in (repository / "templates/.codex").glob("agents*")
@@ -206,7 +236,7 @@ def install(repository: Path, codex_home: Path) -> list[tuple[str, Path]]:
 
     destination = codex_home / "agents"
     manifest_path = codex_home / ".agents-install-state.json"
-    state, manifest = load_manifest(manifest_path)
+    _, manifest = load_manifest(manifest_path)
     stale: list[Path] = []
     for path in sorted(destination.glob("*.toml")):
         ownership_state = ownership(path, manifest.get(path.name))
@@ -217,41 +247,34 @@ def install(repository: Path, codex_home: Path) -> list[tuple[str, Path]]:
             stale.append(path)
         elif ownership_state == "modified":
             fail(f"refusing to remove modified Codex role: {path}")
-    missing_recorded = set(manifest) - {
-        path.name for path in destination.glob("*.toml")
-    }
-    if missing_recorded:
-        if state == "stable":
-            fail(
-                f"ownership manifest names a missing Codex role: {sorted(missing_recorded)[0]}"
-            )
-
     desired = {
         name: hashlib.sha256(content).hexdigest() for name, content in rendered.items()
     }
+    ready = os.environ.get("AGENTS_INSTALL_READY")
+    if ready:
+        Path(ready).touch()
+    release = os.environ.get("AGENTS_INSTALL_RELEASE")
+    while release and not Path(release).exists():
+        time.sleep(0.01)
     pending = {name: set(digests) for name, digests in manifest.items()}
     for name, digest in desired.items():
         pending.setdefault(name, set()).add(digest)
     atomic_write(manifest_path, manifest_content("pending", pending))
 
-    operations: list[tuple[str, Path]] = []
-    for name, content in rendered.items():
+    for index, (name, content) in enumerate(rendered.items(), 1):
         path = destination / name
         atomic_write(path, content)
-        operations.append(("updated", path))
-        if (
-            os.environ.get("AGENTS_INSTALL_FAIL_AFTER") == "role"
-            and name == "architect.toml"
-        ):
-            fail("injected failure after role update")
-    for path in stale:
+        fail_after("write", index)
+    for index, path in enumerate(stale, 1):
         path.unlink()
-        operations.append(("removed", path))
-        if os.environ.get("AGENTS_INSTALL_FAIL_AFTER") == "stale":
-            fail("injected failure after stale removal")
+        fail_after("remove", index)
     stable = {name: {digest} for name, digest in desired.items()}
     atomic_write(manifest_path, manifest_content("stable", stable))
-    return operations
+
+
+def install(repository: Path, codex_home: Path) -> None:
+    with transaction_lock(codex_home / ".agents-install.lock"):
+        reconcile(repository, codex_home)
 
 
 def main() -> int:
@@ -261,12 +284,10 @@ def main() -> int:
         )
         return 2
     try:
-        operations = install(Path(sys.argv[1]), Path(sys.argv[2]))
+        install(Path(sys.argv[1]), Path(sys.argv[2]))
     except (OSError, UnicodeError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
-    for action, path in operations:
-        print(f"{action}\t{path}")
     return 0
 
 

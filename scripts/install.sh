@@ -597,19 +597,11 @@ sync_codex_agents() {
   if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import tomllib' 2>/dev/null; then
     die "Python with tomllib is required to install Codex agents"
   fi
-  operations=$(mktemp) || die "mktemp failed"
   if ! python3 "$REPO_ROOT/scripts/install_codex_agents.py" \
-    "$REPO_ROOT" "$HOME/.codex" >"$operations"; then
-    rm -f -- "$operations"
+    "$REPO_ROOT" "$HOME/.codex"; then
     die "Codex agent installation failed"
   fi
-  while IFS="$(printf '\t')" read -r action path; do
-    case $action in
-    updated) progress_updated ".codex/agents/$(basename -- "$path" .toml)" "$path" ;;
-    removed) progress_removed "$path" 'removed stale owned role' ;;
-    esac
-  done <"$operations"
-  rm -f -- "$operations"
+  progress_updated '.codex/agents' "$HOME/.codex/agents"
 }
 
 sync_agents() {

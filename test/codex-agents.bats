@@ -56,11 +56,48 @@ PY
 }
 
 @test "a malformed manifest blocks the install before sync" {
+  mkdir -p "$TEST_HOME/.codex"
   printf '{broken\n' >"$TEST_HOME/.codex/.agents-install-state.json"
   run install_into --agents --codex
   [ "$status" -ne 0 ]
   assert_contains "$output" "Codex agent installation failed"
   assert_absent "$TEST_HOME/.codex/agents/architect.toml"
+}
+
+@test "manifest symlinks block the install before sync" {
+  for target in valid missing; do
+    rm -rf "$TEST_HOME/.codex"
+    mkdir -p "$TEST_HOME/.codex"
+    if [ "$target" = valid ]; then
+      printf '{"state":"stable","roles":{}}\n' >"$TEST_HOME/manifest.json"
+      link_target="$TEST_HOME/manifest.json"
+    else
+      link_target="$TEST_HOME/missing.json"
+    fi
+    ln -s "$link_target" "$TEST_HOME/.codex/.agents-install-state.json"
+    run install_into --agents --codex
+    [ "$status" -ne 0 ]
+    assert_contains "$output" "ownership manifest is not a regular file"
+    assert_absent "$TEST_HOME/.codex/agents/architect.toml"
+  done
+}
+
+@test "lock symlinks block the install before sync" {
+  for target in valid missing; do
+    rm -rf "$TEST_HOME/.codex"
+    mkdir -p "$TEST_HOME/.codex"
+    if [ "$target" = valid ]; then
+      touch "$TEST_HOME/lock"
+      link_target="$TEST_HOME/lock"
+    else
+      link_target="$TEST_HOME/missing-lock"
+    fi
+    ln -s "$link_target" "$TEST_HOME/.codex/.agents-install.lock"
+    run install_into --agents --codex
+    [ "$status" -ne 0 ]
+    assert_contains "$output" "transaction lock is not a regular file"
+    assert_absent "$TEST_HOME/.codex/agents/architect.toml"
+  done
 }
 
 @test "a tampered manifest digest blocks the install before sync" {
@@ -87,7 +124,7 @@ PY
   run install_from "$repo" --agents --codex
   [ "$status" -eq 0 ]
   printf '\nChanged upstream.\n' >>"$repo/.agents/agents/architect.md"
-  run isolated_home env AGENTS_INSTALL_FAIL_AFTER=role \
+  run isolated_home env AGENTS_INSTALL_FAIL_PHASE=write AGENTS_INSTALL_FAIL_INDEX=2 \
     sh "$repo/scripts/install.sh" --agents --codex
   [ "$status" -ne 0 ]
   assert_file_contains "$TEST_HOME/.codex/.agents-install-state.json" '"state": "pending"'
@@ -113,7 +150,7 @@ PY
   run install_from "$repo" --agents --codex
   [ "$status" -eq 0 ]
   rm "$repo/.agents/agents/architect.md"
-  run isolated_home env AGENTS_INSTALL_FAIL_AFTER=stale \
+  run isolated_home env AGENTS_INSTALL_FAIL_PHASE=remove AGENTS_INSTALL_FAIL_INDEX=1 \
     sh "$repo/scripts/install.sh" --agents --codex
   [ "$status" -ne 0 ]
   assert_absent "$TEST_HOME/.codex/agents/architect.toml"
@@ -122,6 +159,66 @@ PY
   [ "$status" -eq 0 ]
   assert_absent "$TEST_HOME/.codex/agents/architect.toml"
   assert_file_contains "$TEST_HOME/.codex/.agents-install-state.json" '"state": "stable"'
+}
+
+@test "missing managed roles reconcile from stable state" {
+  repo=$(copy_repo)
+  run install_from "$repo" --agents --codex
+  [ "$status" -eq 0 ]
+  rm "$TEST_HOME/.codex/agents/architect.toml"
+  run install_from "$repo" --agents --codex
+  [ "$status" -eq 0 ]
+  assert_file "$TEST_HOME/.codex/agents/architect.toml"
+
+  rm "$repo/.agents/agents/architect.md"
+  rm "$TEST_HOME/.codex/agents/architect.toml"
+  run install_from "$repo" --agents --codex
+  [ "$status" -eq 0 ]
+  assert_absent "$TEST_HOME/.codex/agents/architect.toml"
+  assert_not_contains "$(<"$TEST_HOME/.codex/.agents-install-state.json")" 'architect.toml'
+}
+
+@test "concurrent installs serialize reconciliation" {
+  repo=$(copy_repo)
+  ready="$BATS_TEST_TMPDIR/ready"
+  release="$BATS_TEST_TMPDIR/release"
+  first_out="$BATS_TEST_TMPDIR/first.out"
+  isolated_home env AGENTS_INSTALL_READY="$ready" \
+    AGENTS_INSTALL_RELEASE="$release" sh "$repo/scripts/install.sh" \
+    --agents --codex >"$first_out" 2>&1 &
+  first_pid=$!
+  while [ ! -e "$ready" ]; do sleep 0.01; done
+  printf '\nChanged upstream.\n' >>"$repo/.agents/agents/architect.md"
+  second_out="$BATS_TEST_TMPDIR/second.out"
+  install_from "$repo" --agents --codex >"$second_out" 2>&1 &
+  second_pid=$!
+  sleep 0.05
+  assert_not_contains "$(<"$second_out")" "Installation complete"
+  touch "$release"
+  wait "$first_pid"
+  wait "$second_pid"
+  assert_file_contains "$TEST_HOME/.codex/agents/architect.toml" 'Changed upstream.'
+  python3 - "$TEST_HOME/.codex" <<'PY'
+import hashlib, json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+manifest = json.loads((root / ".agents-install-state.json").read_text())
+assert manifest["state"] == "stable"
+for name, digests in manifest["roles"].items():
+    assert digests == [hashlib.sha256((root / "agents" / name).read_bytes()).hexdigest()]
+PY
+}
+
+@test "a missing Python runtime reports the requirement" {
+  bin="$BATS_TEST_TMPDIR/bin"
+  mkdir -p "$bin"
+  for command in awk basename cat cp dirname grep head mkdir mktemp mv pwd readlink rm rsync sed tail; do
+    path=$(command -v "$command")
+    [ -n "$path" ] && ln -s "$path" "$bin/$command"
+  done
+  run env PATH="$bin" HOME="$TEST_HOME" NO_COLOR=1 TERM=xterm \
+    /bin/sh "$INSTALLER" --agents --codex
+  [ "$status" -ne 0 ]
+  assert_contains "$output" "Python with tomllib is required to install Codex agents"
 }
 
 @test "an unknown same-name role blocks the install before sync" {
@@ -165,7 +262,6 @@ PY
   run install_from "$repo" --agents --codex
   [ "$status" -eq 0 ]
   assert_absent "$stale"
-  assert_contains "$output" "removed stale owned role"
 }
 
 @test "locally modified owned roles block reconciliation" {
@@ -229,6 +325,7 @@ PY
   assert_absent "$TEST_HOME/.codex/agents/probe.toml"
 
   repo=$(copy_repo)
+  mkdir -p "$repo/templates/.codex"
   printf 'model: fixed\n' >"$repo/templates/.codex/agents.yaml"
   run install_from "$repo" --agents --codex
   [ "$status" -ne 0 ]
