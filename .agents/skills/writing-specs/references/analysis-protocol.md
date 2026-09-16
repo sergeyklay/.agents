@@ -182,6 +182,7 @@ Verify the feature does not depend on work that has not been done yet.
 1. Does the design assume a component, schema, interface, library, or capability that the current codebase does not have?
    - Identify the assumed prerequisite by name.
    - Verify whether the prerequisite is documented as planned (in roadmap, milestone tracker, PRD, or architecture document).
+   - For a prerequisite the codebase does have, verify whether any non-test code calls it. Code that only tests exercise is not a proven foundation.
 2. Does the project organize work in milestones, phases, releases, or epics?
    - Identify which milestone or phase this feature belongs to.
    - Verify all prerequisite milestones are complete. Look for completion markers in the tracker, in the project's roadmap document, or in ADRs.
@@ -194,6 +195,7 @@ Verify the feature does not depend on work that has not been done yet.
 - All prerequisites complete and feature scoped to a single implementation unit: `GO`.
 - Prerequisite missing and not planned: `STOP`. Surface the gap. Do not design features that depend on unbuilt foundations.
 - Prerequisite missing but planned: `FLAG` the dependency and state which milestone or ticket must complete first.
+- Prerequisite present but exercised only by tests: `FLAG`. Name it, and state that this design is its first non-test caller. Such code has never met production's concurrency, lifetime, or failure conditions, so the spec states which of those the new caller introduces and how the design holds under them.
 - Feature exceeds scope of a single unit: `FLAG` and propose decomposition.
 
 If the project does not organize work in milestones or phases, skip the milestone sub-question and answer 1 and 3 only.
