@@ -501,18 +501,6 @@ assert_prompt_safe() {
   done
 }
 
-# A TOML multi-line literal cannot contain its delimiter or non-tab controls.
-assert_toml_literal_safe() {
-  guard_file=$1
-  guard_label=$2
-  if grep -qF -- "'''" "$guard_file"; then
-    die "refusing to inline $guard_label: contains '''"
-  fi
-  if LC_ALL=C grep -q "$(printf '[\001-\010\013\014\015\016-\037\177]')" "$guard_file"; then
-    die "refusing to inline $guard_label: contains a control character"
-  fi
-}
-
 # Prompt fragments are inlined into a TOML literal and must not contain '''.
 # An "agent: <name>" template key inlines that agent's body: Gemini's command
 # schema has no agent binding, and only the primary session holds invoke_agent.
@@ -605,47 +593,23 @@ cleanup_skipped_gemini_agents() {
   done
 }
 
-sync_codex_agent() {
-  src=$1
-  dst=$2
-  name=$(basename -- "$src" .md)
-  tmpl="$REPO_ROOT/templates/.codex/agents/$name.yaml"
-
-  merged=$(mktemp) || die "mktemp failed"
-  fm=$(mktemp) || die "mktemp failed"
-  body=$(mktemp) || die "mktemp failed"
-  frontmatter_overlay "$src" "$tmpl" "$merged"
-  split_frontmatter "$merged" "$fm" "$body"
-  [ -s "$body" ] || die "agent body missing: $src"
-
-  assert_toml_literal_safe "$body" "$src"
-
-  role_name=$(frontmatter_value "$fm" name)
-  [ -n "$role_name" ] || role_name=$name
-  description=$(frontmatter_value "$fm" description)
-  description_escaped=$(printf '%s' "$description" | sed 's/\\/\\\\/g; s/"/\\"/g')
-
-  tmp=$(mktemp) || die "mktemp failed"
-  {
-    printf 'name = "%s"\n' "$role_name"
-    printf 'description = "%s"\n' "$description_escaped"
-    effort=$(frontmatter_value "$fm" model_reasoning_effort)
-    if [ -n "$effort" ]; then
-      printf 'model_reasoning_effort = "%s"\n' "$effort"
-    fi
-    printf "developer_instructions = '''\n"
-    cat -- "$body"
-    if [ -n "$(tail -c 1 -- "$body")" ]; then
-      printf '\n'
-    fi
-    printf "'''\n"
-  } >"$tmp"
-
-  SYNC_TO_LABEL=".codex/agents/$name"
-  sync_to "$tmp" "$dst"
-  unset SYNC_TO_LABEL
-
-  rm -f -- "$merged" "$fm" "$body" "$tmp"
+sync_codex_agents() {
+  if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import tomllib' 2>/dev/null; then
+    die "Python with tomllib is required to install Codex agents"
+  fi
+  operations=$(mktemp) || die "mktemp failed"
+  if ! python3 "$REPO_ROOT/scripts/install_codex_agents.py" \
+    "$REPO_ROOT" "$HOME/.codex/agents" >"$operations"; then
+    rm -f -- "$operations"
+    die "Codex agent installation failed"
+  fi
+  while IFS="$(printf '\t')" read -r action path; do
+    case $action in
+    updated) progress_updated ".codex/agents/$(basename -- "$path" .toml)" "$path" ;;
+    removed) progress_removed "$path" 'removed stale owned role' ;;
+    esac
+  done <"$operations"
+  rm -f -- "$operations"
 }
 
 sync_agents() {
@@ -661,12 +625,13 @@ sync_agents() {
   for_host gemini ensure_subdir "$HOME/.gemini" agents
   for_host opencode ensure_subdir "$HOME/.config/opencode" agents
 
+  for_host codex sync_codex_agents
+
   for f in "$src_dir/"*.md; do
     [ -f "$f" ] || continue
     name=$(basename -- "$f" .md)
 
     for_host claude sync_view ".claude/agents" "$f" "$HOME/.claude/agents/$name.md"
-    for_host codex sync_codex_agent "$f" "$HOME/.codex/agents/$name.toml"
     for_host copilot sync_view ".copilot/agents" "$f" "$HOME/.copilot/agents/$name.agent.md"
     if ! gemini_agent_skipped "$name"; then
       for_host gemini sync_view ".gemini/agents" "$f" "$HOME/.gemini/agents/$name.md"

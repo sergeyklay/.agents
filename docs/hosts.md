@@ -6,7 +6,7 @@ What the installer writes, where each host reads it, and the quirks that follow.
 
 Clone the repo, then either symlink (or copy) what you need into the directory your agent reads from, or run `scripts/install.sh` to mirror the whole set into the host directories under `$HOME`.
 
-Merging repository settings into an existing Codex `config.toml` uses only the Python 3.11+ standard library. A clean Codex settings install does not require Python.
+Codex agent installation and merging repository settings into an existing Codex `config.toml` use only the Python standard library and require `tomllib`. A clean Codex settings install does not require Python.
 
 Asset flags such as `--agents` and `--skills` combine with host filters such as `--claude` and `--opencode`: `scripts/install.sh --agents --opencode` installs only opencode agents, while `scripts/install.sh --claude` installs every supported asset type for Claude Code. Multiple host filters can be combined, and omitting them preserves the default of targeting every registered host. Pass `--help` for the full flag list; each host is skipped unless its directory already exists.
 
@@ -30,9 +30,9 @@ Copilot CLI reads personal assets only from `~/.copilot/skills/`, so `--commands
 
 ## Agents on Codex
 
-`--agents` installs personal Codex agents as standalone TOML files under `~/.codex/agents/`. Each file takes its name, description, and developer instructions from the corresponding canonical `.agents/agents/*.md` file. The small YAML files under `templates/.codex/agents/` supply only Codex-specific reasoning effort before the installer renders the native role file.
+`--agents` installs personal Codex agents as standalone TOML files under `~/.codex/agents/`. Each file takes its name, description, and developer instructions from the corresponding canonical `.agents/agents/*.md` file. The roles inherit the active model, reasoning effort, permissions, sandbox, tools, MCP servers, and skills.
 
-The roles inherit the active Codex model, permissions, sandbox, tools, MCP servers, and skills. Set those in Codex configuration when the whole session needs them; a role file is not a security boundary, and live runtime permission choices can override role defaults. The installer updates only the role files it owns and leaves other files in the agents directory untouched.
+Each generated file carries an ownership digest. The installer updates files whose payload still matches that digest and removes such files when their canonical source disappears. It preserves unrelated files and refuses to replace a same-name file or remove a locally modified owned file. A role file is not a security boundary; set model and access policy in Codex configuration when the whole session needs them.
 
 ## Rules on OpenCode
 
