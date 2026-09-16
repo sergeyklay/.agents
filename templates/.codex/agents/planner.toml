@@ -1,4 +1,4 @@
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 disabled_features = ["apps", "plugins"]
-allowed_skills = ["writing-plans"]
+visible_skills = ["writing-plans"]

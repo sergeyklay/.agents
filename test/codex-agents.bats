@@ -24,11 +24,11 @@ assert role["developer_instructions"] == "".join(lines[closing + 1:])
 assert role["model"] == template["model"]
 assert role["model_reasoning_effort"] == template["model_reasoning_effort"]
 assert role.get("features", {}) == {name: False for name in template.get("disabled_features", [])}
-if "allowed_skills" in template:
+if "visible_skills" in template:
     installed = {path.parent.name for path in (root / ".agents/skills").glob("*/SKILL.md")}
     disabled = {item["name"] for item in role["skills"]["config"]}
     assert role["skills"]["bundled"]["enabled"] is False
-    assert disabled == installed - set(template["allowed_skills"])
+    assert disabled == installed - set(template["visible_skills"])
 elif template.get("skills") == "none":
     assert role["skills"] == {"include_instructions": False}
 else:
@@ -83,13 +83,15 @@ for name, expected in matrix.items():
     assert template["model"] == expected["model"]
     assert template["model_reasoning_effort"] == expected["effort"]
     assert ("shell_tool" not in template.get("disabled_features", [])) == expected["shell"]
+    assert ("plugins" not in template.get("disabled_features", [])) == expected["plugins"]
+    assert "apps" in template.get("disabled_features", [])
     if isinstance(expected["skills"], list):
-        assert template["allowed_skills"] == expected["skills"]
+        assert template["visible_skills"] == expected["skills"]
     elif expected["skills"] == "none":
         assert template["skills"] == "none"
         assert "Skill" not in tools
     else:
-        assert "allowed_skills" not in template and "skills" not in template
+        assert "visible_skills" not in template and "skills" not in template
         assert "Skill" in tools
 PY
 }
@@ -97,14 +99,18 @@ PY
 @test "parity checks detect dropped model effort skill and access controls" {
   rm -rf "$BATS_TEST_TMPDIR/repo"
   repo=$(copy_repo)
-  for mutation in model effort skill access; do
+  for mutation in model effort skill shell plugin-on plugin-off apps catalog; do
     rm -rf "$BATS_TEST_TMPDIR/mutated"
     cp -R "$repo" "$BATS_TEST_TMPDIR/mutated"
     case $mutation in
     model) sed -i.bak '/^model = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/architect.toml" ;;
     effort) sed -i.bak '/^model_reasoning_effort = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/architect.toml" ;;
-    skill) sed -i.bak '/^allowed_skills = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/planner.toml" ;;
-    access) sed -i.bak 's/, "shell_tool"//' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/composer.toml" ;;
+    skill) sed -i.bak '/^visible_skills = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/planner.toml" ;;
+    shell) sed -i.bak 's/\["apps", "plugins"\]/["apps", "plugins", "shell_tool"]/' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/composer.toml" ;;
+    plugin-on) sed -i.bak 's/\["apps"\]/["apps", "plugins"]/' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/go-coder.toml" ;;
+    plugin-off) sed -i.bak 's/\["apps", "plugins"\]/["apps"]/' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/planner.toml" ;;
+    apps) sed -i.bak 's/\["apps"\]/[]/' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/go-coder.toml" ;;
+    catalog) sed -i.bak '/^skills = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/composer.toml" ;;
     esac
     run python3 - "$BATS_TEST_TMPDIR/mutated" "$ROOT/test/codex-agent-parity.json" <<'PY'
 import json, pathlib, sys, tomllib
@@ -115,10 +121,30 @@ for name, expected in matrix.items():
     assert template["model"] == expected["model"]
     assert template["model_reasoning_effort"] == expected["effort"]
     assert ("shell_tool" not in template.get("disabled_features", [])) == expected["shell"]
-    if isinstance(expected["skills"], list): assert template["allowed_skills"] == expected["skills"]
+    assert ("plugins" not in template.get("disabled_features", [])) == expected["plugins"]
+    assert "apps" in template.get("disabled_features", [])
+    if isinstance(expected["skills"], list): assert template["visible_skills"] == expected["skills"]
+    elif expected["skills"] == "none": assert template["skills"] == "none"
 PY
     [ "$status" -ne 0 ]
   done
+}
+
+@test "visible skills are best-effort repository filtering" {
+  run install_into --agents --codex
+  [ "$status" -eq 0 ]
+  python3 - "$TEST_HOME/.codex/agents" <<'PY'
+import pathlib, sys, tomllib
+roles = pathlib.Path(sys.argv[1])
+for name, visible in {
+    "arch-review": {"review-arch", "review-spec", "verify-impl"},
+    "planner": {"writing-plans"},
+}.items():
+    role = tomllib.loads((roles / f"{name}.toml").read_text())
+    disabled = {entry["name"] for entry in role["skills"]["config"]}
+    assert not visible & disabled
+    assert "future-user-skill" not in disabled
+PY
 }
 
 @test "a malformed manifest blocks the install before sync" {

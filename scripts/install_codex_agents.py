@@ -18,11 +18,11 @@ from typing import Literal, cast
 
 SUPPORTED_FIELDS = {"name", "description"}
 SUPPORTED_TEMPLATE_FIELDS = {
-    "allowed_skills",
     "disabled_features",
     "model",
     "model_reasoning_effort",
     "skills",
+    "visible_skills",
 }
 SUPPORTED_FEATURES = {"apps", "plugins", "shell_tool"}
 SUPPORTED_EFFORTS = {"high", "max", "xhigh"}
@@ -125,16 +125,16 @@ def load_template(path: Path, skill_names: set[str]) -> dict[str, object]:
     for value in cast(list[object], features):
         if not isinstance(value, str) or value not in SUPPORTED_FEATURES:
             fail(f"{path}: disabled_features contains an unsupported value")
-    allowed: object = template.get("allowed_skills")
+    visible: object = template.get("visible_skills")
     skills: object = template.get("skills")
-    if allowed is not None and skills is not None:
-        fail(f"{path}: allowed_skills and skills are mutually exclusive")
-    if allowed is not None:
-        if not isinstance(allowed, list) or not allowed:
-            fail(f"{path}: allowed_skills contains an unsupported value")
-        for value in cast(list[object], allowed):
+    if visible is not None and skills is not None:
+        fail(f"{path}: visible_skills and skills are mutually exclusive")
+    if visible is not None:
+        if not isinstance(visible, list) or not visible:
+            fail(f"{path}: visible_skills contains an unsupported value")
+        for value in cast(list[object], visible):
             if not isinstance(value, str) or value not in skill_names:
-                fail(f"{path}: allowed_skills contains an unsupported value")
+                fail(f"{path}: visible_skills contains an unsupported value")
     if skills is not None and skills != "none":
         fail(f"{path}: skills must be none")
     return template
@@ -153,10 +153,10 @@ def render(path: Path, template: dict[str, object], skill_names: set[str]) -> by
     if features:
         lines.append("\n[features]\n")
         lines.extend(f"{feature} = false\n" for feature in features)
-    allowed = cast(list[str] | None, template.get("allowed_skills"))
-    if allowed is not None:
+    visible = cast(list[str] | None, template.get("visible_skills"))
+    if visible is not None:
         lines.append("\n[skills.bundled]\nenabled = false\n")
-        for skill in sorted(skill_names - set(allowed)):
+        for skill in sorted(skill_names - set(visible)):
             lines.append(
                 f"\n[[skills.config]]\nname = {json.dumps(skill)}\nenabled = false\n"
             )

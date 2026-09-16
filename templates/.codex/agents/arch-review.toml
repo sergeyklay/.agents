@@ -1,4 +1,4 @@
 model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
-disabled_features = ["apps", "plugins", "shell_tool"]
-allowed_skills = ["review-arch", "review-spec", "verify-impl"]
+disabled_features = ["apps", "plugins"]
+visible_skills = ["review-arch", "review-spec", "verify-impl"]
