@@ -1,5 +1,8 @@
 model_reasoning_effort: high
 # Claude preloads writing-plans and gives this agent no Skill tool; the
-# renderer narrows the Codex catalog to exactly this list.
+# renderer narrows the Codex catalog to exactly this list, and Claude's no
+# plugin surface means plugins go too.
+features:
+  plugins: false
 skills:
   - writing-plans

@@ -1,9 +1,11 @@
 model_reasoning_effort: high
 # Claude preloads these three skills and gives this agent no Skill tool, so it
 # can see nothing else; the renderer ships the complement of this list as
-# skills.config disable rules. Claude also grants no Bash, so the shell goes.
+# skills.config disable rules. Claude also grants no Bash and no plugin
+# surface, so the shell and plugins go.
 features:
   shell_tool: false
+  plugins: false
 skills:
   - review-arch
   - review-spec

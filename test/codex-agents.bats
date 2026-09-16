@@ -37,43 +37,14 @@ for line in lines[1:i]:
                 value = value[1:-1]
             frontmatter[key] = value
 
-# Parsed separately for clarity: the codex template is three flat constructs.
-def parse_codex_template(path):
-    text = path.read_text().splitlines()
-    effort = None
-    skills = None
-    features = {}
-    j = 0
-    while j < len(text):
-        line = text[j]
+# The Codex template contributes one comparable setting: its effort pin. The
+# skills and features blocks are checked through the rendered file, whose
+# expectations come from the Claude reference alone.
+def codex_template_effort(path):
+    for line in path.read_text().splitlines():
         if line.startswith("model_reasoning_effort:"):
-            effort = line.split(":", 1)[1].strip()
-        elif line.startswith("skills:"):
-            inline = line.split(":", 1)[1].strip()
-            if inline:
-                skills = inline
-            else:
-                listed = []
-                j += 1
-                while j < len(text) and (
-                    text[j].startswith("  - ") or not text[j].strip()
-                ):
-                    if text[j].startswith("  - "):
-                        listed.append(text[j][4:].strip())
-                    j += 1
-                skills = listed
-                j -= 1
-        elif line.startswith("features:"):
-            j += 1
-            while j < len(text) and (text[j].startswith("  ") or not text[j].strip()):
-                entry = text[j].strip()
-                if ":" in entry:
-                    key, value = entry.split(":", 1)
-                    features[key.strip()] = value.strip()
-                j += 1
-            j -= 1
-        j += 1
-    return effort, skills, features
+            return line.split(":", 1)[1].strip()
+    return None
 
 # The Claude template is the behavioral reference: its tools and effort
 # decide what the Codex role must pin.
@@ -112,7 +83,7 @@ name = src_path.stem
 claude_tools, claude_skills, claude_effort = parse_claude_template(
     root / "templates/.claude/agents" / f"{name}.yaml"
 )
-effort, tmpl_skills, tmpl_features = parse_codex_template(tmpl_path)
+effort = codex_template_effort(tmpl_path)
 
 with open(role_path, "rb") as f:
     doc = tomllib.load(f)
@@ -161,14 +132,16 @@ for inert in (
     assert inert not in doc, f"{role_path}: inert key {inert} promises an unenforced setting"
 
 # Claude grants no Bash exactly to the agents whose Codex role must drop the
-# shell; codex cannot split search from the shell, so those roles lose
+# shell, and grants no plugin-like surface to the agents whose Codex catalog it
+# enumerates; codex cannot split search from the shell, so those roles lose
 # codex-side search too - narrower than Claude, never wider.
-if "Bash" not in claude_tools:
-    assert tmpl_features.get("shell_tool") == "false", (
-        f"{role_path}: Claude grants no Bash but the codex template keeps the shell"
-    )
-    assert doc.get("features", {}).get("shell_tool") is False, (
-        f"{role_path}: the role file does not disable the shell"
+if "Skill" not in claude_tools:
+    expected_features = {"plugins": False}
+    if "Bash" not in claude_tools:
+        expected_features["shell_tool"] = False
+    assert doc.get("features", {}) == expected_features, (
+        f"{role_path}: features {doc.get('features')} != the Claude-derived"
+        f" disables {expected_features}"
     )
 else:
     assert "features" not in doc, f"{role_path}: unexpected features block"

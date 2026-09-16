@@ -606,31 +606,37 @@ cleanup_skipped_gemini_agents() {
   done
 }
 
-# Codex applies role features as disables only; removing the shell from the
-# delegating orchestrators is the one enforced tool narrowing the role
-# schema offers (Claude gives them no Bash either).
+# Codex applies role features as disables only: removing the shell from the
+# delegating orchestrators and the plugin surface from every catalog-restricted
+# role are the enforced narrowings the schema offers (Claude grants neither).
 codex_agent_features() {
   fm=$1
-  shell_tool=$(
-    awk '
-      index($0, "features:") == 1 { inside = 1; next }
-      inside && /^[^ \t]/         { inside = 0 }
-      inside {
-        line = $0
-        sub(/^[ \t]+/, "", line)
-        if (index(line, "shell_tool:") == 1) {
-          sub(/^shell_tool:[[:space:]]*/, "", line)
-          print line
-          exit
-        }
-      }
-    ' "$fm"
-  )
-  case $shell_tool in
-  "") return 0 ;;
-  false) printf '[features]\nshell_tool = false\n' ;;
-  *) die "unsupported features.shell_tool value: $shell_tool" ;;
-  esac
+  features=$(mktemp) || die "mktemp failed"
+  awk '
+    index($0, "features:") == 1 { inside = 1; next }
+    inside && /^[^ \t]/         { inside = 0 }
+    inside && /:/               {
+      line = $0
+      sub(/^[ \t]+/, "", line)
+      sub(/:[[:space:]]*/, "=", line)
+      print line
+    }
+  ' "$fm" >"$features"
+
+  entries=$(mktemp) || die "mktemp failed"
+  while IFS='=' read -r feature_key feature_value; do
+    [ -n "$feature_key" ] || continue
+    case $feature_value in
+    false) printf '%s = false\n' "$feature_key" >>"$entries" ;;
+    *) die "unsupported features.$feature_key value: $feature_value" ;;
+    esac
+  done <"$features"
+
+  if [ -s "$entries" ]; then
+    printf '[features]\n'
+    cat -- "$entries"
+  fi
+  rm -f -- "$features" "$entries"
 }
 
 # Codex cannot preload skills: skills.config entries only disable, so an
