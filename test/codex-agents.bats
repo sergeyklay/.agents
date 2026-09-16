@@ -96,6 +96,13 @@ for name, expected in matrix.items():
 PY
 }
 
+@test "Codex settings templates contain no canonical prose or comments" {
+  for template in "$ROOT"/templates/.codex/agents/*.toml; do
+    run grep -E '^[[:space:]]*#|^(name|description|developer_instructions)[[:space:]]*=' "$template"
+    [ "$status" -ne 0 ]
+  done
+}
+
 @test "parity checks detect dropped model effort skill and access controls" {
   rm -rf "$BATS_TEST_TMPDIR/repo"
   repo=$(copy_repo)
