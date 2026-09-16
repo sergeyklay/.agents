@@ -8,3 +8,6 @@
 
 # Python syntax requires indentation with spaces or consistent tabs.
 *.py whitespace=trailing-space,space-before-tab
+
+# Bats heredocs embed space-indented source in shell files.
+*.bats whitespace=trailing-space,space-before-tab

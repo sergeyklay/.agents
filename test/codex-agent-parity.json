@@ -1,0 +1,12 @@
+{
+  "arch-review": {"claude_model":"opus","model":"gpt-5.6-sol","effort":"high","shell":false,"skills":["review-arch","review-spec","verify-impl"]},
+  "architect": {"claude_model":"opus","model":"gpt-5.6-sol","effort":"max","shell":true,"skills":"all"},
+  "composer": {"claude_model":"opus","model":"gpt-5.6-sol","effort":"high","shell":false,"skills":"none"},
+  "conductor": {"claude_model":"opus","model":"gpt-5.6-sol","effort":"high","shell":false,"skills":"none"},
+  "go-coder": {"claude_model":"sonnet","model":"gpt-5.6-terra","effort":"high","shell":true,"skills":"all"},
+  "go-tester": {"claude_model":"sonnet","model":"gpt-5.6-terra","effort":"high","shell":true,"skills":"all"},
+  "planner": {"claude_model":"sonnet","model":"gpt-5.6-terra","effort":"high","shell":true,"skills":["writing-plans"]},
+  "sleuth": {"claude_model":"opus","model":"gpt-5.6-sol","effort":"xhigh","shell":true,"skills":"all"},
+  "ts-coder": {"claude_model":"sonnet","model":"gpt-5.6-terra","effort":"high","shell":true,"skills":"all"},
+  "ts-tester": {"claude_model":"sonnet","model":"gpt-5.6-terra","effort":"high","shell":true,"skills":"all"}
+}

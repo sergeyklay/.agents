@@ -1,26 +1,38 @@
 load 'test_helper'
 
 assert_codex_role() {
-  python3 - "$1" "$2" <<'PY'
+  python3 - "$1" "$2" "$3" "$ROOT" <<'PY'
 import json
 import pathlib
 import sys
 import tomllib
 
-role_path, source_path = (pathlib.Path(value) for value in sys.argv[1:])
+role_path, source_path, template_path, root = (pathlib.Path(value) for value in sys.argv[1:])
 payload = role_path.read_bytes()
 assert not payload.startswith(b"#")
+role = tomllib.loads(payload.decode())
+template = tomllib.loads(template_path.read_text())
 lines = source_path.read_text().splitlines(keepends=True)
 closing = next(index for index, line in enumerate(lines[1:], 1) if line.rstrip("\n") == "---")
 frontmatter = {}
 for line in lines[1:closing]:
     key, value = line.split(":", 1)
     frontmatter[key] = json.loads(value.strip()) if value.strip().startswith('"') else value.strip()
-assert tomllib.loads(payload.decode()) == {
-    "name": frontmatter["name"],
-    "description": frontmatter["description"],
-    "developer_instructions": "".join(lines[closing + 1:]),
-}
+assert role["name"] == frontmatter["name"]
+assert role["description"] == frontmatter["description"]
+assert role["developer_instructions"] == "".join(lines[closing + 1:])
+assert role["model"] == template["model"]
+assert role["model_reasoning_effort"] == template["model_reasoning_effort"]
+assert role.get("features", {}) == {name: False for name in template.get("disabled_features", [])}
+if "allowed_skills" in template:
+    installed = {path.parent.name for path in (root / ".agents/skills").glob("*/SKILL.md")}
+    disabled = {item["name"] for item in role["skills"]["config"]}
+    assert role["skills"]["bundled"]["enabled"] is False
+    assert disabled == installed - set(template["allowed_skills"])
+elif template.get("skills") == "none":
+    assert role["skills"] == {"include_instructions": False}
+else:
+    assert "skills" not in role
 PY
 }
 
@@ -42,7 +54,8 @@ copy_repo() {
   assert_absent "$TEST_HOME/.codex/config.toml"
   for source in "$ROOT"/.agents/agents/*.md; do
     role="$TEST_HOME/.codex/agents/$(basename "$source" .md).toml"
-    assert_codex_role "$role" "$source"
+    name=$(basename "$source" .md)
+    assert_codex_role "$role" "$source" "$ROOT/templates/.codex/agents/$name.toml"
   done
   manifest="$TEST_HOME/.codex/.agents-install-state.json"
   assert_file "$manifest"
@@ -53,6 +66,59 @@ assert set(manifest) == {"state", "roles"}
 assert manifest["state"] == "stable"
 assert manifest["roles"]
 PY
+}
+
+@test "Codex settings independently match the Claude behavioral reference" {
+  python3 - "$ROOT" <<'PY'
+import json, pathlib, tomllib, sys
+root = pathlib.Path(sys.argv[1])
+matrix = json.loads((root / "test/codex-agent-parity.json").read_text())
+for name, expected in matrix.items():
+    claude = (root / "templates/.claude/agents" / f"{name}.yaml").read_text().splitlines()
+    scalar = {line.split(":", 1)[0]: line.split(":", 1)[1].strip() for line in claude if line and not line[0].isspace() and ":" in line}
+    tools = {line[4:].strip() for line in claude if line.startswith("  - ")}
+    template = tomllib.loads((root / "templates/.codex/agents" / f"{name}.toml").read_text())
+    assert scalar["model"] == expected["claude_model"]
+    assert scalar["effort"] == expected["effort"]
+    assert template["model"] == expected["model"]
+    assert template["model_reasoning_effort"] == expected["effort"]
+    assert ("shell_tool" not in template.get("disabled_features", [])) == expected["shell"]
+    if isinstance(expected["skills"], list):
+        assert template["allowed_skills"] == expected["skills"]
+    elif expected["skills"] == "none":
+        assert template["skills"] == "none"
+        assert "Skill" not in tools
+    else:
+        assert "allowed_skills" not in template and "skills" not in template
+        assert "Skill" in tools
+PY
+}
+
+@test "parity checks detect dropped model effort skill and access controls" {
+  rm -rf "$BATS_TEST_TMPDIR/repo"
+  repo=$(copy_repo)
+  for mutation in model effort skill access; do
+    rm -rf "$BATS_TEST_TMPDIR/mutated"
+    cp -R "$repo" "$BATS_TEST_TMPDIR/mutated"
+    case $mutation in
+    model) sed -i.bak '/^model = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/architect.toml" ;;
+    effort) sed -i.bak '/^model_reasoning_effort = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/architect.toml" ;;
+    skill) sed -i.bak '/^allowed_skills = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/planner.toml" ;;
+    access) sed -i.bak 's/, "shell_tool"//' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/composer.toml" ;;
+    esac
+    run python3 - "$BATS_TEST_TMPDIR/mutated" "$ROOT/test/codex-agent-parity.json" <<'PY'
+import json, pathlib, sys, tomllib
+root, matrix_path = map(pathlib.Path, sys.argv[1:])
+matrix = json.loads(matrix_path.read_text())
+for name, expected in matrix.items():
+    template = tomllib.loads((root / "templates/.codex/agents" / f"{name}.toml").read_text())
+    assert template["model"] == expected["model"]
+    assert template["model_reasoning_effort"] == expected["effort"]
+    assert ("shell_tool" not in template.get("disabled_features", [])) == expected["shell"]
+    if isinstance(expected["skills"], list): assert template["allowed_skills"] == expected["skills"]
+PY
+    [ "$status" -ne 0 ]
+  done
 }
 
 @test "a malformed manifest blocks the install before sync" {
@@ -150,6 +216,7 @@ PY
   run install_from "$repo" --agents --codex
   [ "$status" -eq 0 ]
   rm "$repo/.agents/agents/architect.md"
+  rm "$repo/templates/.codex/agents/architect.toml"
   run isolated_home env AGENTS_INSTALL_FAIL_PHASE=remove AGENTS_INSTALL_FAIL_INDEX=1 \
     sh "$repo/scripts/install.sh" --agents --codex
   [ "$status" -ne 0 ]
@@ -171,6 +238,7 @@ PY
   assert_file "$TEST_HOME/.codex/agents/architect.toml"
 
   rm "$repo/.agents/agents/architect.md"
+  rm "$repo/templates/.codex/agents/architect.toml"
   rm "$TEST_HOME/.codex/agents/architect.toml"
   run install_from "$repo" --agents --codex
   [ "$status" -eq 0 ]
@@ -259,6 +327,7 @@ PY
   stale="$TEST_HOME/.codex/agents/architect.toml"
   assert_file "$stale"
   rm "$repo/.agents/agents/architect.md"
+  rm "$repo/templates/.codex/agents/architect.toml"
   run install_from "$repo" --agents --codex
   [ "$status" -eq 0 ]
   assert_absent "$stale"
@@ -273,6 +342,7 @@ PY
   before=$(mktemp)
   cp "$role" "$before"
   rm "$repo/.agents/agents/architect.md"
+  rm "$repo/templates/.codex/agents/architect.toml"
   run install_from "$repo" --agents --codex
   [ "$status" -ne 0 ]
   assert_contains "$output" "refusing to remove modified Codex role"
@@ -282,6 +352,7 @@ PY
 @test "quoted and backslashed metadata renders valid TOML" {
   repo=$(copy_repo)
   source="$repo/.agents/agents/quoted.md"
+  cp "$repo/templates/.codex/agents/architect.toml" "$repo/templates/.codex/agents/quoted.toml"
   printf '%s\n' '---' 'name: quoted' 'description: "Quote: \"x\" and path C:\\tmp"' '---' '' "Use ''' and the path." >"$source"
   run install_from "$repo" --agents --codex
   [ "$status" -eq 0 ]
@@ -324,12 +395,12 @@ PY
   [ "$status" -ne 0 ]
   assert_absent "$TEST_HOME/.codex/agents/probe.toml"
 
+  rm -rf "$BATS_TEST_TMPDIR/repo"
   repo=$(copy_repo)
-  mkdir -p "$repo/templates/.codex"
-  printf 'model: fixed\n' >"$repo/templates/.codex/agents.yaml"
+  printf 'unknown = true\n' >>"$repo/templates/.codex/agents/architect.toml"
   run install_from "$repo" --agents --codex
   [ "$status" -ne 0 ]
-  assert_contains "$output" "unsupported Codex agent template"
+  assert_contains "$output" "unsupported template field"
   assert_absent "$TEST_HOME/.codex/agents/architect.toml"
 }
 

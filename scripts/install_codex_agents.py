@@ -17,6 +17,15 @@ from pathlib import Path
 from typing import Literal, cast
 
 SUPPORTED_FIELDS = {"name", "description"}
+SUPPORTED_TEMPLATE_FIELDS = {
+    "allowed_skills",
+    "disabled_features",
+    "model",
+    "model_reasoning_effort",
+    "skills",
+}
+SUPPORTED_FEATURES = {"apps", "plugins", "shell_tool"}
+SUPPORTED_EFFORTS = {"high", "max", "xhigh"}
 tomllib = import_module("tomllib")
 
 
@@ -98,20 +107,73 @@ def parse_agent(path: Path) -> tuple[str, str, str]:
     return name, description, body
 
 
-def render(path: Path) -> bytes:
+def load_template(path: Path, skill_names: set[str]) -> dict[str, object]:
+    if not path.is_file() or path.is_symlink():
+        fail(f"Codex agent template is not a regular file: {path}")
+    template = cast(dict[str, object], tomllib.loads(path.read_text(encoding="utf-8")))
+    unknown = set(template) - SUPPORTED_TEMPLATE_FIELDS
+    if unknown:
+        fail(f"{path}: unsupported template field: {sorted(unknown)[0]}")
+    for field in ("model", "model_reasoning_effort"):
+        if not isinstance(template.get(field), str) or not template[field]:
+            fail(f"{path}: {field} must be a non-empty string")
+    if template["model_reasoning_effort"] not in SUPPORTED_EFFORTS:
+        fail(f"{path}: unsupported model reasoning effort")
+    features: object = template.get("disabled_features", [])
+    if not isinstance(features, list):
+        fail(f"{path}: disabled_features contains an unsupported value")
+    for value in cast(list[object], features):
+        if not isinstance(value, str) or value not in SUPPORTED_FEATURES:
+            fail(f"{path}: disabled_features contains an unsupported value")
+    allowed: object = template.get("allowed_skills")
+    skills: object = template.get("skills")
+    if allowed is not None and skills is not None:
+        fail(f"{path}: allowed_skills and skills are mutually exclusive")
+    if allowed is not None:
+        if not isinstance(allowed, list) or not allowed:
+            fail(f"{path}: allowed_skills contains an unsupported value")
+        for value in cast(list[object], allowed):
+            if not isinstance(value, str) or value not in skill_names:
+                fail(f"{path}: allowed_skills contains an unsupported value")
+    if skills is not None and skills != "none":
+        fail(f"{path}: skills must be none")
+    return template
+
+
+def render(path: Path, template: dict[str, object], skill_names: set[str]) -> bytes:
     name, description, body = parse_agent(path)
-    payload = (
+    lines = [
         f"name = {json.dumps(name, ensure_ascii=False)}\n"
         f"description = {json.dumps(description, ensure_ascii=False)}\n"
+        f"model = {json.dumps(template['model'])}\n"
+        f"model_reasoning_effort = {json.dumps(template['model_reasoning_effort'])}\n"
         f"developer_instructions = {json.dumps(body, ensure_ascii=False)}\n"
-    ).encode()
+    ]
+    features = cast(list[str], template.get("disabled_features", []))
+    if features:
+        lines.append("\n[features]\n")
+        lines.extend(f"{feature} = false\n" for feature in features)
+    allowed = cast(list[str] | None, template.get("allowed_skills"))
+    if allowed is not None:
+        lines.append("\n[skills.bundled]\nenabled = false\n")
+        for skill in sorted(skill_names - set(allowed)):
+            lines.append(
+                f"\n[[skills.config]]\nname = {json.dumps(skill)}\nenabled = false\n"
+            )
+    elif template.get("skills") == "none":
+        lines.append("\n[skills]\ninclude_instructions = false\n")
+    payload = "".join(lines).encode()
     parsed = tomllib.loads(payload.decode())
-    expected = {
-        "name": name,
-        "description": description,
-        "developer_instructions": body,
-    }
-    if parsed != expected:
+    if any(
+        parsed.get(field) in (None, "")
+        for field in (
+            "name",
+            "description",
+            "model",
+            "model_reasoning_effort",
+            "developer_instructions",
+        )
+    ):
         fail(f"{path}: rendered role failed validation")
     return payload
 
@@ -221,16 +283,23 @@ def fail_after(phase: str, index: int) -> None:
 
 
 def reconcile(repository: Path, codex_home: Path) -> None:
-    templates = [
-        path
-        for path in (repository / "templates/.codex").glob("agents*")
-        if path.is_file() or (path.is_dir() and any(path.iterdir()))
-    ]
-    if templates:
-        fail(f"unsupported Codex agent template: {templates[0]}")
-
     sources = sorted((repository / ".agents/agents").glob("*.md"))
-    rendered = {f"{source.stem}.toml": render(source) for source in sources}
+    skill_names = {
+        path.parent.name for path in (repository / ".agents/skills").glob("*/SKILL.md")
+    }
+    template_dir = repository / "templates/.codex/agents"
+    source_names = {source.stem for source in sources}
+    template_names = {path.stem for path in template_dir.glob("*.toml")}
+    if source_names != template_names:
+        fail("Codex agent templates do not match canonical agents")
+    rendered = {
+        f"{source.stem}.toml": render(
+            source,
+            load_template(template_dir / f"{source.stem}.toml", skill_names),
+            skill_names,
+        )
+        for source in sources
+    }
     if not rendered:
         fail("no canonical agents found")
 
