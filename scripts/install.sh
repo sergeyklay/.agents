@@ -593,17 +593,31 @@ cleanup_skipped_gemini_agents() {
   done
 }
 
+sync_codex_agents() {
+  if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import tomllib' 2>/dev/null; then
+    die "Python with tomllib is required to install Codex agents"
+  fi
+  if ! python3 "$REPO_ROOT/scripts/install_codex_agents.py" \
+    "$REPO_ROOT" "$HOME/.codex"; then
+    die "Codex agent installation failed"
+  fi
+  progress_updated '.codex/agents' "$HOME/.codex/agents"
+}
+
 sync_agents() {
-  any_host_active claude copilot gemini opencode || return 0
+  any_host_active claude codex copilot gemini opencode || return 0
   progress_section "Agent definitions"
 
   src_dir="$REPO_ROOT/.agents/agents"
   [ -d "$src_dir" ] || die "source missing: $src_dir"
 
   for_host claude ensure_subdir "$HOME/.claude" agents
+  for_host codex ensure_subdir "$HOME/.codex" agents
   for_host copilot ensure_subdir "$HOME/.copilot" agents
   for_host gemini ensure_subdir "$HOME/.gemini" agents
   for_host opencode ensure_subdir "$HOME/.config/opencode" agents
+
+  for_host codex sync_codex_agents
 
   for f in "$src_dir/"*.md; do
     [ -f "$f" ] || continue
