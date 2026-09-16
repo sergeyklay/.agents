@@ -132,11 +132,11 @@ for inert in (
     assert inert not in doc, f"{role_path}: inert key {inert} promises an unenforced setting"
 
 # Claude grants no Bash exactly to the agents whose Codex role must drop the
-# shell, and grants no plugin-like surface to the agents whose Codex catalog it
-# enumerates; codex cannot split search from the shell, so those roles lose
-# codex-side search too - narrower than Claude, never wider.
+# shell, and grants no plugin- or apps-like surface to the agents whose Codex
+# catalog it enumerates; codex cannot split search from the shell, so those
+# roles lose codex-side search too - narrower than Claude, never wider.
 if "Skill" not in claude_tools:
-    expected_features = {"plugins": False}
+    expected_features = {"plugins": False, "apps": False}
     if "Bash" not in claude_tools:
         expected_features["shell_tool"] = False
     assert doc.get("features", {}) == expected_features, (

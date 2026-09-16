@@ -1,8 +1,9 @@
 model_reasoning_effort: high
-# Claude gives this orchestrator no Bash, no skills, and no plugin surface;
-# Codex cannot remove apply_patch or delegation, so these disables are the
-# enforced narrowing the role schema offers.
+# Claude gives this orchestrator no Bash, no skills, and no plugin or apps
+# surface; Codex cannot remove apply_patch or delegation, so these disables
+# are the enforced narrowing the role schema offers.
 features:
   shell_tool: false
   plugins: false
+  apps: false
 skills: none
