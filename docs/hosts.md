@@ -32,7 +32,7 @@ Copilot CLI reads personal assets only from `~/.copilot/skills/`, so `--commands
 
 `--agents` installs personal Codex agents as standalone TOML files under `~/.codex/agents/`. Each file takes its name, description, and developer instructions from the corresponding canonical `.agents/agents/*.md` file. The roles inherit the active model, reasoning effort, permissions, sandbox, tools, MCP servers, and skills.
 
-The installer records generated-file digests in `~/.codex/.agents-install-state.json`, outside Codex's role discovery directory. It updates files whose content still matches that state and removes such files when their canonical source disappears. It preserves unrelated files and refuses to replace a same-name file or remove a locally modified owned file. A role file is not a security boundary; set model and access policy in Codex configuration when the whole session needs them.
+The installer records generated-file digests in `~/.codex/.agents-install-state.json`, outside Codex's role discovery directory. Before changing roles it records both installed and intended digests, then converges the files and records the completed state. A later install can finish an interrupted update or stale-file removal. Content matching neither digest is treated as a local edit and blocks reconciliation. Unrelated files are preserved, and an unrecognized same-name file is never replaced. A role file is not a security boundary; set model and access policy in Codex configuration when the whole session needs them.
 
 ## Rules on OpenCode
 

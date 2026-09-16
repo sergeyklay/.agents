@@ -5,3 +5,6 @@
 *.sh diff=bash
 *.bash diff=bash
 *.bats diff=bash linguist-language=bash
+
+# Python syntax requires indentation with spaces or consistent tabs.
+*.py whitespace=trailing-space,space-before-tab

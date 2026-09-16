@@ -49,7 +49,8 @@ copy_repo() {
   python3 - "$manifest" <<'PY'
 import json, pathlib, sys
 manifest = json.loads(pathlib.Path(sys.argv[1]).read_text())
-assert set(manifest) == {"roles"}
+assert set(manifest) == {"state", "roles"}
+assert manifest["state"] == "stable"
 assert manifest["roles"]
 PY
 }
@@ -70,7 +71,7 @@ PY
 import json, pathlib, sys
 path = pathlib.Path(sys.argv[1])
 manifest = json.loads(path.read_text())
-manifest["roles"]["architect.toml"] = "0" * 64
+manifest["roles"]["architect.toml"] = ["0" * 64]
 path.write_text(json.dumps(manifest))
 PY
   before=$(mktemp)
@@ -79,6 +80,48 @@ PY
   [ "$status" -ne 0 ]
   assert_contains "$output" "refusing to replace modified Codex role"
   assert_same "$before" "$TEST_HOME/.codex/agents/architect.toml"
+}
+
+@test "an interrupted role update rolls forward safely" {
+  repo=$(copy_repo)
+  run install_from "$repo" --agents --codex
+  [ "$status" -eq 0 ]
+  printf '\nChanged upstream.\n' >>"$repo/.agents/agents/architect.md"
+  run isolated_home env AGENTS_INSTALL_FAIL_AFTER=role \
+    sh "$repo/scripts/install.sh" --agents --codex
+  [ "$status" -ne 0 ]
+  assert_file_contains "$TEST_HOME/.codex/.agents-install-state.json" '"state": "pending"'
+  interrupted="$TEST_HOME/.codex/agents/architect.toml"
+  assert_file_contains "$interrupted" 'Changed upstream.'
+  before_edit=$(mktemp)
+  cp "$interrupted" "$before_edit"
+  printf '\nlocal_edit = true\n' >>"$interrupted"
+  edited=$(mktemp)
+  cp "$interrupted" "$edited"
+  run install_from "$repo" --agents --codex
+  [ "$status" -ne 0 ]
+  assert_same "$edited" "$interrupted"
+  cp "$before_edit" "$interrupted"
+  run install_from "$repo" --agents --codex
+  [ "$status" -eq 0 ]
+  assert_file_contains "$TEST_HOME/.codex/agents/architect.toml" 'Changed upstream.'
+  assert_file_contains "$TEST_HOME/.codex/.agents-install-state.json" '"state": "stable"'
+}
+
+@test "an interrupted stale removal rolls forward safely" {
+  repo=$(copy_repo)
+  run install_from "$repo" --agents --codex
+  [ "$status" -eq 0 ]
+  rm "$repo/.agents/agents/architect.md"
+  run isolated_home env AGENTS_INSTALL_FAIL_AFTER=stale \
+    sh "$repo/scripts/install.sh" --agents --codex
+  [ "$status" -ne 0 ]
+  assert_absent "$TEST_HOME/.codex/agents/architect.toml"
+  assert_file_contains "$TEST_HOME/.codex/.agents-install-state.json" '"state": "pending"'
+  run install_from "$repo" --agents --codex
+  [ "$status" -eq 0 ]
+  assert_absent "$TEST_HOME/.codex/agents/architect.toml"
+  assert_file_contains "$TEST_HOME/.codex/.agents-install-state.json" '"state": "stable"'
 }
 
 @test "an unknown same-name role blocks the install before sync" {

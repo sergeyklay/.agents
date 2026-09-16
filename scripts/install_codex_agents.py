@@ -9,7 +9,7 @@ import sys
 import tempfile
 from importlib import import_module
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 SUPPORTED_FIELDS = {"name", "description"}
 tomllib = import_module("tomllib")
@@ -111,45 +111,72 @@ def render(path: Path) -> bytes:
     return payload
 
 
-def load_manifest(path: Path) -> dict[str, str]:
+def load_manifest(
+    path: Path,
+) -> tuple[Literal["stable", "pending"], dict[str, set[str]]]:
     if not path.exists():
-        return {}
+        return "stable", {}
     if path.is_symlink() or not path.is_file():
         fail(f"ownership manifest is not a regular file: {path}")
     manifest: object = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(manifest, dict):
         fail(f"ownership manifest has an unsupported shape: {path}")
     manifest_dict = cast(dict[object, object], manifest)
-    if list(manifest_dict) != ["roles"]:
+    if set(manifest_dict) != {"state", "roles"}:
         fail(f"ownership manifest has an unsupported shape: {path}")
+    state = manifest_dict["state"]
+    if state not in {"stable", "pending"}:
+        fail(f"ownership manifest has an unsupported state: {path}")
     roles = manifest_dict["roles"]
     if not isinstance(roles, dict):
         fail(f"ownership manifest roles must be an object: {path}")
     role_dict = cast(dict[object, object], roles)
-    result: dict[str, str] = {}
-    for name, digest in role_dict.items():
+    result: dict[str, set[str]] = {}
+    for name, digests in role_dict.items():
         if (
             not isinstance(name, str)
             or Path(name).name != name
             or not name.endswith(".toml")
-            or not isinstance(digest, str)
-            or len(digest) != 64
-            or any(char not in "0123456789abcdef" for char in digest)
+            or not isinstance(digests, list)
+            or not digests
         ):
             fail(f"ownership manifest contains an invalid role entry: {path}")
         assert isinstance(name, str)
-        assert isinstance(digest, str)
-        result[name] = digest
-    return result
+        digest_set: set[str] = set()
+        for digest in cast(list[object], digests):
+            if (
+                not isinstance(digest, str)
+                or len(digest) != 64
+                or any(char not in "0123456789abcdef" for char in digest)
+            ):
+                fail(f"ownership manifest contains an invalid digest: {path}")
+            assert isinstance(digest, str)
+            digest_set.add(digest)
+        result[name] = digest_set
+    return cast(Literal["stable", "pending"], state), result
 
 
-def ownership(path: Path, recorded_digest: str | None) -> str:
-    if recorded_digest is None:
+def ownership(path: Path, recorded_digests: set[str] | None) -> str:
+    if recorded_digests is None:
         return "unrecognized"
     if path.is_symlink() or not path.is_file():
         return "modified"
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
-    return "owned" if digest == recorded_digest else "modified"
+    return "owned" if digest in recorded_digests else "modified"
+
+
+def manifest_content(state: str, roles: dict[str, set[str]]) -> bytes:
+    return (
+        json.dumps(
+            {
+                "state": state,
+                "roles": {name: sorted(digests) for name, digests in roles.items()},
+            },
+            indent=2,
+            sort_keys=True,
+        ).encode()
+        + b"\n"
+    )
 
 
 def atomic_write(path: Path, content: bytes) -> None:
@@ -179,47 +206,51 @@ def install(repository: Path, codex_home: Path) -> list[tuple[str, Path]]:
 
     destination = codex_home / "agents"
     manifest_path = codex_home / ".agents-install-state.json"
-    manifest = load_manifest(manifest_path)
+    state, manifest = load_manifest(manifest_path)
     stale: list[Path] = []
     for path in sorted(destination.glob("*.toml")):
-        state = ownership(path, manifest.get(path.name))
+        ownership_state = ownership(path, manifest.get(path.name))
         if path.name in rendered:
-            if state != "owned":
-                fail(f"refusing to replace {state} Codex role: {path}")
-        elif state == "owned":
+            if ownership_state != "owned":
+                fail(f"refusing to replace {ownership_state} Codex role: {path}")
+        elif ownership_state == "owned":
             stale.append(path)
-        elif state == "modified":
+        elif ownership_state == "modified":
             fail(f"refusing to remove modified Codex role: {path}")
     missing_recorded = set(manifest) - {
         path.name for path in destination.glob("*.toml")
     }
     if missing_recorded:
-        fail(
-            f"ownership manifest names a missing Codex role: {sorted(missing_recorded)[0]}"
-        )
+        if state == "stable":
+            fail(
+                f"ownership manifest names a missing Codex role: {sorted(missing_recorded)[0]}"
+            )
+
+    desired = {
+        name: hashlib.sha256(content).hexdigest() for name, content in rendered.items()
+    }
+    pending = {name: set(digests) for name, digests in manifest.items()}
+    for name, digest in desired.items():
+        pending.setdefault(name, set()).add(digest)
+    atomic_write(manifest_path, manifest_content("pending", pending))
 
     operations: list[tuple[str, Path]] = []
     for name, content in rendered.items():
         path = destination / name
         atomic_write(path, content)
         operations.append(("updated", path))
+        if (
+            os.environ.get("AGENTS_INSTALL_FAIL_AFTER") == "role"
+            and name == "architect.toml"
+        ):
+            fail("injected failure after role update")
     for path in stale:
         path.unlink()
         operations.append(("removed", path))
-    manifest_content = (
-        json.dumps(
-            {
-                "roles": {
-                    name: hashlib.sha256(content).hexdigest()
-                    for name, content in rendered.items()
-                }
-            },
-            indent=2,
-            sort_keys=True,
-        ).encode()
-        + b"\n"
-    )
-    atomic_write(manifest_path, manifest_content)
+        if os.environ.get("AGENTS_INSTALL_FAIL_AFTER") == "stale":
+            fail("injected failure after stale removal")
+    stable = {name: {digest} for name, digest in desired.items()}
+    atomic_write(manifest_path, manifest_content("stable", stable))
     return operations
 
 
