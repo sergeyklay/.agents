@@ -2,16 +2,14 @@ load 'test_helper'
 
 assert_codex_role() {
   python3 - "$1" "$2" <<'PY'
-import hashlib
 import json
 import pathlib
 import sys
 import tomllib
 
 role_path, source_path = (pathlib.Path(value) for value in sys.argv[1:])
-role_bytes = role_path.read_bytes()
-marker, payload = role_bytes.split(b"\n", 1)
-assert marker == b"# .agents-owner: " + hashlib.sha256(payload).hexdigest().encode()
+payload = role_path.read_bytes()
+assert not payload.startswith(b"#")
 lines = source_path.read_text().splitlines(keepends=True)
 closing = next(index for index, line in enumerate(lines[1:], 1) if line.rstrip("\n") == "---")
 frontmatter = {}
@@ -46,6 +44,41 @@ copy_repo() {
     role="$TEST_HOME/.codex/agents/$(basename "$source" .md).toml"
     assert_codex_role "$role" "$source"
   done
+  manifest="$TEST_HOME/.codex/.agents-install-state.json"
+  assert_file "$manifest"
+  python3 - "$manifest" <<'PY'
+import json, pathlib, sys
+manifest = json.loads(pathlib.Path(sys.argv[1]).read_text())
+assert set(manifest) == {"roles"}
+assert manifest["roles"]
+PY
+}
+
+@test "a malformed manifest blocks the install before sync" {
+  printf '{broken\n' >"$TEST_HOME/.codex/.agents-install-state.json"
+  run install_into --agents --codex
+  [ "$status" -ne 0 ]
+  assert_contains "$output" "Codex agent installation failed"
+  assert_absent "$TEST_HOME/.codex/agents/architect.toml"
+}
+
+@test "a tampered manifest digest blocks the install before sync" {
+  run install_into --agents --codex
+  [ "$status" -eq 0 ]
+  manifest="$TEST_HOME/.codex/.agents-install-state.json"
+  python3 - "$manifest" <<'PY'
+import json, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+manifest = json.loads(path.read_text())
+manifest["roles"]["architect.toml"] = "0" * 64
+path.write_text(json.dumps(manifest))
+PY
+  before=$(mktemp)
+  cp "$TEST_HOME/.codex/agents/architect.toml" "$before"
+  run install_into --agents --codex
+  [ "$status" -ne 0 ]
+  assert_contains "$output" "refusing to replace modified Codex role"
+  assert_same "$before" "$TEST_HOME/.codex/agents/architect.toml"
 }
 
 @test "an unknown same-name role blocks the install before sync" {
@@ -97,7 +130,7 @@ copy_repo() {
   run install_from "$repo" --agents --codex
   [ "$status" -eq 0 ]
   role="$TEST_HOME/.codex/agents/architect.toml"
-  printf '\n# local edit\n' >>"$role"
+  printf '\nlocal_edit = true\n' >>"$role"
   before=$(mktemp)
   cp "$role" "$before"
   rm "$repo/.agents/agents/architect.md"
@@ -115,7 +148,7 @@ copy_repo() {
   [ "$status" -eq 0 ]
   python3 - "$TEST_HOME/.codex/agents/quoted.toml" <<'PY'
 import pathlib, tomllib, sys
-payload = pathlib.Path(sys.argv[1]).read_text().split("\n", 1)[1]
+payload = pathlib.Path(sys.argv[1]).read_text()
 assert tomllib.loads(payload)["description"] == 'Quote: "x" and path C:\\tmp'
 PY
 }

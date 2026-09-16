@@ -599,7 +599,7 @@ sync_codex_agents() {
   fi
   operations=$(mktemp) || die "mktemp failed"
   if ! python3 "$REPO_ROOT/scripts/install_codex_agents.py" \
-    "$REPO_ROOT" "$HOME/.codex/agents" >"$operations"; then
+    "$REPO_ROOT" "$HOME/.codex" >"$operations"; then
     rm -f -- "$operations"
     die "Codex agent installation failed"
   fi

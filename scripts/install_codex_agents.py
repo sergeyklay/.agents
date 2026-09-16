@@ -5,14 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
 import sys
 import tempfile
 from importlib import import_module
 from pathlib import Path
+from typing import cast
 
-OWNER_PREFIX = "# .agents-owner: "
-OWNER_PATTERN = re.compile(r"# \.agents-owner: ([0-9a-f]{64})\n")
 SUPPORTED_FIELDS = {"name", "description"}
 tomllib = import_module("tomllib")
 
@@ -110,22 +108,48 @@ def render(path: Path) -> bytes:
     }
     if parsed != expected:
         fail(f"{path}: rendered role failed validation")
-    digest = hashlib.sha256(payload).hexdigest()
-    return f"{OWNER_PREFIX}{digest}\n".encode() + payload
+    return payload
 
 
-def ownership(path: Path) -> str:
+def load_manifest(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
     if path.is_symlink() or not path.is_file():
+        fail(f"ownership manifest is not a regular file: {path}")
+    manifest: object = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        fail(f"ownership manifest has an unsupported shape: {path}")
+    manifest_dict = cast(dict[object, object], manifest)
+    if list(manifest_dict) != ["roles"]:
+        fail(f"ownership manifest has an unsupported shape: {path}")
+    roles = manifest_dict["roles"]
+    if not isinstance(roles, dict):
+        fail(f"ownership manifest roles must be an object: {path}")
+    role_dict = cast(dict[object, object], roles)
+    result: dict[str, str] = {}
+    for name, digest in role_dict.items():
+        if (
+            not isinstance(name, str)
+            or Path(name).name != name
+            or not name.endswith(".toml")
+            or not isinstance(digest, str)
+            or len(digest) != 64
+            or any(char not in "0123456789abcdef" for char in digest)
+        ):
+            fail(f"ownership manifest contains an invalid role entry: {path}")
+        assert isinstance(name, str)
+        assert isinstance(digest, str)
+        result[name] = digest
+    return result
+
+
+def ownership(path: Path, recorded_digest: str | None) -> str:
+    if recorded_digest is None:
         return "unrecognized"
-    content = path.read_bytes()
-    line, separator, payload = content.partition(b"\n")
-    if not separator:
-        return "unrecognized"
-    match = OWNER_PATTERN.fullmatch((line + separator).decode(errors="replace"))
-    if not match:
-        return "unrecognized"
-    digest = hashlib.sha256(payload).hexdigest()
-    return "owned" if digest == match.group(1) else "modified"
+    if path.is_symlink() or not path.is_file():
+        return "modified"
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    return "owned" if digest == recorded_digest else "modified"
 
 
 def atomic_write(path: Path, content: bytes) -> None:
@@ -139,7 +163,7 @@ def atomic_write(path: Path, content: bytes) -> None:
             os.unlink(temporary)
 
 
-def install(repository: Path, destination: Path) -> list[tuple[str, Path]]:
+def install(repository: Path, codex_home: Path) -> list[tuple[str, Path]]:
     templates = [
         path
         for path in (repository / "templates/.codex").glob("agents*")
@@ -153,9 +177,12 @@ def install(repository: Path, destination: Path) -> list[tuple[str, Path]]:
     if not rendered:
         fail("no canonical agents found")
 
+    destination = codex_home / "agents"
+    manifest_path = codex_home / ".agents-install-state.json"
+    manifest = load_manifest(manifest_path)
     stale: list[Path] = []
     for path in sorted(destination.glob("*.toml")):
-        state = ownership(path)
+        state = ownership(path, manifest.get(path.name))
         if path.name in rendered:
             if state != "owned":
                 fail(f"refusing to replace {state} Codex role: {path}")
@@ -163,6 +190,13 @@ def install(repository: Path, destination: Path) -> list[tuple[str, Path]]:
             stale.append(path)
         elif state == "modified":
             fail(f"refusing to remove modified Codex role: {path}")
+    missing_recorded = set(manifest) - {
+        path.name for path in destination.glob("*.toml")
+    }
+    if missing_recorded:
+        fail(
+            f"ownership manifest names a missing Codex role: {sorted(missing_recorded)[0]}"
+        )
 
     operations: list[tuple[str, Path]] = []
     for name, content in rendered.items():
@@ -172,6 +206,20 @@ def install(repository: Path, destination: Path) -> list[tuple[str, Path]]:
     for path in stale:
         path.unlink()
         operations.append(("removed", path))
+    manifest_content = (
+        json.dumps(
+            {
+                "roles": {
+                    name: hashlib.sha256(content).hexdigest()
+                    for name, content in rendered.items()
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        ).encode()
+        + b"\n"
+    )
+    atomic_write(manifest_path, manifest_content)
     return operations
 
 
