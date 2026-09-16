@@ -501,8 +501,7 @@ assert_prompt_safe() {
   done
 }
 
-# A TOML multi-line literal admits any bytes except its ''' delimiter, tab, and
-# newline; a control character or a stray carriage return is a parse error.
+# A TOML multi-line literal cannot contain its delimiter or non-tab controls.
 assert_toml_literal_safe() {
   guard_file=$1
   guard_label=$2
@@ -606,88 +605,6 @@ cleanup_skipped_gemini_agents() {
   done
 }
 
-# Codex applies role features as disables only: removing the shell from the
-# delegating orchestrators and the plugin surface from every catalog-restricted
-# role are the enforced narrowings the schema offers (Claude grants neither).
-codex_agent_features() {
-  fm=$1
-  features=$(mktemp) || die "mktemp failed"
-  awk '
-    index($0, "features:") == 1 { inside = 1; next }
-    inside && /^[^ \t]/         { inside = 0 }
-    inside && /:/               {
-      line = $0
-      sub(/^[ \t]+/, "", line)
-      sub(/:[[:space:]]*/, "=", line)
-      print line
-    }
-  ' "$fm" >"$features"
-
-  entries=$(mktemp) || die "mktemp failed"
-  while IFS='=' read -r feature_key feature_value; do
-    [ -n "$feature_key" ] || continue
-    case $feature_value in
-    false) printf '%s = false\n' "$feature_key" >>"$entries" ;;
-    *) die "unsupported features.$feature_key value: $feature_value" ;;
-    esac
-  done <"$features"
-
-  if [ -s "$entries" ]; then
-    printf '[features]\n'
-    cat -- "$entries"
-  fi
-  rm -f -- "$features" "$entries"
-}
-
-# Codex cannot preload skills: skills.config entries only disable, so an
-# allow-list ships the complement as disable rules and `none` drops the
-# catalog block for agents Claude gives no skills at all.
-codex_agent_skills() {
-  fm=$1
-  name=$2
-  skills_mode=$(frontmatter_value "$fm" skills)
-  case $skills_mode in
-  none)
-    printf '[skills]\ninclude_instructions = false\n'
-    return 0
-    ;;
-  "") ;;
-  *) die "unsupported skills value in codex template for $name: $skills_mode" ;;
-  esac
-
-  allow=$(mktemp) || die "mktemp failed"
-  awk '
-    index($0, "skills:") == 1  { inside = 1; next }
-    inside && /^[ \t]*- / { sub(/^[ \t]*-[ \t]*/, ""); print; next }
-    inside && NF          { exit }
-  ' "$fm" >"$allow"
-
-  if [ ! -s "$allow" ]; then
-    rm -f -- "$allow"
-    return 0
-  fi
-
-  while IFS= read -r allowed; do
-    [ -n "$allowed" ] || continue
-    [ -d "$REPO_ROOT/.agents/skills/$allowed" ] ||
-      die "codex template for $name allows unknown skill: $allowed"
-  done <"$allow"
-
-  printf '[skills.bundled]\nenabled = false\n'
-  for skill_dir in "$REPO_ROOT/.agents/skills/"*/; do
-    [ -d "$skill_dir" ] || continue
-    skill=$(basename -- "$skill_dir")
-    if grep -qxF -- "$skill" "$allow"; then
-      continue
-    fi
-    printf '[[skills.config]]\nname = "%s"\nenabled = false\n' "$skill"
-  done
-  rm -f -- "$allow"
-}
-
-# A Codex role file is a whole TOML document: frontmatter_overlay still merges
-# the template over the canonical frontmatter, but the canonical body becomes
-# the developer_instructions literal, rendered in the shape of sync_view_toml.
 sync_codex_agent() {
   src=$1
   dst=$2
@@ -718,14 +635,10 @@ sync_codex_agent() {
     fi
     printf "developer_instructions = '''\n"
     cat -- "$body"
-    # Without a trailing newline the last body bytes would glue onto the
-    # closing delimiter; a body ending in a quote must not touch it.
     if [ -n "$(tail -c 1 -- "$body")" ]; then
       printf '\n'
     fi
     printf "'''\n"
-    codex_agent_features "$fm"
-    codex_agent_skills "$fm" "$name"
   } >"$tmp"
 
   SYNC_TO_LABEL=".codex/agents/$name"

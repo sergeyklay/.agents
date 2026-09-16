@@ -1,9 +1,1 @@
 model_reasoning_effort: high
-# Claude preloads writing-plans and gives this agent no Skill tool; the
-# renderer narrows the Codex catalog to exactly this list, and the plugin and
-# apps surfaces Claude never grants go too.
-features:
-  plugins: false
-  apps: false
-skills:
-  - writing-plans

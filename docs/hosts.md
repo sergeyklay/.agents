@@ -28,6 +28,12 @@ VS Code Copilot can load `~/.claude/CLAUDE.md` when `chat.useClaudeMdFile` is en
 
 Copilot CLI reads personal assets only from `~/.copilot/skills/`, so `--commands` installs each command as `skills/<name>/SKILL.md` rather than into a commands directory of its own. Invocation is unchanged: `/<name>`, the same spelling the other hosts use. Earlier versions wrote `~/.copilot/prompts/<name>.prompt.md`, which no Copilot CLI version reads; `--commands` now removes those files and leaves any prompt file of your own in place.
 
+## Agents on Codex
+
+`--agents` installs personal Codex agents as standalone TOML files under `~/.codex/agents/`. Each file takes its name, description, and developer instructions from the corresponding canonical `.agents/agents/*.md` file. The small YAML files under `templates/.codex/agents/` supply only Codex-specific reasoning effort before the installer renders the native role file.
+
+The roles inherit the active Codex model, permissions, sandbox, tools, MCP servers, and skills. Set those in Codex configuration when the whole session needs them; a role file is not a security boundary, and live runtime permission choices can override role defaults. The installer updates only the role files it owns and leaves other files in the agents directory untouched.
+
 ## Rules on OpenCode
 
 opencode has no path-scoped instructions. Rules with a Claude `paths` overlay remain Claude/Copilot-only; the rest install to `~/.config/opencode/rules/`. The Working Agreement loads from `~/.config/opencode/AGENTS.md`.
