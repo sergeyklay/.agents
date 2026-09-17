@@ -57,9 +57,11 @@ BEGIN {
   # continuation that a plan ID takes after it mark the citation.
   ATTESTED_ID = "(^|[^[:alnum:]_])([Vv]erifies|[Cc]overs|[Pp]ins|[Pp]roves)[[:space:]]+([A-Z]|[A-Z][A-Z][0-9])[0-9][0-9]?(:|,|/|" SQ "s|\\.([[:space:]]|$)|[[:space:]]+(and|for)([^[:alnum:]]|$)|[[:space:]]*$)"
 
-  # Only I, U and Q. Every other single letter is fixture issue data here, and
-  # no pattern separates C-1 the fixture row from C-1 the spec citation.
-  TEST_TYPE = "(^|[^[:alnum:]])(I|U|Q)-[0-9]"
+  VERIFICATION_PROPERTY = "(verification[[:space:]]+property[[:space:]]+[0-9]|property[[:space:]]+[0-9][[:space:]]+of[[:space:]]+the[[:space:]]+verification)"
+
+  # Every other single letter is fixture issue data here, and no pattern
+  # separates C-1 the fixture row from C-1 the spec citation.
+  TEST_TYPE = "(^|[^[:alnum:]])(I|U|Q|S)-[0-9]"
 
   # Three frame characters, spelled out rather than written as an interval so
   # BSD awk applies it too. Two would catch the prose "// == false, ..." and the
@@ -167,6 +169,7 @@ function classify(c) {
   if (c ~ SPEC_NOUN) return "spec-criteria reference"
   if (c ~ SPEC_PREFIX) return "spec-criteria reference"
   if (c ~ ATTESTED_ID) return "spec-criteria reference"
+  if (tolower(c) ~ VERIFICATION_PROPERTY) return "spec-criteria reference"
   if (c ~ TEST_TYPE) return "test-type reference"
   if (c ~ DOC_REF) return "internal doc/ADR reference"
   if (c ~ FRAME && c !~ PREFORMATTED && c !~ EDITOR_DIRECTIVE && c !~ BOX_BORDER) return "banner decoration"
@@ -190,7 +193,8 @@ function classify(c) {
   echo "                             (in any case: step 2, STEP 2, Step 2)"
   echo "  - spec-criteria refs:      AC-7, FR-1, NFR-2, REQ-3, US-4"
   echo "                             and a bare ID a test claims: verifies V5, pins P9"
-  echo "  - test-type refs:          I-1, U-1, Q-1"
+  echo "                             and numbered verification properties"
+  echo "  - test-type refs:          I-1, U-1, Q-1, S-1"
   echo "  - spec artefact + number:  Table 3.1-B, Table-3, Appendix 2, Figure 4, Spec-706"
   echo "  - internal doc/ADR refs:   docs/architecture.md, docs/decisions/, ADR-3, .specs/, .plans/"
   echo "                             (the last two are flagged in string literals"

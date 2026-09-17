@@ -155,6 +155,42 @@ PROBE
   done
 }
 
+@test "the hook rejects an S-number reference" {
+  for comment in 'targeting S-2' 'the S-7 controls' 'the S-10 measurement' \
+    'the S-7-satisfied control' 'the branch of S-3' 'S-7 at once'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_flagged 'test-type reference' || fail "for: $comment"
+  done
+}
+
+@test "the hook allows an S-number in a test string literal" {
+  write_probe probe_test.go <<'PROBE'
+package p
+
+var name = "S-7"
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
+@test "the hook rejects a numbered verification property" {
+  for comment in 'per Verification property 2' 'verification Property 12 holds' \
+    'Property 3 of the verification plan'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_flagged 'spec-criteria reference' || fail "for: $comment"
+  done
+}
+
+@test "the hook allows an ordinary numbered property" {
+  for comment in 'JSON property 2 is optional' 'property 2 is the port number'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_clean || fail "for: $comment"
+  done
+}
+
 @test "the hook rejects a test-type reference" {
   write_probe probe.go <<'PROBE'
 package p
