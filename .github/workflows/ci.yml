@@ -23,6 +23,10 @@ env:
   GEMINI_CLI_VERSION: 0.58.0
   GEMINI_CLI_SHA: 8ffeb9e7edddffb054764d00749f39e8cc9804ca9b38b9093f906dd2157322ae
 
+  CODEX_CLI_VERSION: 0.154.0
+  CODEX_CLI_SHA512: 155ff1d4e1d762ffe27e37f79978fd4e14d301671464de9c18845046147190a34e3ee226bb5596d1cf1ebf5bd4904f57187f747449d81b5b418c8931462920d3
+  CODEX_LINUX_X64_SHA512: 6b8148dc0f2c1adc06aceaa5b6b3dbad2da16a3ac7406e7dd44c2645f891a0b31bd74571741b54196e20bba20955810d898180ee4dcfe239511c4a02654fecf5
+
 jobs:
   validate:
     name: Validate
@@ -178,6 +182,40 @@ jobs:
           ln -s "${RUNNER_TEMP}/gemini-cli/package/bundle/gemini.js" \
             "${RUNNER_TEMP}/gemini-bin/gemini"
           echo "${RUNNER_TEMP}/gemini-bin" >> "${GITHUB_PATH}"
+
+      - name: Install the Codex CLI
+        shell: bash
+        run: |
+          curl -fsSL "https://registry.npmjs.org/@openai/codex/-/codex-${CODEX_CLI_VERSION}.tgz" \
+            -o "${RUNNER_TEMP}/codex-cli.tgz"
+          curl -fsSL "https://registry.npmjs.org/@openai/codex/-/codex-${CODEX_CLI_VERSION}-linux-x64.tgz" \
+            -o "${RUNNER_TEMP}/codex-linux-x64.tgz"
+          echo "${CODEX_CLI_SHA512}  ${RUNNER_TEMP}/codex-cli.tgz" | sha512sum --check -
+          echo "${CODEX_LINUX_X64_SHA512}  ${RUNNER_TEMP}/codex-linux-x64.tgz" | sha512sum --check -
+
+          codex_root="${RUNNER_TEMP}/codex/lib/node_modules/@openai/codex"
+          platform_root="${codex_root}/node_modules/@openai/codex-linux-x64"
+          mkdir -p "${platform_root}" "${RUNNER_TEMP}/codex/bin"
+          tar -xzf "${RUNNER_TEMP}/codex-cli.tgz" -C "${codex_root}" --strip-components=1
+          tar -xzf "${RUNNER_TEMP}/codex-linux-x64.tgz" -C "${platform_root}" --strip-components=1
+          ln -s "${codex_root}/bin/codex.js" "${RUNNER_TEMP}/codex/bin/codex"
+          "${RUNNER_TEMP}/codex/bin/codex" --version | grep -Fx "codex-cli ${CODEX_CLI_VERSION}"
+          echo "${RUNNER_TEMP}/codex/bin" >> "${GITHUB_PATH}"
+
+      - name: Enable Linux user namespaces for Codex sandboxing
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_userns="$(sysctl -n kernel.unprivileged_userns_clone 2>/dev/null || true)"
+          if [ -n "${current_userns}" ] && [ "${current_userns}" != "1" ]; then
+            sudo sysctl -w kernel.unprivileged_userns_clone=1
+          fi
+
+          current_apparmor="$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || true)"
+          if [ -n "${current_apparmor}" ] && [ "${current_apparmor}" != "0" ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
 
       - name: Run the installer test suite
         shell: bash

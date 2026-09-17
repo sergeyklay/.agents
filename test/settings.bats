@@ -30,6 +30,14 @@ assert filesystem[":slash_tmp"] == "write"
 assert filesystem[":workspace_roots"][".env"] == "deny"
 assert filesystem[":workspace_roots"]["**/.env"] == "deny"
 assert config["permissions"]["full-access"]["network"]["enabled"] is True
+mcp_servers = config["mcp_servers"]
+assert set(mcp_servers) >= {"atlassian", "context7", "snyk"}
+assert mcp_servers["atlassian"] == {"url": "https://mcp.atlassian.com/v2/mcp"}
+assert mcp_servers["context7"]["url"] == "https://mcp.context7.com/mcp"
+assert mcp_servers["snyk"] == {
+    "command": "npx",
+    "args": ["-y", "snyk@1.1307.2", "mcp", "-t", "stdio"],
+}
 assert config["plugins"]["diagram-design@diagram-design"]["enabled"] is True
 assert config["tui"]["status_line"] == [
     "model",
@@ -61,6 +69,12 @@ PY
   assert_toml_parses "$config"
   assert_codex_settings "$config"
   assert_same "$ROOT/.codex/rules/default.rules" "$TEST_HOME/.codex/rules/default.rules"
+  assert_absent "$TEST_HOME/.codex/mcp"
+
+  cp "$config" "$BATS_TEST_TMPDIR/clean-config.toml"
+  run install_into --settings --codex
+  [ "$status" -eq 0 ]
+  assert_same "$BATS_TEST_TMPDIR/clean-config.toml" "$config"
 }
 
 @test "Codex settings replace the default policy and preserve other rules" {
@@ -84,6 +98,18 @@ trust_level = "trusted"
 
 [notice.model_migrations]
 "old-model" = "new-model"
+
+[permissions.host-local.filesystem]
+"/host-only" = "read"
+
+[mcp_servers.host-local]
+command = "host-mcp"
+args = ["serve"]
+
+[mcp_servers.context7]
+url = "https://example.invalid/old-context7"
+bearer_token_env_var = "HOST_CONTEXT7_TOKEN"
+startup_timeout_sec = 30
 
 [marketplaces.diagram-design]
 last_updated = "2026-09-15T16:53:24Z"
@@ -117,6 +143,13 @@ assert config["model"] == "gpt-5.6-sol"
 assert config["model_reasoning_effort"] == "high"
 assert config["projects"]["/tmp/local-project"]["trust_level"] == "trusted"
 assert config["notice"]["model_migrations"] == {"old-model": "new-model"}
+assert config["permissions"]["host-local"]["filesystem"] == {"/host-only": "read"}
+assert config["mcp_servers"]["host-local"] == {
+    "command": "host-mcp",
+    "args": ["serve"],
+}
+assert config["mcp_servers"]["context7"]["bearer_token_env_var"] == "HOST_CONTEXT7_TOKEN"
+assert config["mcp_servers"]["context7"]["startup_timeout_sec"] == 30
 assert config["tui"]["model_availability_nux"] == {"gpt-5.6-sol": 4}
 assert config["marketplaces"]["diagram-design"]["last_updated"] == "2026-09-15T16:53:24Z"
 assert config["marketplaces"]["diagram-design"]["last_revision"] == "host-revision"
@@ -126,6 +159,24 @@ PY
   run install_into --settings --codex
   [ "$status" -eq 0 ]
   assert_same "$BATS_TEST_TMPDIR/expected-config.toml" "$config"
+}
+
+@test "Codex settings reject conflicting MCP transports without changing host config" {
+  for server in context7 snyk; do
+    config="$TEST_HOME/.codex/config.toml"
+    if [ "$server" = context7 ]; then
+      printf '[mcp_servers.context7]\ncommand = "npx"\nargs = ["-y", "@upstash/context7-mcp"]\n' >"$config"
+    else
+      printf '[mcp_servers.snyk]\nurl = "https://example.invalid/mcp"\nbearer_token_env_var = "HOST_TOKEN"\n' >"$config"
+    fi
+    cp "$config" "$BATS_TEST_TMPDIR/host-config.toml"
+
+    run install_into --settings --codex
+    [ "$status" -ne 0 ]
+    assert_contains "$output" "mcp_servers.$server"
+    assert_contains "$output" 'conflicting MCP transports'
+    assert_same "$BATS_TEST_TMPDIR/host-config.toml" "$config"
+  done
 }
 
 @test "Gemini settings merge preserves host-local keys" {

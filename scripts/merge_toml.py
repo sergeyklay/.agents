@@ -125,6 +125,15 @@ def main() -> int:
 
     host_path, repository_path, output_path = map(Path, sys.argv[1:])
     merged = merge(load(host_path), load(repository_path))
+    servers = cast(dict[str, Any], merged.get("mcp_servers", {}))
+    for name, server in servers.items():
+        if isinstance(server, dict) and "command" in server and "url" in server:
+            print(
+                f"mcp_servers.{name}: conflicting MCP transports (command and url); "
+                "choose one transport before reinstalling; host config is unchanged",
+                file=sys.stderr,
+            )
+            return 1
     output_path.write_text(dumps(merged), encoding="utf-8")
     return 0
 

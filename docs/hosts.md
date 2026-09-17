@@ -38,6 +38,26 @@ Selected-skill templates provide best-effort visibility, not a closed allow-list
 
 The installer records generated-file digests in `~/.codex/.agents-install-state.json`, outside Codex's role discovery directory, and serializes reconciliation with `~/.codex/.agents-install.lock`. Before changing roles it records both installed and intended digests, then converges the files and records the completed state. A later install can finish an interrupted update or stale-file removal, including a missing managed file. Content matching neither digest is treated as a local edit and blocks reconciliation. Unrelated files are preserved, and an unrecognized same-name file is never replaced.
 
+## Permissions and MCP on Codex
+
+Codex uses separate mechanisms for approval flow, filesystem access, network access, and command policy. Instructions in `AGENTS.md` remain advisory and are not permission enforcement.
+
+| Intent | Codex mechanism | Behavioral check |
+| --- | --- | --- |
+| Continue without interactive approval | `approval_policy = "never"` | An ordinary model-issued command executes; an escalation request is rejected without prompting. The `on-request` control reaches a real approval request. |
+| Read ordinary files | `default_permissions = "full-access"` | A session inherits the installed profile and reads an ordinary sentinel through its shell tool. |
+| Use the network | The `full-access` network profile | The installed profile reads a sentinel from a local HTTP server. Disabling network makes the same request fail. |
+| Refuse dotenv reads | Workspace-root `deny` entries in the `full-access` profile | The session's shell tool cannot read a `.env` sentinel. Weakening the deny makes that read succeed. |
+| Refuse dangerous command prefixes | `$CODEX_HOME/rules/default.rules` | A session automatically loads the installed rules and rejects a model-issued `shutdown --help`. Weakening the rule lets that harmless command execute. The policy matcher separately checks every prohibited prefix. |
+
+The custom name `full-access` does not mean Codex's built-in `:danger-full-access`: filesystem restrictions remain active. Dotenv denies apply within workspace roots, with Linux glob expansion bounded by `glob_scan_max_depth = 16`. They cover `.env`, not every filename that may contain credentials. MCP servers have separate process and transport controls. See the [Codex permissions reference](https://developers.openai.com/codex/permissions).
+
+`--settings --codex` installs native `mcp_servers` declarations for `atlassian`, `context7`, and `snyk`. Atlassian and Context7 use their provider-owned HTTPS endpoints. Snyk runs an exact CLI package version. Private, project-specific MCP servers are configured in that project's trusted `.codex/config.toml`; the installer ships no private MCP runtime.
+
+Credentials remain outside the repository. Atlassian requires OAuth login, Context7 supports external authentication, and Snyk uses its external login state. The local MCP sentinel proves installer transport, discovery, and tool execution without service credentials; it does not test authenticated access to these providers.
+
+The TOML merge preserves unrelated host-local permission profiles and MCP servers. If merging an existing server would combine stdio `command` with HTTP `url`, installation fails with the server name and leaves `config.toml` unchanged. A transport change requires an explicit choice before reinstalling. Same-transport settings continue to merge, including host-local authentication settings.
+
 ## Rules on OpenCode
 
 opencode has no path-scoped instructions. Rules with a Claude `paths` overlay remain Claude/Copilot-only; the rest install to `~/.config/opencode/rules/`. The Working Agreement loads from `~/.config/opencode/AGENTS.md`.

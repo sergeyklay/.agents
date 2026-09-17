@@ -1,8 +1,11 @@
 model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
-
 approval_policy = "never"
 default_permissions = "full-access"
+
+[permissions]
+
+[permissions.full-access]
 
 [permissions.full-access.filesystem]
 ":root" = "read"
@@ -17,9 +20,25 @@ glob_scan_max_depth = 16
 [permissions.full-access.network]
 enabled = true
 
+[mcp_servers]
+
+[mcp_servers.atlassian]
+url = "https://mcp.atlassian.com/v2/mcp"
+
+[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"
+
+[mcp_servers.snyk]
+command = "npx"
+args = ["-y", "snyk@1.1307.2", "mcp", "-t", "stdio"]
+
+[marketplaces]
+
 [marketplaces.diagram-design]
 source_type = "git"
 source = "https://github.com/cathrynlavery/diagram-design.git"
+
+[plugins]
 
 [plugins."diagram-design@diagram-design"]
 enabled = true
