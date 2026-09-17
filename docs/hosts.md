@@ -38,6 +38,22 @@ Selected-skill templates provide best-effort visibility, not a closed allow-list
 
 The installer records generated-file digests in `~/.codex/.agents-install-state.json`, outside Codex's role discovery directory, and serializes reconciliation with `~/.codex/.agents-install.lock`. Before changing roles it records both installed and intended digests, then converges the files and records the completed state. A later install can finish an interrupted update or stale-file removal, including a missing managed file. Content matching neither digest is treated as a local edit and blocks reconciliation. Unrelated files are preserved, and an unrecognized same-name file is never replaced.
 
+## Permissions and MCP on Codex
+
+Codex uses separate mechanisms for approval flow, filesystem access, network access, and command policy. Instructions in `AGENTS.md` remain advisory and are not permission enforcement.
+
+| Intent | Codex mechanism | Behavioral check |
+| --- | --- | --- |
+| Continue without interactive approval | `approval_policy = "never"` | Runtime probes cannot fall back to an approval prompt. A deny remains a deny. |
+| Read ordinary files | The `full-access` filesystem profile | The installed profile reads an ordinary sentinel file. |
+| Use the network | The `full-access` network profile | The installed profile reads a sentinel from a local HTTP server. Disabling network makes the same request fail. |
+| Refuse dotenv reads | Workspace-root `deny` entries in the `full-access` profile | The same installed profile refuses a `.env` sentinel. Weakening the decision to `read` makes that read succeed. |
+| Refuse dangerous command prefixes | `$CODEX_HOME/rules/default.rules` | `codex execpolicy check` returns `forbidden` for a harmless `shutdown --help` probe. Weakening the matched decision to `allow` changes the result to `allow`. |
+
+`--settings --codex` also installs native `mcp_servers` declarations for `atlassian`, `bpdb`, `context7`, and `snyk`. Atlassian and Context7 use their provider-owned HTTPS endpoints. Snyk runs an exact CLI package version. The repository-owned PostgreSQL server and its pinned launcher install under `~/.codex/mcp/bpdb/`.
+
+No credential is stored in the declarations. Remote servers perform their own authentication, Snyk uses its external login state, and `bpdb` receives database settings only from named environment variables. Reinstalling replaces the repository-owned `bpdb` runtime and declarations while the TOML merge preserves unrelated host-local permission profiles and MCP servers.
+
 ## Rules on OpenCode
 
 opencode has no path-scoped instructions. Rules with a Claude `paths` overlay remain Claude/Copilot-only; the rest install to `~/.config/opencode/rules/`. The Working Agreement loads from `~/.config/opencode/AGENTS.md`.
