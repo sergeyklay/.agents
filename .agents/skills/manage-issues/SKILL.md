@@ -71,6 +71,15 @@ mutation {
 }"
 ```
 
+`type` has no `gh` surface on the read side: it is not a `--json` field on `gh issue view` or `gh issue list`, and neither `gh issue create` nor `gh issue edit` accepts a `--type` flag (checked at gh 2.86.0). Read it back, and set it more briefly, through REST:
+
+```bash
+gh api "repos/{owner}/{repo}/issues/${ISSUE_NUMBER}" --jq '.type.name'
+gh api -X PATCH "repos/{owner}/{repo}/issues/${ISSUE_NUMBER}" -f type='<type name from taxonomy>'
+```
+
+The REST form takes the type's display name, so it needs no `node_id` lookup. Read the type back after either form: an issue left untyped is reported by nothing downstream.
+
 If `ISSUE_TYPES: (none)`, skip this step entirely. The repo uses labels, not GitHub Issue Types, for classification.
 
 ## Milestone matching
