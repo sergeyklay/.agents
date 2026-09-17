@@ -25,11 +25,6 @@ enabled = true
 [mcp_servers.atlassian]
 url = "https://mcp.atlassian.com/v2/mcp"
 
-[mcp_servers.bpdb]
-command = "sh"
-args = ["-c", "exec \"${CODEX_HOME:-$HOME/.codex}/mcp/bpdb/run.sh\""]
-env_vars = ["DATABASE_URL", "DATABASE_URI", "MCP_POOL_MIN", "MCP_POOL_MAX", "MCP_STATEMENT_TIMEOUT", "MCP_ROW_LIMIT", "MCP_SCHEMA_CACHE_TTL_MS", "MCP_LIST_CACHE_TTL_MS", "MCP_DEBUG"]
-
 [mcp_servers.context7]
 url = "https://mcp.context7.com/mcp"
 

@@ -885,9 +885,6 @@ sync_settings() {
   for_host claude merge_settings "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
   for_host claude sync_to "$REPO_ROOT/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
   for_host codex ensure_subdir "$HOME/.codex" rules
-  for_host codex ensure_subdir "$HOME/.codex" mcp
-  for_host codex sync_to "$REPO_ROOT/.codex/mcp/bpdb" "$HOME/.codex/mcp/bpdb"
-  for_host codex sync_to "$REPO_ROOT/mcps/postgres.ts" "$HOME/.codex/mcp/bpdb/postgres.ts"
   for_host codex merge_toml_settings "$REPO_ROOT/.codex/config.toml" "$HOME/.codex/config.toml"
   for_host codex sync_to "$REPO_ROOT/.codex/rules/default.rules" "$HOME/.codex/rules/default.rules"
   for_host gemini merge_settings "$REPO_ROOT/.gemini/settings.json" \

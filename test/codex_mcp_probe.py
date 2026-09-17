@@ -23,7 +23,10 @@ def write_message(message: JsonObject) -> None:
 
 
 class MockResponsesProvider:
-    def __init__(self) -> None:
+    def __init__(self, command: str, escalate: bool) -> None:
+        self.command = command
+        self.escalate = escalate
+        self.tool_outputs: list[str] = []
         self.request_count = 0
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -49,7 +52,13 @@ class MockResponsesProvider:
                     self.send_error(404)
                     return
                 content_length = int(self.headers.get("Content-Length", "0"))
-                self.rfile.read(content_length)
+                request = json.loads(self.rfile.read(content_length))
+                for item in request.get("input", []):
+                    if (
+                        item.get("type") == "function_call_output"
+                        and item.get("call_id") == "command-probe-call"
+                    ):
+                        provider.tool_outputs.append(item["output"])
                 provider.request_count += 1
                 response = provider._response(provider.request_count)
                 body = response.encode("utf-8")
@@ -65,7 +74,13 @@ class MockResponsesProvider:
         return Handler
 
     def _response(self, request_count: int) -> str:
-        if request_count in {1, 2}:
+        if request_count == 1:
+            arguments: JsonObject = {"cmd": self.command, "login": False}
+            if self.escalate:
+                arguments.update(
+                    sandbox_permissions="require_escalated",
+                    justification="Exercise the Codex approval path.",
+                )
             events = [
                 {
                     "type": "response.created",
@@ -75,14 +90,10 @@ class MockResponsesProvider:
                     "type": "response.output_item.done",
                     "item": {
                         "type": "function_call",
-                        "call_id": "approval-probe-call",
+                        "call_id": "command-probe-call",
                         "name": "exec_command",
                         "arguments": json.dumps(
-                            {
-                                "cmd": "printf approval-policy-probe",
-                                "sandbox_permissions": "require_escalated",
-                                "justification": "Exercise the Codex approval path.",
-                            },
+                            arguments,
                             separators=(",", ":"),
                         ),
                     },
@@ -92,9 +103,9 @@ class MockResponsesProvider:
                     "response": self._completed_response(request_count),
                 },
             ]
-        elif request_count == 3:
+        elif request_count == 2:
             events = [
-                {"type": "response.created", "response": {"id": "response-3"}},
+                {"type": "response.created", "response": {"id": "response-2"}},
                 {
                     "type": "response.output_item.done",
                     "item": {
@@ -357,17 +368,13 @@ def call_sentinel(codex: str, workspace: Path, server_name: str, sentinel: str) 
         app.close()
 
 
-def configure_approval_probe(
-    config_path: Path, provider: MockResponsesProvider
-) -> None:
+def configure_command_probe(config_path: Path, provider: MockResponsesProvider) -> None:
     config = config_path.read_text(encoding="utf-8")
     config, model_count = re.subn(
         r'^model = ".*"$', 'model = "approval-probe-model"', config, flags=re.MULTILINE
     )
     if model_count != 1:
         raise RuntimeError("expected exactly one installed model setting")
-    if config.count('approval_policy = "never"') != 1:
-        raise RuntimeError("expected the installed approval_policy to be never")
     marker = "[permissions]\n"
     if config.count(marker) != 1:
         raise RuntimeError("expected exactly one permissions section")
@@ -387,28 +394,8 @@ def configure_approval_probe(
     config_path.write_text(config, encoding="utf-8")
 
 
-def set_approval_policy(config_path: Path, approval_policy: str) -> None:
-    config = config_path.read_text(encoding="utf-8")
-    config, policy_count = re.subn(
-        r'^approval_policy = ".*"$',
-        f'approval_policy = "{approval_policy}"',
-        config,
-        flags=re.MULTILINE,
-    )
-    if policy_count != 1:
-        raise RuntimeError("expected exactly one approval_policy setting")
-    config_path.write_text(config, encoding="utf-8")
-
-
-def require_request_count(
-    provider: MockResponsesProvider, expected: int, context: str
-) -> None:
-    if provider.request_count != expected:
-        raise RuntimeError(context)
-
-
-def run_approval_scenario(
-    codex: str, workspace: Path, approval_policy: str
+def run_command_scenario(
+    codex: str, workspace: Path, expect_approval: bool
 ) -> tuple[int, bool]:
     app = AppServer(codex, workspace)
     try:
@@ -432,12 +419,20 @@ def run_approval_scenario(
                 "thread/start",
                 {
                     "cwd": str(workspace),
-                    "sandbox": "danger-full-access",
                     "ephemeral": True,
                 },
             ),
             "thread/start",
         )
+        expected_policy = "on-request" if expect_approval else "never"
+        if thread_result.get("approvalPolicy") != expected_policy:
+            raise RuntimeError(
+                f"session did not inherit {expected_policy} approval policy"
+            )
+        if thread_result.get("activePermissionProfile", {}).get("id") != "full-access":
+            raise RuntimeError(
+                "session did not inherit the installed permission profile"
+            )
         thread = thread_result["thread"]
         if (
             not isinstance(thread, dict)
@@ -458,11 +453,6 @@ def run_approval_scenario(
                             "textElements": [],
                         }
                     ],
-                    "sandboxPolicy": {
-                        "type": "workspaceWrite",
-                        "writableRoots": [str(workspace)],
-                        "networkAccess": False,
-                    },
                 },
             ),
             "turn/start",
@@ -481,63 +471,57 @@ def run_approval_scenario(
                 if (
                     not isinstance(params, dict)
                     or "itemId" not in params
-                    or params["itemId"] != "approval-probe-call"
+                    or params["itemId"] != "command-probe-call"
                 ):
                     raise RuntimeError(
                         "approval request did not describe the deterministic command"
                     )
-                if approval_policy != "on-request":
+                if not expect_approval:
                     raise RuntimeError("never policy unexpectedly requested approval")
                 return approval_requests, False
             if method == "turn/completed":
-                if approval_policy != "never":
+                if expect_approval:
                     raise RuntimeError(
                         "on-request turn completed before an approval request: "
                         + ", ".join(observed_methods)
                     )
+                if message["params"]["turn"]["status"] != "completed":
+                    raise RuntimeError(f"turn failed: {message['params']['turn']}")
                 return approval_requests, True
         raise RuntimeError(
-            f"{approval_policy} scenario did not reach a terminal outcome"
+            f"{expected_policy} scenario did not reach a terminal outcome"
         )
     finally:
         app.close()
 
 
-def run_approval_probe(codex: str, workspace: Path) -> int:
+def run_command_probe(
+    codex: str, workspace: Path, command: str, escalate: bool, expect_approval: bool
+) -> int:
     config_path = Path.home() / ".codex" / "config.toml"
     if not config_path.is_file():
         raise RuntimeError("isolated Codex config is unavailable")
-    provider = MockResponsesProvider()
+    original_config = config_path.read_text(encoding="utf-8")
+    provider = MockResponsesProvider(command, escalate)
     provider.start()
     try:
-        configure_approval_probe(config_path, provider)
-        set_approval_policy(config_path, "on-request")
-        approval_requests, turn_completed = run_approval_scenario(
-            codex, workspace, "on-request"
+        configure_command_probe(config_path, provider)
+        approval_requests, turn_completed = run_command_scenario(
+            codex, workspace, expect_approval
         )
-        if approval_requests != 1 or turn_completed:
-            raise RuntimeError("on-request did not reach the real approval path")
-        require_request_count(
-            provider, 1, "on-request did not reach the deterministic Responses provider"
-        )
-        print("approval_requests=1")
-
-        set_approval_policy(config_path, "never")
-        approval_requests, turn_completed = run_approval_scenario(
-            codex, workspace, "never"
-        )
-        if approval_requests != 0 or not turn_completed:
-            raise RuntimeError(
-                "never did not complete the deterministic command without approval"
-            )
-        require_request_count(
-            provider, 3, "never did not finish the deterministic Responses exchange"
-        )
-        print("approval_requests=0")
-        print("turn_completed=true")
+        expected_requests = 1 if expect_approval else 2
+        if provider.request_count != expected_requests:
+            raise RuntimeError("unexpected number of deterministic Responses requests")
+        if len(provider.tool_outputs) != (0 if expect_approval else 1):
+            raise RuntimeError("unexpected number of command results sent to the model")
+        print(f"approval_requests={approval_requests}")
+        print(f"turn_completed={str(turn_completed).lower()}")
+        for output in provider.tool_outputs:
+            print(output)
         return 0
     finally:
         provider.close()
+        config_path.write_text(original_config, encoding="utf-8")
 
 
 def parse_args() -> argparse.Namespace:
@@ -553,9 +537,12 @@ def parse_args() -> argparse.Namespace:
     call_parser.add_argument("server_name")
     call_parser.add_argument("sentinel")
 
-    approval_parser = subparsers.add_parser("approval")
-    approval_parser.add_argument("codex")
-    approval_parser.add_argument("workspace", type=Path)
+    command_parser = subparsers.add_parser("command")
+    command_parser.add_argument("codex")
+    command_parser.add_argument("workspace", type=Path)
+    command_parser.add_argument("shell_command")
+    command_parser.add_argument("--escalate", action="store_true")
+    command_parser.add_argument("--expect-approval", action="store_true")
     return parser.parse_args()
 
 
@@ -567,7 +554,13 @@ def main() -> int:
         return call_sentinel(
             args.codex, args.workspace, args.server_name, args.sentinel
         )
-    return run_approval_probe(args.codex, args.workspace)
+    return run_command_probe(
+        args.codex,
+        args.workspace,
+        args.shell_command,
+        args.escalate,
+        args.expect_approval,
+    )
 
 
 if __name__ == "__main__":
