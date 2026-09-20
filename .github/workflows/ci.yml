@@ -14,6 +14,9 @@ concurrency:
 env:
   NODEJS_VERSION: 24.20.0
   UV_VERSION: 0.12.9
+  OPENCODE_VERISON: 1.18.31
+  GO_VERSION: 1.26.2
+  GOPLS_VERSION: 0.22.0
 
   SHFMT_VERSION: 3.14.0
   SHFMT_SHA: fe42021c7272ef2d67ea36cbc3031683c625d0badec733ef3a57b567246a0b66
@@ -233,7 +236,7 @@ jobs:
       - name: Set up Go for the real LSP fixture
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
-          go-version: '1.26.2'
+          go-version:  ${{ env.GO_VERSION }}
           cache: false
 
       - name: Install the OpenCode runtime test dependencies
@@ -241,8 +244,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes bubblewrap
-          npm install --prefix "${RUNNER_TEMP}/opencode" --no-audit --no-fund opencode-ai@1.18.31
-          GOBIN="${RUNNER_TEMP}/lsp-bin" go install golang.org/x/tools/gopls@v0.22.0
+          npm install --prefix "${RUNNER_TEMP}/opencode" --no-audit --no-fund opencode-ai@${OPENCODE_VERISON}
+          GOBIN="${RUNNER_TEMP}/lsp-bin" go install golang.org/x/tools/gopls@v${GOPLS_VERSION}
           echo "${RUNNER_TEMP}/opencode/node_modules/.bin" >> "${GITHUB_PATH}"
           echo "${RUNNER_TEMP}/lsp-bin" >> "${GITHUB_PATH}"
 
