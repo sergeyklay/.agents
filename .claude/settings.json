@@ -92,17 +92,6 @@
           }
         ]
       }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "startup",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/append_agentsmd_context.sh"
-          }
-        ]
-      }
     ]
   },
   "enabledPlugins": {
