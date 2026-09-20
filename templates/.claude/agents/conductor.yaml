@@ -4,7 +4,6 @@ tools:
   - Glob
   - Grep
   - SendMessage
-  # project-level .mcp.json
   - mcp__atlassian__getAccessibleAtlassianResources
   - mcp__atlassian__getConfluencePage
   - mcp__atlassian__getJiraIssue

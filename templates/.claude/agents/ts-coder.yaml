@@ -9,7 +9,6 @@ tools:
   - WebFetch
   - WebSearch
   - TaskStop
-  # project-level .mcp.json
   - mcp__atlassian__createIssueLink
   - mcp__atlassian__createJiraIssue
   - mcp__atlassian__editJiraIssue
