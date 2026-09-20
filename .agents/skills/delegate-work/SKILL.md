@@ -35,7 +35,7 @@ Keep one file (a shared brief fragment, a section of `AGENTS.md`, or a skill the
 
 | Category | What it must settle |
 |---|---|
-| Isolation | Which worktree or directory the agent owns, and that it owns it alone. |
+| Isolation | The assigned checkout or directory, the files the agent may change, and where runtime tests run in isolation. A separate worktree is optional; a shared checkout requires preserving other sessions' changes. |
 | Forbidden commands | The exact commands that would destroy a parallel session's uncommitted work. Name them; "be careful with git" is not an instruction. |
 | Gate selection | How this project's checks choose the files they check, when that differs from "everything". |
 | Evidence standard | Real command output pasted, not paraphrased. A summary of a gate run is not a gate run. |

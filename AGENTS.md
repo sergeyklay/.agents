@@ -30,8 +30,8 @@ These constraints protect canonical source files and installed host views.
 - Keep behavior shared by hosts in `.agents/`; add host-specific frontmatter or prompt fragments only in `templates/`.
 - Run `make validate` after changing a skill.
 - Follow the surrounding style. Do not refactor adjacent legacy content without a separate task.
-- Give each agent its own worktree off `main`: `git worktree add -b <branch> <dir> main`. One agent per worktree, and it owns that worktree alone.
-- Treat every other checkout of this repository as read-only, including the one the brief was written from.
+- Work in the assigned checkout or worktree. A separate worktree is optional; preserve other sessions' changes in a shared checkout.
+- Treat every checkout outside the assignment as read-only. Run runtime tests and mutation controls in an isolated scratch copy.
 - Write scratch files to `.scratch/<task>/`, which is git-excluded and scoped to one session. Delete your own subdirectory when you finish, and move anything that must outlive the task into `.tasks/`.
 - Stage a new file with `git add <path>` before running any gate, for the reason under Gotchas: the file-selecting gates read `git ls-files`, skip an untracked file, and still exit 0.
 - Run a negative control before reporting any green. `prove-checks` owns what that requires.
@@ -42,7 +42,7 @@ These constraints protect canonical source files and installed host views.
 - Changes to host-wide settings in `.claude/`, `.gemini/`, or `.opencode/`.
 - Installer destinations or stale-file migration behavior.
 - Canonical skill content, its validators, or vendor templates.
-- Any write outside the assigned worktree.
+- Any write outside the assigned checkout or worktree.
 
 ### Never
 
