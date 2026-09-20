@@ -10,9 +10,7 @@ load 'test_helper'
     assert_frontmatter "$TEST_HOME/.claude/agents/$agent.md" '  - Glob'
     assert_frontmatter "$TEST_HOME/.copilot/agents/$agent.agent.md" '  - search/textSearch'
     assert_frontmatter "$TEST_HOME/.copilot/agents/$agent.agent.md" '  - search/fileSearch'
-    # OpenCode has no tool list to widen: an agent naming no tools keeps the
-    # default `"*": allow`, and an explicit `tools` key fails the whole
-    # config load on OpenCode 1.18.27.
+    # OpenCode expresses role restrictions with permission, not a tools list.
     assert_no_frontmatter_key "$TEST_HOME/.config/opencode/agents/$agent.md" 'tools'
   done
   # Gemini receives no orchestrator; see gemini-agents.bats.

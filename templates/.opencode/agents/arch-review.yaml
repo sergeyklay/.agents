@@ -1,3 +1,10 @@
 mode: subagent
 model: openrouter/openai/gpt-5.6-sol
 reasoningEffort: max
+permission:
+  bash: deny
+  task: deny
+  todowrite: deny
+  atlassian_*: deny
+  bpdb_*: deny
+  snyk_*: deny

@@ -1,3 +1,9 @@
 mode: subagent
 model: openrouter/z-ai/glm-5.3
 reasoningEffort: high
+permission:
+  task: deny
+  todowrite: deny
+  atlassian_*: deny
+  bpdb_*: deny
+  snyk_*: deny
