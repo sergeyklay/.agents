@@ -878,11 +878,45 @@ merge_toml_settings() {
   rm -f -- "$tmp"
 }
 
+# Claude Code reads AGENTS.md natively, so the SessionStart hook that injected
+# it was removed. The settings merge preserves host-only keys, leaving an
+# existing entry pointing at the deleted script; drop that entry alone.
+cleanup_stale_session_hook() {
+  settings=$1
+  [ -f "$settings" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  if ! jq -e \
+    '[.hooks.SessionStart[]?.hooks[]? | (.command // "")] | any(contains("append_agentsmd_context.sh"))' \
+    "$settings" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  tmp=$(mktemp) || die "mktemp failed"
+  jq '
+    if (.hooks.SessionStart | type) == "array" then
+      .hooks.SessionStart |= map(
+        select(([.hooks[]? | (.command // "")] | any(contains("append_agentsmd_context.sh"))) | not)
+      )
+    else . end
+    | if (.hooks.SessionStart? | type) == "array" and (.hooks.SessionStart | length) == 0
+      then del(.hooks.SessionStart) else . end
+  ' "$settings" >"$tmp" || {
+    rm -f -- "$tmp"
+    die "stale hook cleanup failed: $settings"
+  }
+  SYNC_TO_LABEL=$settings
+  sync_to "$tmp" "$settings"
+  unset SYNC_TO_LABEL
+  rm -f -- "$tmp"
+}
+
 sync_settings() {
   any_host_active claude codex gemini opencode || return 0
   progress_section "Host settings"
 
   for_host claude merge_settings "$REPO_ROOT/.claude/settings.json" "$HOME/.claude/settings.json"
+  for_host claude cleanup_stale_session_hook "$HOME/.claude/settings.json"
   for_host claude sync_to "$REPO_ROOT/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
   for_host codex ensure_subdir "$HOME/.codex" rules
   for_host codex merge_toml_settings "$REPO_ROOT/.codex/config.toml" "$HOME/.codex/config.toml"
