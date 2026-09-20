@@ -105,11 +105,15 @@ lint-markdown: ## Lint README and docs with markdownlint-cli2
 ##@ Gates
 
 .PHONY: check
-check: validate test typecheck lint lint-shell fmt-shell lint-markdown install-test ## Run every CI gate from ci.yml locally
+check: validate test typecheck lint lint-shell fmt-shell lint-markdown install-test runtime-test ## Run every CI gate from ci.yml locally
 
 .PHONY: install-test
 install-test: ## Run the installer test suite with bats
 	$(BATS) test/
+
+.PHONY: runtime-test
+runtime-test: ## Run isolated runtime scenarios with Python unittest
+	$(UV) run --no-project python test/agents/opencode/run.py
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
 

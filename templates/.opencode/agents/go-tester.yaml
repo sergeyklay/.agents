@@ -1,3 +1,11 @@
 mode: subagent
 model: openrouter/z-ai/glm-5.3-flash
 reasoningEffort: high
+permission:
+  task: deny
+  todowrite: deny
+  webfetch: deny
+  websearch: deny
+  atlassian_*: deny
+  bpdb_*: deny
+  snyk_*: deny
