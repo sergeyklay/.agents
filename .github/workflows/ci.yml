@@ -13,6 +13,7 @@ concurrency:
 
 env:
   NODEJS_VERSION: 24.20.0
+  UV_VERSION: 0.12.9
 
   SHFMT_VERSION: 3.14.0
   SHFMT_SHA: fe42021c7272ef2d67ea36cbc3031683c625d0badec733ef3a57b567246a0b66
@@ -42,7 +43,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
-          version-file: .tool-versions
+          version: ${{ env.UV_VERSION }}
           enable-cache: false
 
       - name: Validate Agent Skills
@@ -67,7 +68,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
-          version-file: .tool-versions
+          version: ${{ env.UV_VERSION }}
           enable-cache: false
 
       - name: Type-check Python scripts
@@ -88,7 +89,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
-          version-file: .tool-versions
+          version: ${{ env.UV_VERSION }}
           enable-cache: false
 
       - name: Check Python scripts
@@ -226,7 +227,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
-          version-file: .tool-versions
+          version: ${{ env.UV_VERSION }}
           enable-cache: false
 
       - name: Set up Go for the real LSP fixture
