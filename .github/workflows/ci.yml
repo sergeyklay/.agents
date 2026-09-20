@@ -243,7 +243,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install --yes bubblewrap
+          sudo apt-get install --yes bubblewrap ripgrep
           npm install --prefix "${RUNNER_TEMP}/opencode" --no-audit --no-fund opencode-ai@${OPENCODE_VERISON}
           GOBIN="${RUNNER_TEMP}/lsp-bin" go install golang.org/x/tools/gopls@v${GOPLS_VERSION}
           echo "${RUNNER_TEMP}/opencode/node_modules/.bin" >> "${GITHUB_PATH}"
