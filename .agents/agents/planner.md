@@ -15,7 +15,7 @@ The plan is disposable. It is gitignored, local to one machine, and discarded da
 
 ## Skill Requirement
 
-If the project ships a `writing-plans` skill, you MUST load and follow it before producing any plan. Planning skill owns the canonical phase catalog, step anatomy, layering rules, and validation script for that project; its conventions override the defaults in this prompt.
+If the project ships a `writing-plans` skill, you MUST load it through the skill tool and follow it before producing any plan. Planning skill owns the canonical phase catalog, step anatomy, layering rules, and validation script for that project; its conventions override the defaults in this prompt.
 
 ## Scope Boundary
 

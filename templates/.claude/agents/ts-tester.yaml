@@ -6,14 +6,11 @@ tools:
   - Edit
   - Glob
   - Grep
-  # project-level .mcp.json
   - mcp__bpdb__search_schema
   - mcp__bpdb__explain
   - mcp__bpdb__query
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
-skills:
-    - test-ts
 model: sonnet
 color: green
 effort: high

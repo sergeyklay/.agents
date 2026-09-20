@@ -40,6 +40,7 @@ Keep one file (a shared brief fragment, a section of `AGENTS.md`, or a skill the
 | Gate selection | How this project's checks choose the files they check, when that differs from "everything". |
 | Evidence standard | Real command output pasted, not paraphrased. A summary of a gate run is not a gate run. |
 | Negative control | Required before any green counts. Defer to `prove-checks` rather than restating it. |
+| Report contract | What the report carries and what it must not: the answer that was asked for, and nothing appended the caller did not ask for. A delegate has no standing to propose changes to the caller's tooling and no one on its end to approve them. |
 | Incremental findings | Findings written to a file as they accumulate. Defer to the working agreement's reporting rule rather than restating it. |
 
 The gate-selection row is the one most often skipped and the most expensive to skip. In this repository every file-selecting `make` gate selects its inputs through `git ls-files`, so a new file that is not yet indexed is silently skipped and the gate can still exit 0. A brief that omits this gets a green report about a file nothing read.

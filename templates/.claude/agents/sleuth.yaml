@@ -14,7 +14,6 @@ tools:
   - AskUserQuestion
   - ExitPlanMode
   - SendMessage
-  # project-level .mcp.json
   - mcp__atlassian__createIssueLink
   - mcp__atlassian__createJiraIssue
   - mcp__atlassian__editJiraIssue
@@ -35,10 +34,6 @@ tools:
   - mcp__bpdb__query
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
-skills:
-  - research-it
-  - explain-it
-  - improve-self
 model: opus
 effort: xhigh
 color: purple

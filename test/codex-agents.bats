@@ -122,7 +122,7 @@ PY
     case $mutation in
     model) sed -i.bak '/^model = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/architect.toml" ;;
     effort) sed -i.bak '/^model_reasoning_effort = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/architect.toml" ;;
-    skill) sed -i.bak '/^visible_skills = /d' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/planner.toml" ;;
+    skill) printf '%s\n' 'visible_skills = ["writing-plans"]' >>"$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/planner.toml" ;;
     shell) sed -i.bak 's/\["apps", "plugins"\]/["apps", "plugins", "shell_tool"]/' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/composer.toml" ;;
     plugin-on) sed -i.bak 's/\["apps"\]/["apps", "plugins"]/' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/go-coder.toml" ;;
     plugin-off) sed -i.bak 's/\["apps", "plugins"\]/["apps"]/' "$BATS_TEST_TMPDIR/mutated/templates/.codex/agents/planner.toml" ;;
@@ -143,25 +143,23 @@ for name, expected in matrix.items():
     assert set(template.get("disabled_features", [])) == disabled
     if isinstance(expected["skills"], list): assert template["visible_skills"] == expected["skills"]
     elif expected["skills"] == "none": assert template["skills"] == "none"
+    else: assert "visible_skills" not in template and "skills" not in template
 PY
     [ "$status" -ne 0 ]
   done
 }
 
 @test "visible skills are best-effort repository filtering" {
-  run install_into --agents --codex
+  repo=$(copy_repo)
+  printf '%s\n' 'visible_skills = ["writing-plans"]' >>"$repo/templates/.codex/agents/planner.toml"
+  run install_from "$repo" --agents --codex
   [ "$status" -eq 0 ]
-  python3 - "$TEST_HOME/.codex/agents" <<'PY'
+  python3 - "$TEST_HOME/.codex/agents/planner.toml" <<'PY'
 import pathlib, sys, tomllib
-roles = pathlib.Path(sys.argv[1])
-for name, visible in {
-    "arch-review": {"review-arch", "review-spec", "verify-impl"},
-    "planner": {"writing-plans"},
-}.items():
-    role = tomllib.loads((roles / f"{name}.toml").read_text())
-    disabled = {entry["name"] for entry in role["skills"]["config"]}
-    assert not visible & disabled
-    assert "future-user-skill" not in disabled
+role = tomllib.loads(pathlib.Path(sys.argv[1]).read_text())
+disabled = {entry["name"] for entry in role["skills"]["config"]}
+assert "writing-plans" not in disabled
+assert "future-user-skill" not in disabled
 PY
 }
 

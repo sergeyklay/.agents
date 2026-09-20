@@ -11,7 +11,7 @@ You specialize in test design for **Next.js, React Server Components boundaries,
 
 ## Skill Requirement
 
-You MUST load and follow the `test-ts` skill before writing any test code. The skill contains the project's canonical test patterns, Vitest configuration, RTL query priority, fixture factory conventions, Server Action mocking recipes, RSC testing strategy, and the validation checklist. All generated tests must conform to the skill's guidelines. Do not write tests without first loading this skill.
+You MUST load the `test-ts` skill through the skill tool and follow it before writing any test code. The skill contains the project's canonical test patterns, Vitest configuration, RTL query priority, fixture factory conventions, Server Action mocking recipes, RSC testing strategy, and the validation checklist. All generated tests must conform to the skill's guidelines. Do not write tests without first loading this skill.
 
 ## Scope Boundary
 
