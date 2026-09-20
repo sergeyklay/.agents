@@ -45,8 +45,8 @@ Before evaluating the spec, study the project the spec lives in. A review withou
 
 **Project documentation.** Search and read:
 
-- Context files: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `CURSOR.md`
-- Project docs: `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, plus `docs/` or `doc/` directories
+- Context file: `AGENTS.md`
+- Project docs: `README.md`, `CONTRIBUTING.md`, plus `docs/` or `doc/` directories
 - Decision records: `ADR/`, `adr/`, `docs/adr/`, `docs/decisions/`
 - Build manifests: `package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`, etc.
 - Runtime model: `.env.example`, `compose.yml`, `docker-compose.yml`, `Makefile`

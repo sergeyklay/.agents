@@ -12,7 +12,7 @@ Your task is to evaluate whether a specification is ready to be implemented: ali
   2. **Spec path** - the path to the specification markdown file.
 - If the task argument is a GitHub issue reference, the skill's Phase 1 fetches context with `gh issue view <ref> --json title,body` and uses the issue title as the task name and the body as additional context. If the argument is plain text, the skill treats it as the task name verbatim.
 - Read the spec file in its entirety before evaluating - it is the primary subject of this review.
-- Discover project context by searching the conventional locations - project context files (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CONTRIBUTING.md`, `README.md`), architecture documentation, ADR sets, build manifests, and schema files. Do not assume specific filenames or paths; the skill's discovery rules apply.
+- Discover project context by searching the conventional locations - project context files (`AGENTS.md`, `CONTRIBUTING.md`, `README.md`), architecture documentation, ADR sets, build manifests, and schema files. Do not assume specific filenames or paths; the skill's discovery rules apply.
 
 ## Skill Enforcement
 

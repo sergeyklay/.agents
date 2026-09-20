@@ -12,7 +12,7 @@ metadata:
 
 Conduct a Snyk security audit of the current repository: static analysis (SAST) of code, software composition analysis (SCA) of dependencies, remediation of findings the project's verification gates accept, and a prioritized evidence-backed findings report.
 
-This skill carries the audit workflow. The project supplies the rest: build / lint / test / install commands, source file conventions, dependency-manager invocations, false-positive patterns, and any hard remediation prohibitions live in the project's context files (AGENTS.md, CLAUDE.md, CONTRIBUTING.md, README.md) and architecture documentation. This skill tells you *how to scan, remediate, and report*; the project tells you *what counts as valid* for fixes.
+This skill carries the audit workflow. The project supplies the rest: build / lint / test / install commands, source file conventions, dependency-manager invocations, false-positive patterns, and any hard remediation prohibitions live in the project's context files (AGENTS.md, CONTRIBUTING.md, README.md) and architecture documentation. This skill tells you *how to scan, remediate, and report*; the project tells you *what counts as valid* for fixes.
 
 ## Inputs
 
@@ -56,7 +56,7 @@ Record which path is in use; reuse it throughout the workflow.
 
 **1b. Authentication.** Call the auth-status tool (`snyk_auth_status` via MCP) or run `snyk config get api`. If the result is empty or reports unauthenticated, halt. Tell the user to authenticate (`snyk auth` or the `snyk_auth` MCP tool) and re-invoke this skill.
 
-**1c. Build gate.** Read the project's context files (AGENTS.md, CLAUDE.md, CONTRIBUTING.md, README.md) and identify the canonical command that compiles or type-checks the codebase. Run it. The project must build cleanly before a scan is meaningful. If the gate fails, halt and surface the errors.
+**1c. Build gate.** Read the project's context files (AGENTS.md, CONTRIBUTING.md, README.md) and identify the canonical command that compiles or type-checks the codebase. Run it. The project must build cleanly before a scan is meaningful. If the gate fails, halt and surface the errors.
 
 If the project context does not document a build command, infer the default from the project manifest (e.g., `tsc --noEmit` for TypeScript, `go build ./...` for Go, `cargo check` for Rust) and note the inference in the report's Next Steps.
 

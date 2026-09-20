@@ -8,7 +8,7 @@ Your task is to obtain an independent review of a pull request from a second mod
 
 - Use the `challenge-pr` Agent Skill to drive every step: resolve the target, capture the diff, launch the second opinion, review independently, arbitrate, report.
 - Resolve the target from the argument: a PR number, URL, or `owner/repo#123`. With no argument, use the current branch's open PR.
-- Read the project's context files (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`) and architecture documentation, so your own pass judges the diff against this project's standards rather than generic ones.
+- Read the project's context files (`AGENTS.md`, `CONTRIBUTING.md`, `README.md`) and architecture documentation, so your own pass judges the diff against this project's standards rather than generic ones.
 
 ## Skill Enforcement
 

@@ -11,7 +11,7 @@ metadata:
 
 Apply changes that genuinely improve the work. Respectfully decline those that do not. Every accept, reject, defer, or skip is backed by documented evidence: Context7 lookups, the project's architecture documentation, or an explicit logical argument grounded in the code. The goal is not to mark every comment resolved; the goal is to ship correct, maintainable work.
 
-This skill carries the protocol. The project supplies the standards: coding conventions, verification commands, architectural invariants, tracker choice, and Context7 mechanics live in the project's context files (AGENTS.md, CLAUDE.md, CONTRIBUTING.md, README.md) and architecture documentation. This skill tells you *how to reason*; the project tells you *what to reason about*.
+This skill carries the protocol. The project supplies the standards: coding conventions, verification commands, architectural invariants, tracker choice, and Context7 mechanics live in the project's context files (AGENTS.md, CONTRIBUTING.md, README.md) and architecture documentation. This skill tells you *how to reason*; the project tells you *what to reason about*.
 
 Project context is reference material consulted while walking the steps, not a prerequisite to read end-to-end first; the exception for a wrapper prompt that declares its own reading gate is in [references/protocol-rationale.md](references/protocol-rationale.md).
 
@@ -173,7 +173,7 @@ The protocol ends here with the applied changes in the working tree. It does not
 - Do NOT file a ticket whose prose costs more than the change it requests. Weigh the two per Step 4b before the gates, and when the fix is the cheaper half, propose it and ask for approval instead. Equally, do NOT apply such an edit without that approval: an unrequested edit is scope creep however small it is.
 - Do NOT skip Context7 because you feel confident about the API. Confidence is the proximate cause of hallucination. Certainty is earned from documentation, not recalled from training data.
 - Do NOT reference the project's architecture documentation, ADRs, section numbers, or ticket IDs in source-code comments - those belong in specs and plans, not source.
-- Do NOT introduce dependencies, languages, toolchains, or patterns that the project context forbids. If AGENTS.md / CLAUDE.md declares a "Never" rule (forbidden libraries, banned patterns, prohibited APIs), the rule binds you regardless of any reviewer suggestion to the contrary.
+- Do NOT introduce dependencies, languages, toolchains, or patterns that the project context forbids. If AGENTS.md declares a "Never" rule (forbidden libraries, banned patterns, prohibited APIs), the rule binds you regardless of any reviewer suggestion to the contrary.
 - Preserve the project's existing code style, module boundaries, and architectural conventions.
 - When rejecting, your rationale must be technical and specific - never dismissive. Cite Context7 findings when they support the rejection.
 

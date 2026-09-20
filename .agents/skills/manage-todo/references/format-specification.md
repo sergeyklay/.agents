@@ -1,6 +1,6 @@
 # TODO.md Format Specification
 
-Exact structural rules for a project's TODO.md roadmap file. Derive the project-specific conventions from the existing TODO.md and the project's context file (AGENTS.md, CLAUDE.md). All agents writing to TODO.md must conform.
+Exact structural rules for a project's TODO.md roadmap file. Derive the project-specific conventions from the existing TODO.md and the project's context file (AGENTS.md). All agents writing to TODO.md must conform.
 
 ## Contents
 

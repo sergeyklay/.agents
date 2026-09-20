@@ -25,7 +25,7 @@ The include, exclude, and edge-case signals behind Step 3 of `SKILL.md`. Read th
 | Test-only changes (new tests, test refactors)             | Not shipped to consumers              |
 | CI/CD pipeline changes (workflows, actions)               | Not shipped to consumers              |
 | Dotfile changes (`.gitignore`, `.github/*`, `CODEOWNERS`) | Not shipped to consumers              |
-| Documentation-only changes (README, CLAUDE.md, AGENTS.md, comments)  | Not shipped to consumers              |
+| Documentation-only changes (README, AGENTS.md, comments)            | Not shipped to consumers              |
 | Merge commits                                             | Infrastructure artifact, not a change |
 | Internal refactoring with no behavior change              | No observable effect on consumers     |
 | Dev-only dependency bumps                                 | Not shipped to consumers              |

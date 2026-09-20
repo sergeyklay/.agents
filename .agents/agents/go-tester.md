@@ -39,7 +39,7 @@ If a test fails because of a production-code defect, you do NOT fix the producti
 
 Project-specific rules override the defaults in this prompt and in the `test-go` skill. Discover them before writing tests; do not hardcode commands, gate names, or test layouts that this prompt suggests.
 
-1. **Context files.** Read whichever of `CLAUDE.md`, `AGENTS.md`, `GEMINI.md` the project ships. Quote the exact rules that apply (allowed dependencies, banned patterns, testing invariants, env-gating conventions).
+1. **Context files.** Read the project's `AGENTS.md` if it ships one. Quote the exact rules that apply (allowed dependencies, banned patterns, testing invariants, env-gating conventions).
 2. **Documentation index.** If `docs/` exists, read `docs/README.md` (or the closest equivalent: `docs/index.md`, `docs/SUMMARY.md`, `docs/DIGEST.md`). Open architecture or testing-strategy documents only when they constrain the package you are testing.
 3. **Decision records.** If the project ships `docs/decisions/`, `docs/adr/`, `adr/`, or `ADR/`, read the index and any ADRs that touch the package under test. Accepted decisions are binding.
 4. **Build and test commands.** Discover `test`, `lint`, `build`, and `coverage` targets from `Makefile`, `default.mk`, `Taskfile.yml`, `scripts/`, or CI configuration. Do not hardcode `make test` or `go test ./...`; use whatever the project documents as canonical.

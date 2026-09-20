@@ -4,7 +4,7 @@ The nine principles the protocol's rules follow from. Read this when a rule abov
 
 ## Reading project context
 
-Project context (AGENTS.md, CLAUDE.md, architecture documentation) is reference material consulted *while* walking through this skill's steps - not a prerequisite to read end-to-end before starting. If a wrapper prompt that invoked this skill lists its own prerequisite reading, honor those reads first; the wrapper has authority to add such a gate. The "not a prerequisite" rule applies only to the project context files named here - it is not a blanket prohibition against preliminary reading the wrapper requires.
+Project context (AGENTS.md, architecture documentation) is reference material consulted *while* walking through this skill's steps - not a prerequisite to read end-to-end before starting. If a wrapper prompt that invoked this skill lists its own prerequisite reading, honor those reads first; the wrapper has authority to add such a gate. The "not a prerequisite" rule applies only to the project context files named here - it is not a blanket prohibition against preliminary reading the wrapper requires.
 
 ## Guiding principles
 

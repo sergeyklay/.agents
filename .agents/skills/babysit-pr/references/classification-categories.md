@@ -22,7 +22,7 @@ This reference expands the seven-category classification table in SKILL.md with 
 
 - If the comment makes a library claim, Context7 or the architecture documentation confirms it.
 - The fix is in scope for the current change.
-- The fix can be implemented without violating any constraint declared in the project's context files (AGENTS.md / CLAUDE.md "Always" / "Ask first" / "Never" sections, layer or module hierarchies, forbidden patterns).
+- The fix can be implemented without violating any constraint declared in the project's context files (AGENTS.md "Always" / "Ask first" / "Never" sections, layer or module hierarchies, forbidden patterns).
 
 **Action.** Apply the fix per SKILL.md Step 4a (code) or Step 4c (architecture). Verify by running the relevant subset of the project's documented verification commands.
 

@@ -1,6 +1,6 @@
 # Platform → vendor mapping
 
-Each agent platform loads skills from a known set of `.{vendor}/skills/` paths. Use the running agent's self-knowledge — its system prompt, its `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` context files, or its platform documentation — to pick the vendor names below. Do not equate "exists on disk" with "I will load this".
+Each agent platform loads skills from a known set of `.{vendor}/skills/` paths. Use the running agent's self-knowledge — its system prompt, its `AGENTS.md` context file, or its platform documentation — to pick the vendor names below. Do not equate "exists on disk" with "I will load this".
 
 | Running agent | Vendor names to pass |
 |---|---|

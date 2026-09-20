@@ -27,7 +27,7 @@ Verify that the design does not contradict any rule the project explicitly docum
 
 **Questions to answer:**
 
-1. Does the agent-instruction file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, etc.) list rules under "Always", "Never", "Ask First", "Boundaries", "Constraints", or similar?
+1. Does the agent-instruction file (`AGENTS.md`) list rules under "Always", "Never", "Ask First", "Boundaries", "Constraints", or similar?
    - The design violates a "Never" rule, "MUST NOT" rule, or equivalent absolute prohibition: `STOP`.
    - The design triggers an "Ask First" rule, "SHOULD ask", or equivalent gate: `FLAG` and require explicit user approval before proceeding.
 2. Does the architecture document describe behavior or invariants that this feature must comply with?

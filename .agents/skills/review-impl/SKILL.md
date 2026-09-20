@@ -26,7 +26,7 @@ metadata:
 
 Before evaluating any changes, build a mental model of the system:
 
-1. Read project context files: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `README.md`, `ARCHITECTURE.md`, and anything in `docs/`.
+1. Read project context files: `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, and anything in `docs/`.
 2. List the project root and key subdirectories to understand module structure and layering.
 3. Read build/dependency manifests to understand the tech stack.
 4. Search for code review standards or guidelines the project defines.
