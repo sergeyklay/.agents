@@ -39,7 +39,7 @@ Before evaluating anything, establish:
 
 If the review input is a codebase or specification, also read:
 
-- `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `CURSOR.md`, `README.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md`
+- `AGENTS.md`, `README.md`, `CONTRIBUTING.md`
 - `docs/` or `doc/` directories, especially ADR / `adr/` / `docs/adr/` entries
 - Build and dependency manifests (`package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`)
 - Runtime configuration (`.env.example`, `docker-compose.yml`, `Makefile`, `k8s/`)

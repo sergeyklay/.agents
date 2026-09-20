@@ -38,8 +38,8 @@ Before verifying anything, understand the system the spec lives within.
 
 **Project documentation.** Search and read:
 
-- Context files: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `CURSOR.md`
-- Project docs: `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, plus `docs/` or `doc/` directories - especially design and ADR sets
+- Context files: `AGENTS.md`
+- Project docs: `README.md`, `CONTRIBUTING.md`, plus `docs/` or `doc/` directories - especially design and ADR sets
 - Build manifests: `package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`, etc. - to understand the tech stack
 - Runtime model: `.env.example`, `docker-compose.yml`, `compose.yml`, `Makefile`
 

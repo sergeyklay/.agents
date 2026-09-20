@@ -168,7 +168,7 @@ Every design decision in the plan that traces to the spec, an ADR, an architectu
 - Anchor link: `Section 5.3 of docs/architecture.md#53-pagination`
 - ADR reference: `per ADR-0014`
 - Spec section: `Section 3.2 of the source spec at .specs/Spec-PROJ-42.md#32-...`
-- Rule name: `per CLAUDE.md "Never" rule on raw SQL`
+- Rule name: `per AGENTS.md "Never" rule on raw SQL`
 
 Decisions that do not trace MUST be flagged in the plan's "Plan extensions" section with the reasoning and the review needed to ratify them. Untraced decisions are scope creep waiting to happen.
 

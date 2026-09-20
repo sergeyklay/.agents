@@ -35,7 +35,7 @@ Use Context7 when writing or modifying code that depends on an **external librar
 
 Do not call Context7 when:
 
-- The answer exists in this project's own authoritative documentation (architecture docs, ADRs, `AGENTS.md`, `CLAUDE.md`, READMEs, internal wikis). Project-internal docs are always authoritative over external sources.
+- The answer exists in this project's own authoritative documentation (architecture docs, ADRs, `AGENTS.md`, READMEs, internal wikis). Project-internal docs are always authoritative over external sources.
 - The question is about a general programming concept (data structures, algorithms, design patterns, concurrency theory). Use training knowledge or web search.
 - The library is part of the language's standard library and the API in question is mature. Standard libraries are backward-compatible and training data is reliable.
 - You already have high confidence in the API from recent, verified training data and the library has not had a major release since.
@@ -99,4 +99,4 @@ If `query-docs` returns irrelevant content:
 - Do not call Context7 speculatively "just in case." Each call consumes tokens and latency. Use it when there is a concrete question about an external API.
 - Do not trust Context7 output blindly. Cross-check returned APIs against the actual library version declared in this project's dependency manifest (`package.json`, `go.mod`, `pyproject.toml`, `Gemfile`, `pom.xml`, `Cargo.toml`, `*.csproj`, etc.). If Context7 returns docs for a different major than the project pins, the answer may not apply.
 - Do not use Context7 to fetch documentation for libraries this project intentionally avoids. If an ADR or architecture document forbids a dependency, do not consult its docs to "see if it would work anyway."
-- When Context7 documentation conflicts with the project's authoritative docs (architecture docs, ADRs, `AGENTS.md`, `CLAUDE.md`), the project docs win. Context7 tells you what an external library *can* do; the project docs tell you what this project *will* do.
+- When Context7 documentation conflicts with the project's authoritative docs (architecture docs, ADRs, `AGENTS.md`), the project docs win. Context7 tells you what an external library *can* do; the project docs tell you what this project *will* do.

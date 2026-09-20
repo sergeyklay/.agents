@@ -162,7 +162,7 @@ The patterns below are grounded in IEEE 830 / ISO/IEC 29148 requirement-quality 
 
 ### Architectural-decision contradiction
 
-**Signal.** The spec contradicts an established architectural decision: an accepted ADR, an explicit "Never" rule in `AGENTS.md` / `CLAUDE.md`, a layer-boundary rule, or an adapter-boundary rule.
+**Signal.** The spec contradicts an established architectural decision: an accepted ADR, an explicit "Never" rule in `AGENTS.md`, a layer-boundary rule, or an adapter-boundary rule.
 
 **Examples.**
 

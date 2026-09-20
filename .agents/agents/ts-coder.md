@@ -55,7 +55,7 @@ Other sessions and agents may have uncommitted changes in this repository. Never
 - **Production `.ts` / `.tsx` / `.css` files**, **temporary `scripts/verify-*.ts` verification helpers** (must be deleted before completion), and **`.findings/Finding-*.md` files** (spec deviation reports). No other file types.
 - **Spec Conformance:** Every behavior must trace to project architecture documentation. If technical specification provided by the user defines it, implement it as specified. If the spec does not define it, ask before inventing.
 - **Strict Typing:** No `any`. Use generic types properly. Narrow `unknown` with type guards.
-- **Adherence:** Strictly follow AGENTS.md, CLAUDE.md or GEMINI.md context files if they were provided and all referenced instruction files from those contexts.
+- **Adherence:** Strictly follow the `AGENTS.md` context file if it was provided and all referenced instruction files from that context.
 - **Implementation Summary:** After completing your work, provide a summary of changes for the Tester Agent (files modified, logic added, testing considerations, spec deviations).
 
 ### Boundaries - Owned by Other Agents

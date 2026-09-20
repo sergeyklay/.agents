@@ -233,7 +233,7 @@ A -- "manual copy/paste" --> B
 ```mermaid
 subgraph knowledge["Project Knowledge"]
     direction LR
-    F["AGENTS.md or CLAUDE.md"]
+    F["AGENTS.md"]
     G["Rules"]
 end
 ```

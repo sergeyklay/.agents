@@ -35,7 +35,7 @@ If both conditions hold, the comment is **[C7-REQUIRED]**.
 
 If either condition fails - the surface is internal, or the claim is too vague to falsify - the comment does not require Context7.
 
-The project's context files (AGENTS.md, CLAUDE.md) and architecture documentation may further refine "external" for the project's stack. If those documents identify specific dependencies as well-known and stable enough to skip Context7 for, treat that as an authoritative override of the default cautious posture. In the absence of such an override, the heuristic above governs.
+The project's context file (AGENTS.md) and architecture documentation may further refine "external" for the project's stack. If those documents identify specific dependencies as well-known and stable enough to skip Context7 for, treat that as an authoritative override of the default cautious posture. In the absence of such an override, the heuristic above governs.
 
 ## Comments that do NOT require Context7
 

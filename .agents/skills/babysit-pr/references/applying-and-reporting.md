@@ -13,7 +13,7 @@ The per-domain apply procedures behind Step 4a and Step 4c, and the draft checkl
 1. Locate the exact file and line range.
 2. **Before writing any fix that uses an external library API,** run Context7 for the *implementation* - not just for the classification. Verify the exact method signature, parameter types, and return shape against current documentation. The reviewer may be correct in direction but wrong in the specific API call they suggested.
 3. Implement the change surgically. Modify only what is necessary.
-4. Run the project's documented verification commands. Project context files (AGENTS.md, CLAUDE.md, CONTRIBUTING, README) declare the canonical commands for formatting, linting, type checking, and testing. Read them, then run only the subset relevant to what you changed:
+4. Run the project's documented verification commands. Project context files (AGENTS.md, CONTRIBUTING, README) declare the canonical commands for formatting, linting, type checking, and testing. Read them, then run only the subset relevant to what you changed:
    - A change to source code runs the formatter, linter, type checker (if any), and the tests covering the affected area.
    - A change to documentation runs the documentation linter or link checker if defined; otherwise no verification is needed.
    - A change to configuration runs the schema validator if defined; otherwise no verification is needed.

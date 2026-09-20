@@ -320,3 +320,76 @@ $output"
   [ -z "$unrecognized" ] || fail "the host acts on none of these:
 $unrecognized"
 }
+
+# Claude Code reads AGENTS.md natively, so the SessionStart hook that injected
+# it was deleted. The settings merge preserves host-only keys, so an existing
+# entry must be pruned or it keeps pointing at the removed script.
+@test "Claude settings drop the stale AGENTS.md SessionStart hook" {
+  mkdir -p "$TEST_HOME/.claude"
+  cat >"$TEST_HOME/.claude/settings.json" <<'JSON'
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/append_agentsmd_context.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/host-hook.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+JSON
+
+  run install_into --settings --claude
+  [ "$status" -eq 0 ]
+  settings="$TEST_HOME/.claude/settings.json"
+  jq -e '[.hooks.SessionStart[]?.hooks[]? | (.command // "")] | length == 1' \
+    "$settings" >/dev/null
+  jq -e '[.hooks.SessionStart[]?.hooks[]? | (.command // "")] | index("$HOME/.claude/hooks/host-hook.sh") != null' \
+    "$settings" >/dev/null
+
+  cp "$settings" "$BATS_TEST_TMPDIR/settings.json"
+  run install_into --settings --claude
+  [ "$status" -eq 0 ]
+  assert_same "$BATS_TEST_TMPDIR/settings.json" "$settings"
+}
+
+@test "Claude settings remove the SessionStart key left empty by the stale hook" {
+  mkdir -p "$TEST_HOME/.claude"
+  cat >"$TEST_HOME/.claude/settings.json" <<'JSON'
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/append_agentsmd_context.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+JSON
+
+  run install_into --settings --claude
+  [ "$status" -eq 0 ]
+  settings="$TEST_HOME/.claude/settings.json"
+  jq -e '(.hooks.SessionStart? // null) == null' "$settings" >/dev/null
+  jq -e '.hooks.PostToolUse != null' "$settings" >/dev/null
+}

@@ -160,6 +160,6 @@ These degrade the skill library and erode trust in the self-improvement loop:
 - **Duplicate skills.** Failing to read existing descriptions - skills *and* slash commands - before proposing. Defence: Phase 2 is non-negotiable.
 - **Self-validation.** Treating the agent's confidence in the draft as sufficient quality control. Defence: the user is the external validator before any write, the script-based validator after.
 - **Encoding transient or version-specific behavior.** "Library X v2.3 returns a list" rots the moment v2.4 ships. Defence: skills capture *procedure* (how to find out, how to triangulate, how to verify), not facts that change.
-- **Skill-shaped facts.** Information that belongs in `CLAUDE.md` or `AGENTS.md` compressed into an unwieldy skill. Defence: route via [references/alternatives-to-a-skill.md](references/alternatives-to-a-skill.md).
+- **Skill-shaped facts.** Information that belongs in `AGENTS.md` compressed into an unwieldy skill. Defence: route via [references/alternatives-to-a-skill.md](references/alternatives-to-a-skill.md).
 - **Silent installation.** Writing the file before the user has seen the draft. Defence: Phase 5 explicitly forbids it.
 

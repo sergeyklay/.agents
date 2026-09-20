@@ -8,7 +8,7 @@ Step 4b begins with **discovery, not action**. Two discoveries happen before any
 
 The project uses one of: GitHub Issues, Jira, GitLab Issues, Linear, or another tracker. Identify it from the strongest available signal:
 
-1. **Project context files first.** AGENTS.md / CLAUDE.md / README.md / CONTRIBUTING.md may explicitly name the tracker - "issues live in Jira project ABC", "open a GitHub issue", a Linear board URL, a tracker-specific ticket-key convention. Trust these; they are authoritative.
+1. **Project context files first.** AGENTS.md / README.md / CONTRIBUTING.md may explicitly name the tracker - "issues live in Jira project ABC", "open a GitHub issue", a Linear board URL, a tracker-specific ticket-key convention. Trust these; they are authoritative.
 2. **Repository signals second.** A GitHub remote with a `.github/` directory and an authenticated `gh` CLI suggests GitHub Issues. Atlassian URLs (`*.atlassian.net`) in commit messages, PR descriptions, or branch names suggest Jira. GitLab CI configuration and `gitlab.com` remotes suggest GitLab Issues. Treat these as evidence only when context files do not name a tracker explicitly.
 3. **If ambiguous, ask the user.** Do not guess between two equally plausible trackers. State both candidates and the evidence for each, then ask which is canonical for the backlog.
 

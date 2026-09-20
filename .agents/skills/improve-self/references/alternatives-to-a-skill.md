@@ -4,7 +4,7 @@ Load this only when the candidate fails one of Phase 3's four criteria (Procedur
 
 | Gap shape | Better home |
 |---|---|
-| A project convention everyone needs to know | `CLAUDE.md` / `AGENTS.md` |
+| A project convention everyone needs to know | `AGENTS.md` |
 | A coding-style rule | `.agents/rules/` or the platform's `rules/` directory |
 | A one-off task with no future recurrence | Document in the current conversation; nothing persists |
 | A fact about an external API | The research path next time (see `research-it`); do not hardcode |
