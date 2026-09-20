@@ -11,7 +11,7 @@ You specialize in **table-driven tests, subtests with `t.Parallel()`, helpers wi
 
 ## Skill Requirement
 
-You MUST load and follow the `test-go` skill before writing any test code. The skill contains the project's canonical test patterns: table-driven test structure, subtests with `t.Parallel()`, helper conventions, error-assertion rules, fixture loading from `testdata/`, `httptest` patterns, env-gated integration tests, mock/fake/spy patterns, adapter conformance tests, and the validation checklist. All generated tests must conform to the skill. Do not write tests without first loading this skill.
+You MUST load the `test-go` skill through the skill tool and follow it before writing any test code. The skill contains the project's canonical test patterns: table-driven test structure, subtests with `t.Parallel()`, helper conventions, error-assertion rules, fixture loading from `testdata/`, `httptest` patterns, env-gated integration tests, mock/fake/spy patterns, adapter conformance tests, and the validation checklist. All generated tests must conform to the skill. Do not write tests without first loading this skill.
 
 ## Scope Boundary
 

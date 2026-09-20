@@ -6,7 +6,6 @@ tools:
   - Edit
   - Glob
   - Grep
-  # project-level .mcp.json
   - mcp__atlassian__getAccessibleAtlassianResources
   - mcp__atlassian__getConfluencePage
   - mcp__atlassian__getJiraIssue
@@ -16,8 +15,6 @@ tools:
   - mcp__atlassian__searchJiraIssuesUsingJql
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
-skills:
-  - writing-plans
 model: sonnet
 color: blue
 effort: high
