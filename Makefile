@@ -103,7 +103,7 @@ check: validate test typecheck lint lint-shell fmt-shell lint-markdown install-t
 
 .PHONY: install-test
 install-test: ## Run the installer test suite with bats
-	$(BATS) test/
+	$(BATS) --print-output-on-failure test/
 
 .PHONY: runtime-test
 runtime-test: ## Run isolated runtime scenarios with Python unittest

@@ -27,8 +27,9 @@ type stubTracker struct{}
 func (s *stubTracker) FetchIssuesByStates(_ context.Context, _ []string) ([]domain.Issue, error) {
     return nil, nil
 }
-// ... all interface methods return zero values
 ```
+
+Every other method of the interface returns zero values the same way.
 
 ### 3. Fake (Working Implementation)
 
@@ -53,9 +54,10 @@ Use `httptest.NewServer` handlers with `atomic` counters or captured request dat
 fixture := loadFixture(t, "response.json")
 
 var callCount int64
+var gotQuery atomic.Value
 srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     atomic.AddInt64(&callCount, 1)
-    // capture r.URL.Query(), r.Header, etc. into atomic values
+    gotQuery.Store(r.URL.RawQuery)
     w.Write(fixture)
 }))
 ```
@@ -82,9 +84,8 @@ func defaultParams() domain.RunTurnParams {
     return domain.RunTurnParams{
         Prompt:    "test prompt",
         SessionID: "sess-001",
-        // ... all required fields with sensible defaults
     }
 }
 ```
 
-Callers override only the fields relevant to their test case.
+The builder fills every required field with a realistic default. Callers override only the fields relevant to their test case.

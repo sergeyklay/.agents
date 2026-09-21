@@ -39,8 +39,6 @@ Optional vars (e.g. `{PROJECT}_{INTEGRATION}_ACTIVE_STATES`) enhance coverage bu
 Every integration test file must define and use a skip helper. The example below uses literal sample names; rename `MYAPP` and `INTEGRATION` to fit the project being worked on:
 
 ```go
-// Replace MYAPP with the project's env-var prefix and INTEGRATION
-// with the adapter name (e.g. STRIPE, GITHUB, S3).
 func skipUnlessIntegration(t *testing.T) {
     t.Helper()
     if os.Getenv("MYAPP_INTEGRATION_TEST") != "1" {
@@ -62,10 +60,9 @@ Call `skipUnlessIntegration(t)` as the first line of every integration test func
 
 ## Config Builder
 
-Build adapter config from env vars in a dedicated helper:
+Build adapter config from env vars in a dedicated helper, renaming `MYAPP_INTEGRATION_*` to the project's variables:
 
 ```go
-// Rename MYAPP_INTEGRATION_* to the actual env-var names used by the project.
 func integrationConfig(t *testing.T) map[string]any {
     t.Helper()
     endpoint := requireEnv(t, "MYAPP_INTEGRATION_ENDPOINT")
@@ -77,9 +74,8 @@ func integrationConfig(t *testing.T) map[string]any {
         "api_key":  apiKey,
         "project":  project,
     }
-    // Add optional vars without fataling when absent.
     if states := os.Getenv("MYAPP_INTEGRATION_ACTIVE_STATES"); states != "" {
-        // parse and add
+        cfg["active_states"] = strings.Split(states, ",")
     }
     return cfg
 }
@@ -111,5 +107,5 @@ When implementing a new adapter:
 1. Create `integration_test.go` in the adapter package
 2. Define `{PROJECT}_{INTEGRATION}_TEST` gate variable, substituting the real project prefix and adapter name
 3. Implement `skipUnlessIntegration`, `requireEnv`, and config builder helpers
-4. Document required env vars in the test file header comment
+4. Document required env vars in the project's testing documentation, not in a test file comment
 5. Add the run command to this reference doc

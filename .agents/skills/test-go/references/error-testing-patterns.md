@@ -66,15 +66,12 @@ tests := []struct {
 Use `errors.As` for type unwrapping and `errors.Is` for sentinel matching. Never inspect `.Error()` strings.
 
 ```go
-// Type check through wrapped chain
 var pe *PathError
-if errors.As(err, &pe) {
-    // pe is the first PathError in the chain
+if !errors.As(err, &pe) {
+    t.Fatalf("err = %v, want a *PathError in the chain", err)
 }
-
-// Sentinel check
-if errors.Is(err, context.DeadlineExceeded) {
-    // timeout somewhere in the chain
+if !errors.Is(err, context.DeadlineExceeded) {
+    t.Errorf("err = %v, want context.DeadlineExceeded in the chain", err)
 }
 ```
 
