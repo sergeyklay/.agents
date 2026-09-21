@@ -16,7 +16,7 @@ Examples below use two placeholders. They are not literal - substitute the actua
 - `{PROJECT}` - the project's identifier (e.g. env-var prefix, repo name). In env vars: `MYAPP_…`. In prose: `MyApp` or `myapp`.
 - `{integration}` - an external system or adapter name (e.g. `jira`, `stripe`, `claude`). In paths: `internal/tracker/jira/`. In env vars: `JIRA_…`. In type names: `JiraAdapter`.
 
-`.go` files in `assets/` use concrete-looking sample names (`Adapter`, `MYAPP_INTEGRATION_TEST`, etc.) so the templates stay syntactically valid Go; comments inside each template tell you what to rename.
+`.go` files in `assets/` and the examples below use sample names (package `example`, `Adapter`, `NewAdapter`, `FunctionName`, `MYAPP_INTEGRATION_TEST`) so they stay syntactically valid Go. Rename each to the project's real name. The templates carry no comments; see [Comments](#comments) before adding one.
 
 ## Decision Framework
 
@@ -38,24 +38,31 @@ Pick the lightest category that validates the behavior.
 Every test file in this project follows this skeleton: helpers first, then test functions. Internalize it - do not deviate. Declaration order carries the structure, so do not add banner comments to mark the sections; the `go-codestyle` rule bans them.
 
 ```go
-package pkg // or pkg_test for black-box
+package pkg
 
-import (
-    "testing"
-    // stdlib, then project imports, then third-party
-)
+import "testing"
 
-func helperName(t *testing.T, args ...) ReturnType {
+func mustThing(t *testing.T) *Thing {
     t.Helper()
-    // setup or assertion logic
-    // use t.Cleanup() for teardown, never defer in helpers
+    thing, err := NewThing()
+    if err != nil {
+        t.Fatalf("NewThing: %v", err)
+    }
+    t.Cleanup(thing.Close)
+    return thing
 }
 
-func TestFunctionName(t *testing.T) {
+func TestThingDoesWork(t *testing.T) {
     t.Parallel()
-    // ...
+
+    thing := mustThing(t)
+    if err := thing.DoWork(); err != nil {
+        t.Fatalf("DoWork() = %v, want nil", err)
+    }
 }
 ```
+
+The package clause is `pkg`, or `pkg_test` for a black-box test.
 
 **Key rules this project enforces:**
 
@@ -78,6 +85,17 @@ func TestFunctionName(t *testing.T) {
 ### Failing from a goroutine that is not the test
 
 `FailNow` stops the goroutine it runs on and nothing else, so `t.Fatal` from a server handler fails the test without stopping it and the caller sees a connection error instead of the real cause. `t.Error` is no safer: once the test has returned, it panics with `Fail in goroutine after <test> has completed`, `net/http` recovers that panic inside the handler, and the assertion disappears - the test prints PASS while the suite exits FAIL naming no test at all. Record what the goroutine saw and assert on it from the test body.
+
+---
+
+## Comments
+
+A test file carries no comments by default. The test name, the case names, and the failure messages say what is checked; a comment that repeats them is one more thing the next reader has to verify, and it goes stale when the test changes. Write the test so it needs no explanation.
+
+- No doc comment on a `Test`, `Benchmark`, or `Fuzz` function, a helper, or a test double. When the name does not say what the test checks, rename it.
+- No comment inside a test body that narrates setup, the call, or the assertions. Extract the block into a helper whose name says it, or rename the variable that raised the question.
+- A comment earns its place only for what the code cannot say: the upstream issue or RFC a regression test pins, a protocol or business constraint, a workaround, or a warning about call order, a race, or a hidden cost. The `loadFixture` comment in [HTTP Adapter Testing](#http-adapter-testing) is one.
+- Do not copy comments from the surrounding tests. In a test file you edit, delete every comment that breaks these rules, including the ones already there. When a comment mixes a reason with a restatement, keep the reason and drop the restatement. Cleaning comment noise out of a file you already change is part of the change.
 
 ---
 
@@ -138,10 +156,6 @@ func TestSanitizeKey(t *testing.T) {
 This project uses custom typed errors extensively. Test error semantics, never strings.
 
 ```go
-// Domain error types: TrackerError, ConfigError, PathError, TemplateError
-// Each has a Kind or Field for categorization
-
-// Pattern: typed error assertion helper
 func assertTrackerErrorKind(t *testing.T, err error, want domain.TrackerErrorKind) {
     t.Helper()
     if err == nil {
@@ -173,9 +187,6 @@ Helpers belong at the top of the test file, before test functions. Each adapter 
 **Common helper patterns in this project:**
 
 ```go
-// Factory helper - creates a valid test subject or fails.
-// Rename Adapter / NewAdapter to the concrete adapter type from your package.
-// e.g. {Integration}Adapter / New{Integration}Adapter.
 func mustAdapter(t *testing.T, config map[string]any) *Adapter {
     t.Helper()
     a, err := NewAdapter(config)
@@ -185,7 +196,6 @@ func mustAdapter(t *testing.T, config map[string]any) *Adapter {
     return a.(*Adapter)
 }
 
-// Fixture loader - reads testdata/ files
 func loadFixture(t *testing.T, name string) []byte {
     t.Helper()
     data, err := os.ReadFile("testdata/" + name)
@@ -195,7 +205,6 @@ func loadFixture(t *testing.T, name string) []byte {
     return data
 }
 
-// Config builder - returns valid baseline config for modification
 func validConfig(endpoint string) map[string]any {
     return map[string]any{
         "endpoint": endpoint,
@@ -204,7 +213,6 @@ func validConfig(endpoint string) map[string]any {
     }
 }
 
-// Resource cleanup helper
 func closeStore(t *testing.T, s *Store) {
     t.Helper()
     if err := s.Close(); err != nil {
@@ -249,7 +257,9 @@ func TestFetchIssues(t *testing.T) {
     if auth, _ := gotAuth.Load().(string); auth == "" {
         t.Errorf("Authorization header = %q, want non-empty", auth)
     }
-    // Assert on normalized domain objects, not raw JSON
+    if len(issues) != 1 {
+        t.Errorf("FetchIssuesByStates returned %d issues, want 1", len(issues))
+    }
 }
 ```
 
@@ -272,8 +282,6 @@ Integration tests talk to real external services. They MUST be gated by environm
 **Quick reference:**
 
 ```go
-// Replace MYAPP with the project's env-var prefix and INTEGRATION
-// with the adapter name (e.g. STRIPE, GITHUB).
 func skipUnlessIntegration(t *testing.T) {
     t.Helper()
     if os.Getenv("MYAPP_INTEGRATION_TEST") != "1" {
@@ -294,8 +302,6 @@ func skipUnlessIntegration(t *testing.T) {
 Every adapter (tracker or agent) must prove it satisfies the domain interface. Use compile-time interface checks and conformance test suites.
 
 ```go
-// Compile-time interface satisfaction - place in test file.
-// Replace Adapter with the concrete adapter type from your package.
 var _ domain.TrackerAdapter = (*Adapter)(nil)
 var _ domain.AgentAdapter = (*mockAgentAdapter)(nil)
 ```
@@ -330,8 +336,9 @@ var _ domain.TrackerAdapter = (*mockTrackerAdapter)(nil)
 func (m *mockTrackerAdapter) FetchIssuesByStates(ctx context.Context, states []string) ([]domain.Issue, error) {
     return nil, nil
 }
-// ... implement all interface methods
 ```
+
+Implement every method of the interface; the compile-time check fails until you do.
 
 ---
 
@@ -365,12 +372,16 @@ Every assertion must produce a message diagnosable without reading the test sour
 Format: FuncName(inputs) = got, want expected
 ```
 
+Correct, naming the function, the input, got, and want:
+
 ```go
-// Correct - includes function, input, got, want
 t.Errorf("SanitizeKey(%q) = %q, want %q", tt.input, got, tt.want)
 t.Errorf("TrackerError.Kind = %q, want %q", te.Kind, want)
+```
 
-// Incorrect - missing context
+Incorrect, missing context:
+
+```go
 t.Errorf("got %q, want %q", got, tt.want)
 t.Error("wrong result")
 ```
@@ -389,6 +400,7 @@ After writing or modifying tests, verify:
 - [ ] Independent test functions and subtests call `t.Parallel()`; those using `t.Setenv`, `t.Chdir` or `testing.AllocsPerRun` do not
 - [ ] No `t.Fatal` / `t.Error` inside an `http.HandlerFunc` or any other spawned goroutine
 - [ ] All helpers call `t.Helper()` as first statement
+- [ ] No doc comment on a test, helper, or double, and no comment in the file restates the code; every remaining comment gives a reason
 - [ ] Error assertions use `errors.As()` / `errors.Is()`, not string comparison
 - [ ] Failure messages include function name, inputs, got, and want
 - [ ] Integration tests skip cleanly without their env var

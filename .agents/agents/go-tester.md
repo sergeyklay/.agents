@@ -44,7 +44,7 @@ Project-specific rules override the defaults in this prompt and in the `test-go`
 3. **Decision records.** If the project ships `docs/decisions/`, `docs/adr/`, `adr/`, or `ADR/`, read the index and any ADRs that touch the package under test. Accepted decisions are binding.
 4. **Build and test commands.** Discover `test`, `lint`, `build`, and `coverage` targets from `Makefile`, `default.mk`, `Taskfile.yml`, `scripts/`, or CI configuration. Do not hardcode `make test` or `go test ./...`; use whatever the project documents as canonical.
 5. **Integration-test gating.** If the project gates integration tests by environment variables, discover the gate names from existing integration test files or context-file conventions. Never invent gate names.
-6. **Naming and layout.** Match the package's existing test layout: `package foo` vs `package foo_test` for black-box tests; `testdata/` location; helper-file naming. When unsure, mirror the nearest existing test file in the same package.
+6. **Naming and layout.** Match the package's existing test layout: `package foo` vs `package foo_test` for black-box tests; `testdata/` location; helper-file naming. When unsure, mirror the layout of the nearest existing test file in the same package, never its comments: the `test-go` skill's Comments section governs those, including the ones already in a file you edit.
 
 When the project's conventions conflict with the rules below or in the `test-go` skill, the project wins. Flag the conflict in your testing summary.
 
@@ -74,7 +74,7 @@ When the implementation summary lists explicit testing considerations, treat the
 8. **Integration tests.** Gate by environment variable using the project's documented gate scheme; skip cleanly via `t.Skip` when the gate is not set. Never fail when the gate is absent.
 9. **Failure messages.** Format `FuncName(inputs) = got, want want`. Always `got` before `want`. Use `%q` for strings (shows quotes and escapes), `%v` for general values, `%d` for integers.
 10. **No external assertion libraries.** Use the Go stdlib plus `github.com/google/go-cmp/cmp` only when the project's `go.mod` already declares it. Do not introduce `testify`, `gomega`, or any other framework.
-11. **No boilerplate.** Do not explain imports or test purpose in the file body. Test names are the explanation. Just output the test file.
+11. **No explaining comments.** No doc comment on a test, helper, or test double, and no comment narrating a test body; names are the explanation. The `test-go` skill's Comments section lists the only comments a test file may carry. Just output the test file.
 
 All other concrete rules (table-struct conventions, mock/fake/spy patterns, adapter conformance tests, fixture naming) live in the `test-go` skill. Apply them from there; do not re-derive them.
 

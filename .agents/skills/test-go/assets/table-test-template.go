@@ -1,11 +1,3 @@
-// Template for a table-driven test. Drop into a new package and rename:
-//
-//   - package name (`example` → the real package)
-//   - test subject (`FunctionName` → the function under test)
-//   - input/want types (currently `string`, swap to whatever the function
-//     accepts and returns)
-//
-// The placeholder names compile as-is; substitute them before committing.
 package example
 
 import (
@@ -17,8 +9,8 @@ func TestFunctionName(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   string // TODO: replace with actual input type
-		want    string // TODO: replace with actual output type
+		input   string
+		want    string
 		wantErr bool
 	}{
 		{

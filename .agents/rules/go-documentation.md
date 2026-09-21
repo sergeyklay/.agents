@@ -20,7 +20,7 @@
 
 ### Structure
 
-Every exported symbol (function, method, type, constant, variable) must have a godoc comment. The comment follows a strict two-part structure:
+Every exported symbol (function, method, type, constant, variable) outside a `_test.go` file must have a godoc comment. The comment follows a strict two-part structure:
 
 **First sentence - mandatory summary.**
 Begin with the symbol name as the grammatical subject and end at the first period. This sentence must be self-contained: `go doc -short` and the pkg.go.dev index display only this line.
@@ -66,7 +66,7 @@ Use declarative, present-tense statements. Name what the symbol does or reports,
 | Concurrency safety | Always when relevant ("safe for concurrent use", "must not be called concurrently") |
 | Resource or memory ownership | When the caller must close, release, or free something the function returns |
 | Preconditions and post-conditions | When they are not self-evident from the signature |
-| Implementation details (how it works internally) | Never - belongs in inline comments inside the function body |
+| Implementation details (how it works internally) | Never |
 
 For an interface, document the behavior an implementation must provide, not the method signature. A caller reading the interface needs to know what a conforming implementation guarantees, not a restatement of the parameter and return types already visible in the declaration.
 
@@ -125,6 +125,14 @@ If the explanation would run a full paragraph, it is not a comment anymore - wri
 - Reserve inline comments for **why**, not **what**.
 - Acceptable: explaining a non-obvious invariant, a safety constraint, or a workaround.
 - Unacceptable: narrating control flow (`// loop over items`, `// return error`).
+
+## Test Files
+
+A `_test.go` file is not API surface, and a test that needs prose to be understood is written badly. Its name, its case names, and its failure messages say what it checks.
+
+- No doc comment on a `Test`, `Benchmark`, or `Fuzz` function, a helper, or a test double. When the name does not say what the test checks, rename it.
+- No comment inside a test body that narrates setup, the call, or the assertions. Extract the block into a helper whose name says it.
+- A comment in a test file states only what the code cannot: the upstream issue or RFC a regression test pins, a protocol or business constraint, a workaround, or a warning about call order, a race, or a hidden cost.
 
 ## Lint Suppression (`//nolint`)
 
