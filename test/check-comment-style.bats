@@ -257,6 +257,24 @@ PROBE
   assert_clean
 }
 
+@test "the hook rejects a reference to an agent context file" {
+  for comment in 'see AGENTS.md Gotchas' 'per CLAUDE.md, keep it pure' \
+    'GEMINI.md sets the budget' 'the rule lives in CURSOR.md' \
+    'mirrors .github/AGENTS.md'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_flagged 'agent context-file reference' || fail "for: $comment"
+  done
+}
+
+@test "the hook allows a Markdown name that is not an agent context file" {
+  for comment in 'see README.md' 'see SUBAGENTS.md' 'Claude agents read it'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_clean || fail "for: $comment"
+  done
+}
+
 @test "the hook rejects a banner decoration" {
   write_probe probe.go <<'PROBE'
 package p
@@ -320,6 +338,43 @@ PROBE
   assert_clean
 }
 
+@test "the hook rejects a banner drawn in box-drawing characters" {
+  write_probe Makefile <<'PROBE'
+# ── Quality ───────────────────────────────────────────────────────────────────
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'banner decoration'
+
+  for comment in 'Timeline math ─────' '━━━━━━━━━━━━' '═══ Helpers ═══'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_flagged 'banner decoration' || fail "for: $comment"
+  done
+}
+
+@test "the hook allows a box or a tree drawn in box-drawing characters" {
+  write_probe probe.go <<'PROBE'
+package p
+
+// ┌────┐
+// │ ok │
+// └────┘
+//
+// ├── src
+// └── lib
+var x = 1
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
+@test "the hook allows a drawn line inside a preformatted block" {
+  printf 'package p\n\n// Sample output:\n//\t─────  ────\n//\tname   size\nvar x = 1\n' \
+    >"$BATS_TEST_TMPDIR/preformatted.go"
+  run run_hook "$BATS_TEST_TMPDIR/preformatted.go"
+  assert_clean
+}
+
 @test "the hook rejects an em-dash" {
   write_probe probe.go <<'PROBE'
 package p
@@ -338,6 +393,21 @@ package p
 // no retry – the slot is hot
 var x = 1
 PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
+@test "the hook rejects a unicode arrow" {
+  for comment in 'retry → fail' 'a ← b' '↑ the caller' 'then ↓' 'a ↔ b' \
+    'valid ⇒ stored' 'read ⟶ write'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_flagged 'unicode arrow' || fail "for: $comment"
+  done
+}
+
+@test "the hook allows an ASCII arrow" {
+  go_comment_probe 'retry -> fail, a <- b, a <-> b, valid => stored'
   run run_hook "$PROBE"
   assert_clean
 }
@@ -758,13 +828,34 @@ PROBE
 }
 
 @test "every hash-marker extension is checked" {
-  for ext in py pyi bats bash sh; do
+  for ext in py pyi bats bash sh mk; do
     write_probe "probe.$ext" <<'PROBE'
 # Phase 2 warms the cache
 PROBE
     run run_hook "$PROBE"
     [ "$status" -eq 2 ] || fail "expected exit 2 for .$ext"$'\n'"$output"
   done
+}
+
+@test "a Makefile is checked" {
+  write_probe Makefile <<'PROBE'
+# Phase 2 warms the cache
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'sequence/section label'
+}
+
+# A doubled marker after a target is how a Makefile documents itself for
+# make help, so it has to read as prose rather than as a banner.
+@test "a Makefile help annotation blocks nothing" {
+  write_probe Makefile <<'PROBE'
+##@ Validation
+
+validate: ## Validate every tracked skill
+	@echo ok
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
 }
 
 @test "a hash opens no comment in a slash-marker language" {
