@@ -24,7 +24,7 @@ esac
 
 case "$file" in
 *.go | *.ts | *.tsx | *.js | *.jsx | *.mjs | *.cjs) marker='//' ;;
-*.py | *.pyi | *.bats | *.bash | *.sh) marker='#' ;;
+*.py | *.pyi | *.bats | *.bash | *.sh | *.mk | */Makefile) marker='#' ;;
 *) exit 0 ;;
 esac
 [ -f "$file" ] || exit 0
@@ -51,6 +51,7 @@ BEGIN {
   SPEC_NOUN = "(^|[^[:alnum:]])(Table|Tables|Appendix|Figure|Diagram|Criterion|Criteria|Requirement|Spec)[-[:space:]]+[0-9]"
   DOC_REF   = "(docs/architecture|docs/decisions|architecture\\.md|architecture-digest|\\.specs/|\\.plans/|ADR-?[0-9])"
   SPEC_PREFIX = "(^|[^[:alnum:]])(AC|FR|NFR|REQ|US)-[0-9]"
+  AGENT_CONTEXT = "(^|[^[:alnum:]_])(AGENTS|CLAUDE|CURSOR|GEMINI)\\.md"
 
   # A letter-and-digits token is as often a register, a standard or a cipher
   # (R0, C99, RC4) as a plan property, so only an attesting verb before it and a
@@ -68,6 +69,11 @@ BEGIN {
   # flag "--no-ask-user".
   FRAME = "^[[:space:]]*[-=*#~_+][-=*#~_+][-=*#~_+]"
 
+  # A drawn line opens a banner or trails its title; a box or a tree opens on a
+  # corner or a vertical instead.
+  HLINE = "(─|━|═|┄|┅|┈|┉|╌|╍)"
+  DRAWN_FRAME = "^[[:space:]]*" HLINE "|" HLINE HLINE HLINE "[[:space:]]*$"
+
   PREFORMATTED     = "^\t"
   EDITOR_DIRECTIVE = "^[[:space:]]*-\\*-.*-\\*-"
   BOX_BORDER       = "^[[:space:]]*\\+-+\\+"
@@ -81,6 +87,14 @@ BEGIN {
   # A byte literal, so the match holds under any locale.
   EM_DASH      = "—"
   SECTION_MARK = "§[[:space:]]*[0-9]"
+
+  # The Arrows block and the long arrows, spelled out: under the C locale a
+  # bracket range matches single bytes, and an arrow shares its lead byte with
+  # the em-dash and the curly quotes.
+  ARROW = "(←|↑|→|↓|↔|↕|↖|↗|↘|↙|↚|↛|↜|↝|↞|↟|↠|↡|↢|↣|↤|↥|↦|↧|↨|↩|↪|↫|↬|↭|↮|↯"
+  ARROW = ARROW "|↰|↱|↲|↳|↴|↵|↶|↷|↸|↹|↺|↻|↼|↽|↾|↿|⇀|⇁|⇂|⇃|⇄|⇅|⇆|⇇|⇈|⇉|⇊|⇋|⇌|⇍|⇎|⇏"
+  ARROW = ARROW "|⇐|⇑|⇒|⇓|⇔|⇕|⇖|⇗|⇘|⇙|⇚|⇛|⇜|⇝|⇞|⇟|⇠|⇡|⇢|⇣|⇤|⇥|⇦|⇧|⇨|⇩|⇪|⇫|⇬|⇭|⇮|⇯"
+  ARROW = ARROW "|⇰|⇱|⇲|⇳|⇴|⇵|⇶|⇷|⇸|⇹|⇺|⇻|⇼|⇽|⇾|⇿|⟰|⟱|⟲|⟳|⟴|⟵|⟶|⟷|⟸|⟹|⟺|⟻|⟼|⟽|⟾|⟿)"
 }
 {
   scan($0)
@@ -172,8 +186,10 @@ function classify(c) {
   if (tolower(c) ~ VERIFICATION_PROPERTY) return "spec-criteria reference"
   if (c ~ TEST_TYPE) return "test-type reference"
   if (c ~ DOC_REF) return "internal doc/ADR reference"
-  if (c ~ FRAME && c !~ PREFORMATTED && c !~ EDITOR_DIRECTIVE && c !~ BOX_BORDER) return "banner decoration"
+  if (c ~ AGENT_CONTEXT) return "agent context-file reference"
+  if ((c ~ FRAME || c ~ DRAWN_FRAME) && c !~ PREFORMATTED && c !~ EDITOR_DIRECTIVE && c !~ BOX_BORDER) return "banner decoration"
   if (index(c, EM_DASH) > 0) return "em-dash"
+  if (c ~ ARROW) return "unicode arrow"
   if (c ~ SECTION_MARK) return "section-mark reference"
   if (c ~ ISSUE_REF) return "internal issue number"
   return ""
@@ -202,21 +218,29 @@ function classify(c) {
   echo "  - section-mark refs:       a section sign followed by a number"
   echo "  - internal issue numbers:  see #7, see #811"
   echo
-  echo "It also forbids two decorations that carry no information for the reader:"
+  echo "It forbids naming an agent context file (AGENTS.md, CLAUDE.md, GEMINI.md,"
+  echo "CURSOR.md) as well: the code must not depend on, or know about, the agent"
+  echo "setup that edits it."
+  echo
+  echo "It also forbids three decorations that carry no information for the reader:"
   echo "  - banner/frame comments:   --- Tests ---, ======, #####"
+  echo "                             and the same drawn in box-drawing characters"
   echo "  - em-dashes in prose:      they read as machine-written"
+  echo "  - unicode arrows:          they read as machine-written; write -> <- <-> =>"
   echo
   echo "Fix: delete the label/reference token and keep the plain-language reason."
   echo "  'Step 2: seed the store'     -> 'Seed the store'"
   echo "  'pins the AC-1 contract'     -> 'pins the success-envelope contract'"
   echo "  'I-1: decisive match wins'   -> 'a decisive match wins'"
   echo "  'a Table 3.1-B value ...'    -> 'a documented blocking value ...'"
+  echo "  'see AGENTS.md: no network'  -> 'no network: the suite runs offline'"
   echo "  '--- Test helpers ---'       -> delete the line; the declaration names itself"
   echo "  'no retry - the slot is hot' -> use a comma, a semicolon, or two sentences"
   echo
   echo "Not a violation (do not change): test-data IDs in strings (\"PROJ-42\") or in"
   echo "comments (\"C-1\", \"D-1\"), standard tokens (ISO-8601, UTF-8, SHA-256), ordered"
-  echo "lists in a doc comment, a \"---\" inside a preformatted block, upstream issue"
+  echo "lists in a doc comment, a \"---\" inside a preformatted block, a box or a tree"
+  echo "drawn in box-drawing characters, upstream issue"
   echo "refs carrying an owner/repo prefix (golang/go#22315), a hex color (#000000),"
   echo "an upstream RFC citation carrying a number (\"RFC 7231 Section 6\", but not a"
   echo "bare \"RFC\" and not time.RFC3339), and a spaced en-dash, which is the"
