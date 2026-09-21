@@ -5,8 +5,6 @@
 
 include default.mk
 
-# ── Validation ─────────────────────────────────────────────────────────────────
-
 ##@ Validation
 
 .PHONY: validate
@@ -53,8 +51,6 @@ typecheck: ## Type-check every tracked Python script with basedpyright
 	git ls-files -z -- '*.py' | xargs -0 \
 		$(UVX) basedpyright@$(BASEDPYRIGHT_VERSION) --stats
 
-# ── Lint ───────────────────────────────────────────────────────────────────────
-
 ##@ Lint
 
 .PHONY: lint
@@ -100,8 +96,6 @@ lint-markdown: ## Lint README and docs with markdownlint-cli2
 	@git ls-files -z -- 'README.md' ':(glob)docs/*.md' ':(glob)docs/**/*.md' | xargs -0 \
 		$(MARKDOWNLINT) --
 
-# ── Gates ──────────────────────────────────────────────────────────────────────
-
 ##@ Gates
 
 .PHONY: check
@@ -114,8 +108,6 @@ install-test: ## Run the installer test suite with bats
 .PHONY: runtime-test
 runtime-test: ## Run isolated runtime scenarios with Python unittest
 	$(UV) run --no-project python test/agents/opencode/run.py
-
-# ── Utilities ──────────────────────────────────────────────────────────────────
 
 ##@ Utilities
 
