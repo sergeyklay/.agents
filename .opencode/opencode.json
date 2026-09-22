@@ -56,28 +56,76 @@
         "includeUsage": true
       },
       "models": {
+        "openai/gpt-6-astra": {
+          "name": "GPT-6 Astra",
+          "attachment": true,
+          "reasoning": true,
+          "temperature": false,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+          "limit": {
+            "context": 1050000,
+            "input": 922000,
+            "output": 128000
+          },
+          "variants": {
+            "low": {
+              "reasoningEffort": "low",
+              "textVerbosity": "low"
+            },
+            "medium": {
+              "reasoningEffort": "medium",
+              "textVerbosity": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high",
+              "textVerbosity": "medium"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh",
+              "textVerbosity": "medium"
+            },
+            "max": {
+              "reasoningEffort": "max",
+              "textVerbosity": "medium"
+            }
+          }
+        },
         "openai/gpt-5.6-sol": {
           "name": "GPT-5.6 Sol",
           "attachment": true,
           "reasoning": true,
-          "temperature": true,
+          "temperature": false,
           "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": {
             "context": 1050000,
+            "input": 922000,
             "output": 128000
           },
           "variants": {
-            "fast": {
+            "none": {
+              "reasoningEffort": "none",
+              "textVerbosity": "low"
+            },
+            "low": {
               "reasoningEffort": "low",
               "textVerbosity": "low"
             },
-            "balanced": {
+            "medium": {
               "reasoningEffort": "medium",
               "textVerbosity": "medium"
             },
-            "deep": {
+            "high": {
               "reasoningEffort": "high",
+              "textVerbosity": "medium"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh",
+              "textVerbosity": "medium"
+            },
+            "max": {
+              "reasoningEffort": "max",
               "textVerbosity": "medium"
             }
           }
@@ -86,24 +134,37 @@
           "name": "GPT-5.6 Terra",
           "attachment": true,
           "reasoning": true,
-          "temperature": true,
+          "temperature": false,
           "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": {
             "context": 1050000,
+            "input": 922000,
             "output": 128000
           },
           "variants": {
-            "fast": {
+            "none": {
+              "reasoningEffort": "none",
+              "textVerbosity": "low"
+            },
+            "low": {
               "reasoningEffort": "low",
               "textVerbosity": "low"
             },
-            "balanced": {
+            "medium": {
               "reasoningEffort": "medium",
               "textVerbosity": "medium"
             },
-            "deep": {
+            "high": {
               "reasoningEffort": "high",
+              "textVerbosity": "medium"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh",
+              "textVerbosity": "medium"
+            },
+            "max": {
+              "reasoningEffort": "max",
               "textVerbosity": "medium"
             }
           }
@@ -112,50 +173,115 @@
           "name": "GPT-5.6 Luna",
           "attachment": true,
           "reasoning": true,
-          "temperature": true,
+          "temperature": false,
           "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": {
             "context": 1050000,
+            "input": 922000,
             "output": 128000
           },
           "variants": {
-            "fast": {
+            "none": {
+              "reasoningEffort": "none",
+              "textVerbosity": "low"
+            },
+            "low": {
               "reasoningEffort": "low",
               "textVerbosity": "low"
             },
-            "balanced": {
+            "medium": {
               "reasoningEffort": "medium",
               "textVerbosity": "medium"
             },
-            "deep": {
+            "high": {
               "reasoningEffort": "high",
               "textVerbosity": "medium"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh",
+              "textVerbosity": "medium"
+            },
+            "max": {
+              "reasoningEffort": "max",
+              "textVerbosity": "medium"
             }
+          }
+        },
+        "anthropic/claude-fable-5": {
+          "name": "Claude Fable 5",
+          "attachment": true,
+          "reasoning": true,
+          "temperature": false,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+          "limit": {
+            "context": 1000000,
+            "output": 128000
+          },
+          "variants": {
+            "low": { "reasoningEffort": "low" },
+            "medium": { "reasoningEffort": "medium" },
+            "high": { "reasoningEffort": "high" },
+            "xhigh": { "reasoningEffort": "xhigh" },
+            "max": { "reasoningEffort": "max" }
           }
         },
         "anthropic/claude-opus-5": {
           "name": "Claude Opus 5",
           "attachment": true,
           "reasoning": true,
-          "temperature": true,
+          "temperature": false,
           "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": {
             "context": 1000000,
             "output": 128000
+          },
+          "variants": {
+            "low": { "reasoningEffort": "low" },
+            "medium": { "reasoningEffort": "medium" },
+            "high": { "reasoningEffort": "high" },
+            "xhigh": { "reasoningEffort": "xhigh" },
+            "max": { "reasoningEffort": "max" }
           }
         },
         "anthropic/claude-sonnet-5": {
           "name": "Claude Sonnet 5",
           "attachment": true,
           "reasoning": true,
-          "temperature": true,
+          "temperature": false,
           "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
           "limit": {
             "context": 1000000,
             "output": 128000
+          },
+          "variants": {
+            "low": { "reasoningEffort": "low" },
+            "medium": { "reasoningEffort": "medium" },
+            "high": { "reasoningEffort": "high" },
+            "xhigh": { "reasoningEffort": "xhigh" },
+            "max": { "reasoningEffort": "max" }
+          }
+        },
+        "anthropic/claude-haiku-5": {
+          "name": "Claude Haiku 5",
+          "attachment": true,
+          "reasoning": true,
+          "temperature": false,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+          "limit": {
+            "context": 1000000,
+            "output": 128000
+          },
+          "variants": {
+            "low": { "reasoningEffort": "low" },
+            "medium": { "reasoningEffort": "medium" },
+            "high": { "reasoningEffort": "high" },
+            "xhigh": { "reasoningEffort": "xhigh" },
+            "max": { "reasoningEffort": "max" }
           }
         }
       }
