@@ -1,15 +1,17 @@
 ---
 name: log-changes
-description: "Use when asked to update the changelog, document version changes, prepare a release, or add entries for recent work, and when reviewing a diff or pull request that touches CHANGELOG.md. Produces concise user-facing CHANGELOG.md entries, follows Keep a Changelog and Semantic Versioning, and verifies that new bullets sit under [Unreleased] rather than a published version. Do NOT use for committing, user guides, or release notes outside CHANGELOG.md."
+description: "Use before creating, drafting, editing, or reviewing changelog entries (CHANGELOG.md or the project's equivalent), including when this is a subtask of implementing a feature, fixing a bug, or preparing a release and the user did not explicitly ask for this skill. Also use for requests to 'document this change' or 'add a dedicated entry' in the changelog, 'update the change log', and diffs or pull requests that touch the changelog. Do NOT use for commit messages, user guides, or release notes outside the changelog."
 metadata:
   author: Serghei Iakovlev
-  version: "1.5"
+  version: "1.6"
   category: documentation
 ---
 
 # Changelog Maintenance
 
 The changelog records notable changes to the distributed software. Every entry must answer: "Does this change affect someone who uses, upgrades, deploys, or integrates with the project?" If not, omit it.
+
+Write for the project's consumers, not its implementers. Infer the audience and public product surface from usage documentation: a library's supported API can be the product, while an application's internal functions are not. Readers must understand what changed without reading source code or opening the linked issue. Default to one concise sentence stating the outcome. A changelog announces a change; documentation explains how to use it. A short sentence count does not excuse a long list of reasons, conditions, or caveats. Mention a critical compatibility consequence or limitation briefly and link to documentation for instructions.
 
 Format authority: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
@@ -24,6 +26,7 @@ Use the detected values everywhere a project key, tracker URL, or GitHub URL is 
 ## When to use
 
 - Adding entries for new features, fixes, or breaking changes.
+- Updating the changelog as part of another task, even without an explicit changelog request.
 - Preparing a release: moving Unreleased entries under a versioned heading.
 - Creating CHANGELOG.md from scratch when it does not exist.
 - Reviewing a diff or pull request that touches CHANGELOG.md: a hunk header names the category, never the enclosing version.
@@ -32,11 +35,15 @@ Use the detected values everywhere a project key, tracker URL, or GitHub URL is 
 
 ### Step 1: Read the current changelog
 
-CHANGELOG.md, if it exists, lives at the repository root. Read it first. If the file does not exist, create it from `assets/changelog-template.md` (see Step 5).
+Read the project's changelog (normally root CHANGELOG.md) and its current diff first; preserve existing entries, including uncommitted work. Use the project's established path throughout this workflow. If it has no changelog, create CHANGELOG.md from `assets/changelog-template.md` (see Step 5).
 
 ### Step 2: Gather changes
 
-**The merged PR is the minimum evidence unit - not necessarily the changelog entry unit.** Inspect each PR as a whole rather than turning its commits into bullets, then group PRs by the logical change users receive. One PR can produce one entry; several PRs that introduce, refine, or fix the same unreleased feature produce one combined entry describing its final state.
+For a single task, inspect its request, issue or PR when available, and implementation diff; skip the release-wide inventory in 2a-2c. For a release-wide update, inspect each PR as a whole rather than turning its commits into bullets. PRs supply evidence; independently meaningful user outcomes determine entries.
+
+**Add a dedicated entry for the current task's distinct user-facing outcome by default.** Sharing a component, feature, epic, or release does not make two outcomes one change. Preserve previous entries and their references; a new issue is not a reason to extend an old bullet. Combine implementation steps only when they deliver the same outcome, with no independently meaningful capability or fix. An explicit request for a dedicated entry takes precedence over grouping conventions.
+
+Refine a draft created for the current task as needed, not any entry written during the same session. If prior wording already covers exactly the same outcome or would become inaccurate, explain the overlap and ask before editing it; do not silently merge or add a duplicate. Release preparation alone does not authorize consolidation of existing entries.
 
 #### 2a: Identify the release window
 
@@ -90,8 +97,8 @@ If the user describes changes verbally, use that as the primary source.
 Before drafting, reduce the evidence to four facts:
 
 1. **Capability or outcome:** what can the user do now, or what observable behavior changed?
-2. **Required action:** must the user configure, migrate, upgrade, or respond differently?
-3. **Material constraints:** which limitations change setup or reasonable operator expectations?
+2. **Upgrade consequence:** is there a required migration or compatibility change to flag briefly, with instructions left to documentation?
+3. **Essential scope:** which qualification is necessary to keep the outcome accurate, rather than inventorying all feature limitations?
 4. **Implementation evidence:** which internals prove the change but do not belong in the entry? Use these to verify accuracy, then discard them from the prose.
 
 ### Step 3: Filter - decide what belongs
@@ -118,7 +125,7 @@ Place every surviving entry under exactly one category:
 | **Fixed**      | Bug fix - incorrect behavior corrected                                       |
 | **Security**   | Vulnerability patch, dependency CVE fix                                      |
 
-The writing rules and a worked altitude example are in [references/entry-style.md](references/entry-style.md). They govern how much of the change survives into prose, when a CLI flag or API symbol earns its name, how several PRs fold into one bullet, why an entry never asserts the absence of a change, and how a bullet cites its issue or task. Read it before drafting any bullet.
+The writing rules and audience-specific examples are in [references/entry-style.md](references/entry-style.md). They govern how much of the change survives into prose, when a CLI flag or API symbol earns its name, entry boundaries, and issue references. Read it before drafting any bullet.
 
 ### Step 5: Write the entry
 
@@ -158,9 +165,11 @@ To cut a release:
 ### Step 7: Verify
 
 - [ ] Every entry passes the filter from Step 3 (no noise).
-- [ ] PRs that deliver or refine the same unreleased user-facing change are consolidated into one bullet describing the final behavior.
+- [ ] The current task's distinct outcome has a dedicated entry; any grouping follows Step 2 and any explicit dedicated-entry request is honored.
+- [ ] Existing entries and their references are unchanged unless their revision was explicitly authorized; being uncommitted or from the same session is not permission.
 - [ ] The first sentence states the user-facing capability or observable outcome.
-- [ ] Every later sentence changes a user's required action or material expectation; no entry reads like a setup guide, API reference, or implementation report.
+- [ ] The intended reader can understand the change without source code or the linked issue; private variables, functions, and module names are absent.
+- [ ] The bullet announces the change rather than teaching its use: no sequence of steps, causal explanation, or catalog of conditions and caveats, even within one sentence. Essential scope or upgrade consequences are brief; procedures belong in linked documentation.
 - [ ] Public identifiers appear only when users need the exact name to discover, enable, migrate, or react to the change.
 - [ ] Observable scope is precise: attempt/run, local/remote, optional/required, and supported/unsupported distinctions match the evidence.
 - [ ] No sentence asserts the absence of a change.
@@ -190,4 +199,4 @@ The recovery table for a changelog that is already in a bad state (missing compa
 
 ## Anti-Patterns
 
-One entry per commit, one entry per PR, `git log --oneline` as the primary source, mini user guide, implementation report, vague minimalism, diagnostic catalog, plain `#NNN` references, bare tracker keys, stating that nothing is required, anchoring an edit on a bare `### Added` heading, rewriting an entry that was already committed, and reading a hunk header as proof of the section. Each one's failure mode and its correction are in [references/anti-patterns.md](references/anti-patterns.md).
+One entry per commit, mechanical PR-to-entry mapping, merging distinct outcomes, `git log --oneline` as the primary source, mini user guide, implementation report, vague minimalism, diagnostic catalog, plain `#NNN` references, bare tracker keys, stating that nothing is required, anchoring an edit on a bare `### Added` heading, silently rewriting a prior entry, and reading a hunk header as proof of the section. Each one's failure mode and its correction are in [references/anti-patterns.md](references/anti-patterns.md).
