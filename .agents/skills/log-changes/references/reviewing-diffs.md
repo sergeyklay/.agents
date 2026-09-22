@@ -29,3 +29,5 @@ Two further defects travel with this one, because a bullet anchored against the 
 - **Placement.** Every hunk resolves to `[Unreleased]`.
 - **Order.** The bullet sits at whichever end of its category the file's convention reserves for new work - the direction detected in Step 1, not the direction that looks natural.
 - **Width.** The bullet wraps to the width its new neighbours use, not the width of whatever it was drafted against.
+
+Also inspect replaced bullets, not just insertions. Appending a new issue link and clause to an old bullet can hide an independent change. Require a dedicated entry unless the outcomes genuinely coincide and revision of the earlier entry was authorized. Check wording against the detected audience: the outcome must be understandable without source code, and any exact identifier must belong to the public product surface.
