@@ -155,6 +155,58 @@ PROBE
   done
 }
 
+@test "the hook rejects a plan label that no verb attests" {
+  for comment in 'drainCaptureJob runs D1 to D3 of the capture sequence' \
+    'the D4 reconciliation proves it' 'decoupled from the D4 probe commit' \
+    'asserts property P5 (the child)' 'evaluates rules Y1, Y2, and Y3' \
+    '(R1 through R7) against the turn' 'the wiring rule (P13) for' \
+    'D2 step: it scans the list' 'per P8: no dispatch ID'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_flagged 'spec-criteria reference' || fail "for: $comment"
+  done
+}
+
+# A label noun below the mention confirms the family too, so the probe puts it
+# last.
+@test "the hook rejects any mention of a confirmed plan label family" {
+  for comment in '(D1, skipped when job is zero' 'query failed (D2), logs' \
+    "scanSurvivorsFunc: D2's survivor" 'from a scan D2 skipped entirely'; do
+    go_comment_probe "$comment"
+    printf '\n// Run the D3 step.\nvar y = 2\n' >>"$PROBE"
+    run run_hook "$PROBE"
+    assert_flagged 'line 3 [spec-criteria reference]' || fail "for: $comment"
+  done
+}
+
+# Registers, type parameters and fixture rows share the label shape, so a
+# mention stays clean until a label noun in the same file confirms its family.
+@test "the hook allows a name shaped like an unconfirmed plan label" {
+  for comment in 'Tick 1: head H1 dirty, dispatch' 'yields [K1, L]' \
+    'R0 is index 0, R1 is index 1 after sort' "the document's H1 names it" \
+    "T2's method declared before the type" 'MOVD (R3), R4' 'overlaps V0-V31' \
+    'V0: initial prototype.' 'the V5 wire format' 'P2P step' 'the L2 cache'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_clean || fail "for: $comment"
+  done
+}
+
+@test "the hook does not let a range confirm a plan label family" {
+  write_probe probe.go <<'PROBE'
+package p
+
+// For ARM, only R0 through R15 may appear.
+var x = 1
+
+// MOVD (R3), R4
+var y = 2
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'line 3 [spec-criteria reference]' || return 1
+  [[ "$output" != *'line 6 ['* ]] || fail "the range confirmed its family"$'\n'"$output"
+}
+
 @test "the hook rejects an S-number reference" {
   for comment in 'targeting S-2' 'the S-7 controls' 'the S-10 measurement' \
     'the S-7-satisfied control' 'the branch of S-3' 'S-7 at once'; do

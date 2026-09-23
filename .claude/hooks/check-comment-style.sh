@@ -56,7 +56,16 @@ BEGIN {
   # A letter-and-digits token is as often a register, a standard or a cipher
   # (R0, C99, RC4) as a plan property, so only an attesting verb before it and a
   # continuation that a plan ID takes after it mark the citation.
-  ATTESTED_ID = "(^|[^[:alnum:]_])([Vv]erifies|[Cc]overs|[Pp]ins|[Pp]roves)[[:space:]]+([A-Z]|[A-Z][A-Z][0-9])[0-9][0-9]?(:|,|/|" SQ "s|\\.([[:space:]]|$)|[[:space:]]+(and|for)([^[:alnum:]]|$)|[[:space:]]*$)"
+  ATTESTED_ID = "(^|[^[:alnum:]_])([Vv]erifies|[Cc]overs|[Pp]ins|[Pp]roves|[Pp]er)[[:space:]]+([A-Z]|[A-Z][A-Z][0-9])[0-9][0-9]?(:|,|/|" SQ "s|\\.([[:space:]]|$)|[[:space:]]+(and|for)([^[:alnum:]]|$)|[[:space:]]*$)"
+
+  # A register, a type parameter and a fixture row share the plan-label shape
+  # (R3, T1, head H1), so only a label noun confirms a family for the file; a
+  # range does not, as register files and coefficients are spelled as ranges.
+  PLAN_ID = "[A-Z][0-9][0-9]?"
+  BARE_PLAN_ID = "(^|[^[:alnum:]_])" PLAN_ID "([^[:alnum:]_]|$)"
+  PLAN_LABEL = "(^|[^[:alnum:]_])([Pp]ropert(y|ies)|[Ii]nvariants?|[Rr]ules?|[Ss]teps?|[Pp]hases?|[Ss]tages?)[[:space:]]+[(]?" PLAN_ID "([^[:alnum:]_]|$)"
+  PLAN_LABEL = PLAN_LABEL "|(^|[^[:alnum:]_])" PLAN_ID "[[:space:]]+(step|phase|stage|reconciliation|probe|property|invariant|rule)s?([^[:alnum:]_]|$)"
+  PLAN_RANGE = "(^|[^[:alnum:]_])" PLAN_ID "[[:space:]]+(to|through)[[:space:]]+" PLAN_ID "([^[:alnum:]_]|$)"
 
   VERIFICATION_PROPERTY = "(verification[[:space:]]+property[[:space:]]+[0-9]|property[[:space:]]+[0-9][[:space:]]+of[[:space:]]+the[[:space:]]+verification)"
 
@@ -95,6 +104,13 @@ BEGIN {
   ARROW = ARROW "|↰|↱|↲|↳|↴|↵|↶|↷|↸|↹|↺|↻|↼|↽|↾|↿|⇀|⇁|⇂|⇃|⇄|⇅|⇆|⇇|⇈|⇉|⇊|⇋|⇌|⇍|⇎|⇏"
   ARROW = ARROW "|⇐|⇑|⇒|⇓|⇔|⇕|⇖|⇗|⇘|⇙|⇚|⇛|⇜|⇝|⇞|⇟|⇠|⇡|⇢|⇣|⇤|⇥|⇦|⇧|⇨|⇩|⇪|⇫|⇬|⇭|⇮|⇯"
   ARROW = ARROW "|⇰|⇱|⇲|⇳|⇴|⇵|⇶|⇷|⇸|⇹|⇺|⇻|⇼|⇽|⇾|⇿|⟰|⟱|⟲|⟳|⟴|⟵|⟶|⟷|⟸|⟹|⟺|⟻|⟼|⟽|⟾|⟿)"
+}
+# The file is read twice: a label may be confirmed below its first mention.
+FNR == 1 { open_span = "" }
+NR == FNR {
+  scan($0)
+  for (i = 1; i <= comment_count; i++) confirm_plan_families(comment_text[i])
+  next
 }
 {
   scan($0)
@@ -175,7 +191,28 @@ function span_end(s, from, delim,   i, last, width) {
   return 0
 }
 
-function report(kind) { printf("  line %d [%s]: %s\n", NR, kind, $0) }
+function report(kind) { printf("  line %d [%s]: %s\n", FNR, kind, $0) }
+
+function confirm_plan_families(c,   label) {
+  while (match(c, PLAN_LABEL)) {
+    label = substr(c, RSTART, RLENGTH)
+    c = substr(c, RSTART + RLENGTH)
+    while (match(label, PLAN_ID)) {
+      plan_family[substr(label, RSTART, 1)] = 1
+      label = substr(label, RSTART + RLENGTH)
+    }
+  }
+}
+
+function cites_plan_family(c,   id) {
+  while (match(c, BARE_PLAN_ID)) {
+    id = substr(c, RSTART, RLENGTH)
+    c = substr(c, RSTART + RLENGTH)
+    match(id, PLAN_ID)
+    if (substr(id, RSTART, 1) in plan_family) return 1
+  }
+  return 0
+}
 
 function classify(c) {
   if (c ~ RFC_CITATION) return ""
@@ -183,6 +220,7 @@ function classify(c) {
   if (c ~ SPEC_NOUN) return "spec-criteria reference"
   if (c ~ SPEC_PREFIX) return "spec-criteria reference"
   if (c ~ ATTESTED_ID) return "spec-criteria reference"
+  if (c ~ PLAN_LABEL || c ~ PLAN_RANGE || cites_plan_family(c)) return "spec-criteria reference"
   if (tolower(c) ~ VERIFICATION_PROPERTY) return "spec-criteria reference"
   if (c ~ TEST_TYPE) return "test-type reference"
   if (c ~ DOC_REF) return "internal doc/ADR reference"
@@ -194,7 +232,7 @@ function classify(c) {
   if (c ~ ISSUE_REF) return "internal issue number"
   return ""
 }
-' "$file") || exit 0
+' "$file" "$file") || exit 0
 
 [ -n "$violations" ] || exit 0
 
@@ -209,6 +247,8 @@ function classify(c) {
   echo "                             (in any case: step 2, STEP 2, Step 2)"
   echo "  - spec-criteria refs:      AC-7, FR-1, NFR-2, REQ-3, US-4"
   echo "                             and a bare ID a test claims: verifies V5, pins P9"
+  echo "                             and a plan label: D1 to D3, the D4 step, property P5,"
+  echo "                             then every (D2), D2's or D2 in that file"
   echo "                             and numbered verification properties"
   echo "  - test-type refs:          I-1, U-1, Q-1, S-1"
   echo "  - spec artefact + number:  Table 3.1-B, Table-3, Appendix 2, Figure 4, Spec-706"
