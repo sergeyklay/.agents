@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "pg": "^8.20.0",
-    "zod": "^4.6.4"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^26",
