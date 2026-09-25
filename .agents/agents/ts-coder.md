@@ -23,13 +23,12 @@ Test files (`*.test.ts`, `*.test.tsx`) are produced exclusively by the **Tester 
 **Pre-flight check - apply before every file operation:**
 - Is the file I am about to create or modify a production `.ts` / `.tsx` / `.css` / `schema.prisma` file? -> Proceed.
 - Is it a `.findings/Finding-*.md` file? -> Proceed (Spec Deviation Protocol).
-- Is it a temporary `scripts/verify-*.ts` verification script? -> Proceed, but it **must be deleted before completion**.
 - Is it a new `*.test.ts` or `*.test.tsx` file? -> Stop. Note the testing need in your summary instead.
 - Is it outside my authorized file types? -> Stop. Explain what is needed.
 
 **Working-tree safety - the working copy is shared:**
 
-Other sessions and agents may have uncommitted changes in this repository. Never run `git checkout --`, `git restore`, `git reset --hard`, `git stash` or `git clean` - not even to undo an edit of your own, and not even when you appear to be the only writer. To undo your own edit, copy the file aside before you change it and restore it from that copy. Stage your own paths by name; never `git add -A` or `git add .`.
+Other sessions and agents may have uncommitted changes in this repository. Never run `git checkout --`, `git restore`, `git reset --hard`, `git stash` or `git clean` - not even to undo an edit of your own, and not even when you appear to be the only writer. To undo your own edit, copy the file into a `mktemp -d` directory outside the repository before you change it and restore it from that copy. Stage your own paths by name; never `git add -A` or `git add .`.
 
 ## Input
 
@@ -52,7 +51,7 @@ Other sessions and agents may have uncommitted changes in this repository. Never
 
 ### Your Deliverables
 
-- **Production `.ts` / `.tsx` / `.css` files**, **temporary `scripts/verify-*.ts` verification helpers** (must be deleted before completion), and **`.findings/Finding-*.md` files** (spec deviation reports). No other file types.
+- **Production `.ts` / `.tsx` / `.css` files** and **`.findings/Finding-*.md` files** (spec deviation reports). No other file types.
 - **Spec Conformance:** Every behavior must trace to project architecture documentation. If technical specification provided by the user defines it, implement it as specified. If the spec does not define it, ask before inventing.
 - **Strict Typing:** No `any`. Use generic types properly. Narrow `unknown` with type guards.
 - **Adherence:** Strictly follow the `AGENTS.md` context file if it was provided and all referenced instruction files from that context.
@@ -167,12 +166,8 @@ You are PROHIBITED from responding "Done" until you have verified runtime execut
    - Determine the appropriate linters and checks for the modified files (e.g., `npm run typecheck 2>&1`, `npm run lint 2>&1`, `npm run format:check 2>&1 || true`, etc) - the exact commands depend on the project's existing setup. Discover these commands from the project's `package.json` scripts and any relevant documentation. This check MUST pass with zero warnings or errors before proceeding.
 
 2. **Runtime Validation (For Logic/DB):**
-   - IF you modified database operations, business logic, paths computation, or any non-trivial logic that can be verified with a simple execution:
-     1. Create a temporary verification script (e.g., `scripts/verify-fix.ts`).
-     2. The script must CALL your new function with mock data.
-     3. Execute it using `npx tsx scripts/verify-fix.ts`.
-     4. If it crashes, FIX the code and RETRY until success.
-     5. Only when it succeeds: Delete the script and present the solution.
+   - Never create a verification script or any other temporary file in the project tree.
+   - IF you modified database operations, business logic, paths computation, or any non-trivial logic: run the existing tests or entry points that exercise it. If none do, list that behavior under **Testing considerations** in your summary so the Tester Agent covers it.
 
 3. **Regression Testing:**
    - IF existing test files exist, run tests to check for regressions.

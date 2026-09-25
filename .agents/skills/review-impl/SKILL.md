@@ -70,7 +70,7 @@ When the change is a bug fix that ships a test, reading the test is not enough. 
 
 Run the control:
 
-1. Copy the change into an isolated scratch directory; a throwaway worktree is optional. Keep the control away from the working checkout and other sessions' changes.
+1. Copy the change into an isolated scratch directory outside the repository; a throwaway worktree is optional. Keep the control away from the working checkout and other sessions' changes.
 2. Revert only the production hunk, leaving the new test in place.
 3. Run just the new test.
 4. Restore, re-run, and confirm it is green again.
