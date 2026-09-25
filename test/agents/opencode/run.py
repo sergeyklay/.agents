@@ -25,7 +25,9 @@ def main() -> None:
     parser.add_argument("tests", nargs="*")
     args = parser.parse_args()
     parent = Path(
-        os.environ.get("OPENCODE_TEST_SCRATCH", repo / ".scratch/opencode-tests")
+        os.environ.get(
+            "OPENCODE_TEST_SCRATCH", Path(tempfile.gettempdir()) / "opencode-tests"
+        )
     )
     parent.mkdir(parents=True, exist_ok=True)
     root = args.root.resolve() if args.root else Path(tempfile.mkdtemp(dir=parent))

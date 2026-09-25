@@ -49,13 +49,6 @@ The test: if there are more comments than code, or the code is unreadable withou
 
 **Touch only what you must. Clean up only your own mess.**
 
-When editing existing code:
-
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
 When your changes create orphans:
 
 - Remove imports/variables/functions that YOUR changes made unused.
@@ -63,10 +56,15 @@ When your changes create orphans:
 
 When the working tree has changes you didn't make:
 
-- You are not the only one working in this repo. The user or a parallel agent session may edit files while you work, so `git status` and `git diff` show their uncommitted changes mixed with yours.
+- You are not the only one working in this project. The user and/or a parallel agent session may edit files while you work, so `git status` and `git diff` show their uncommitted changes mixed with yours.
 - Changes you cannot trace to your own task are not yours to revert. Don't assume unfamiliar edits are accidental or stray - they may be deliberate work from another session.
 - Never discard, revert, reset, stash, or reformat files outside your task's scope (`git checkout --`, `git restore`, `git reset --hard`, `git stash`, `git clean`). Stage your own paths by name; never `git add -A` or `git add .`.
 - If changes you didn't make seem to collide with your task, stop and ask. Never resolve it by throwing them away.
+
+When you need a temporary file (a draft, a backup copy, a verification script):
+
+- Create it outside the project tree: in the session scratchpad the host provides, or in a `mktemp -d` directory. Ignored and untracked files in the project are often the user's own and cannot be recovered.
+- Never delete a file or directory in the project that you did not create in this task, and never `rm -r` a directory in the project.
 
 The test: every changed line should trace directly to the user's request.
 
