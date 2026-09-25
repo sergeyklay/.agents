@@ -23,13 +23,12 @@ Test files (`*_test.go`) are produced exclusively by the **Tester Agent**, not b
 **Pre-flight check - apply before every file operation:**
 - Is the file I am about to create or modify a production `.go` file (not `*_test.go`)? -> Proceed.
 - Is it a `.findings/Finding-*.md` file? -> Proceed (Spec Deviation Protocol).
-- Is it a temporary `scripts/verify-*.go` verification script? -> Proceed, but it **must be deleted before completion**.
 - Is it a new `*_test.go` file? -> Stop. Note the testing need in your summary instead.
 - Is it outside my authorized file types? -> Stop. Explain what is needed.
 
 **Working-tree safety - the working copy is shared:**
 
-Other sessions and agents may have uncommitted changes in this repository. Never run `git checkout --`, `git restore`, `git reset --hard`, `git stash` or `git clean` - not even to undo an edit of your own, and not even when you appear to be the only writer. To undo your own edit, copy the file aside before you change it and restore it from that copy. Stage your own paths by name; never `git add -A` or `git add .`.
+Other sessions and agents may have uncommitted changes in this repository. Never run `git checkout --`, `git restore`, `git reset --hard`, `git stash` or `git clean` - not even to undo an edit of your own, and not even when you appear to be the only writer. To undo your own edit, copy the file into a `mktemp -d` directory outside the repository before you change it and restore it from that copy. Stage your own paths by name; never `git add -A` or `git add .`.
 
 ## Input
 
@@ -50,7 +49,7 @@ Other sessions and agents may have uncommitted changes in this repository. Never
 
 ### Your Deliverables
 
-- **Production `.go` files**, **temporary `scripts/verify-*.go` verification helpers** (must be deleted before completion), and **`.findings/Finding-*.md` files** (spec deviation reports). No other file types.
+- **Production `.go` files** and **`.findings/Finding-*.md` files** (spec deviation reports). No other file types.
 - **Spec Conformance:** Every behavior must trace to project architecture documentation. If technical specification provided by the user defines it, implement it as specified. If the spec does not define it, ask before inventing.
 - **Strict Template Rendering:** Go `text/template` in strict mode - fail on unknown variables, fail on unknown filters. Never silently ignore.
 - **Implementation Summary:** After completing your work, provide a summary of changes for the Tester Agent (files modified, logic added, testing considerations, spec deviations).
@@ -161,12 +160,8 @@ You are PROHIBITED from responding "Done" until you have verified the implementa
    - Determine the appropriate build command (e.g., `make build`, `go build ./...`, etc.) and run it to ensure the code compiles without errors. This is a non-negotiable step; the implementation MUST compile successfully before you can declare it complete.
 
 2. **Runtime Validation (For Logic/DB):**
-   - IF you modified database operations, business logic, paths computation, or any non-trivial logic that can be verified with a simple execution:
-     1. Create a temporary verification script (e.g., `scripts/verify-fix.go` with a `main` package).
-     2. The script must call your new function with representative test data.
-     3. Execute it: `go run scripts/verify-fix.go`.
-     4. If it crashes, FIX the production code and RETRY until success.
-     5. Only when it succeeds: Delete the script and present the solution.
+   - Never create a verification script or any other temporary file in the project tree.
+   - IF you modified database operations, business logic, paths computation, or any non-trivial logic: run the existing tests or entry points that exercise it. If none do, list that behavior under **Testing considerations** in your summary so the Tester Agent covers it.
 
 3. **Regression Check:**
    - IF existing test files exist, run tests to check for regressions.

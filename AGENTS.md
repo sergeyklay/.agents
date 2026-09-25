@@ -32,7 +32,7 @@ These constraints protect canonical source files and installed host views.
 - Follow the surrounding style. Do not refactor adjacent legacy content without a separate task.
 - Work in the assigned checkout or worktree. A separate worktree is optional; preserve other sessions' changes in a shared checkout.
 - Treat every checkout outside the assignment as read-only. Run runtime tests and mutation controls in an isolated scratch copy.
-- Write scratch files to `.scratch/<task>/`, which is git-excluded and scoped to one session. Delete your own subdirectory when you finish, and move anything that must outlive the task into `.tasks/`.
+- Write scratch files to the session scratchpad or a `mktemp -d` directory, never inside this repository. Delete your own directory when you finish, and move anything that must outlive the task into `.tasks/`.
 - Stage a new file with `git add <path>` before running any gate, for the reason under Gotchas: the file-selecting gates read `git ls-files`, skip an untracked file, and still exit 0.
 - Run a negative control before reporting any green. `prove-checks` owns what that requires.
 - Land a delegate's branch only in the form you were asked for. Verification finishes the work; it does not authorize merging, pushing, or opening a PR. When the form was not named, ask before the branch moves anywhere.

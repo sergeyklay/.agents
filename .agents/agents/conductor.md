@@ -46,21 +46,20 @@ Delegate to the BEST implementation subagent. You MUST determine which implement
 
 Your prompt to the implementation subagent must include:
 
-1. **Findings cleanup first**: _"Before any other action, run `rm -rf .findings/` to clear stale findings from previous pipeline runs. Then proceed with implementation."_
-2. **The implementation input** - one of:
+1. **The implementation input** - one of:
    - The plan file path (plan-driven): _"Execute the plan at `{path}` strictly phase by phase."_. If specification is provided in addition to the plan, include the spec path and instruction: _"Refer to the specification at `{spec_path}` as needed, but follow the plan strictly. If you encounter any contradictions between the plan and the spec, follow your Spec Deviation Protocol."_
    - The issue title, body, and labels (issue-driven): _"Implement the following issue. No plan exists - analyze the request, identify required changes, and implement atomically."_
    - The raw description (description-driven): same as issue-driven
-3. The instruction to ground the implementation in project context before writing any code, in this reading order: (a) agent-instruction files the project ships (`AGENTS.md`) for boundary rules; (b) if `docs/` exists, the documentation index (`docs/README.md`, or the closest equivalent: `docs/index.md`, `docs/SUMMARY.md`, `docs/DIGEST.md`) for orientation; (c) architecture or product documents the index references (e.g. `docs/architecture.md`, `docs/PRD.md`) only for the sections the feature actually touches; (d) decision records (`docs/decisions/`, `docs/adr/`, `adr/`, `ADR/`) when the implementation touches a previously decided area; (e) language and code-style rules the project ships under `.agents/rules/`, `.github/instructions/`, `.copilot/instructions/`, `.claude/rules/`, or referenced from the agent-instruction file. Skip tiers the project does not ship; do not load files that do not exist.
-4. The instruction to apply constraints from relevant coding rules and instructions
-5. The instruction: _"If you encounter spec deviations - where the specification, plan, or architecture doc contradicts the actual codebase - follow your Spec Deviation Protocol. Create `.findings/Finding-{SLUG}.md` for each deviation. Continue implementing what you can."_
-6. The instruction to **provide an implementation summary** when finished, including any spec deviation files created, and to report the paths of any `.findings/` files so the orchestrator can enumerate them without re-scanning the workspace
+2. The instruction to ground the implementation in project context before writing any code, in this reading order: (a) agent-instruction files the project ships (`AGENTS.md`) for boundary rules; (b) if `docs/` exists, the documentation index (`docs/README.md`, or the closest equivalent: `docs/index.md`, `docs/SUMMARY.md`, `docs/DIGEST.md`) for orientation; (c) architecture or product documents the index references (e.g. `docs/architecture.md`, `docs/PRD.md`) only for the sections the feature actually touches; (d) decision records (`docs/decisions/`, `docs/adr/`, `adr/`, `ADR/`) when the implementation touches a previously decided area; (e) language and code-style rules the project ships under `.agents/rules/`, `.github/instructions/`, `.copilot/instructions/`, `.claude/rules/`, or referenced from the agent-instruction file. Skip tiers the project does not ship; do not load files that do not exist.
+3. The instruction to apply constraints from relevant coding rules and instructions
+4. The instruction: _"If you encounter spec deviations - where the specification, plan, or architecture doc contradicts the actual codebase - follow your Spec Deviation Protocol. Create `.findings/Finding-{SLUG}.md` for each deviation. Continue implementing what you can."_
+5. The instruction to **provide an implementation summary** when finished, including any spec deviation files created, and to report the paths of any `.findings/` files so the orchestrator can enumerate them without re-scanning the workspace
 
 After the implementation subagent returns, proceed to Phase 3.
 
 ### Phase 3: Check Findings
 
-Use the list of `.findings/Finding-*.md` file paths reported by the implementation subagent in its result. Because the implementation subagent's first action was `rm -rf .findings/`, any files listed here were created during this pipeline run. If the implementation subagent's summary omitted the list, enumerate them once by searching for `.findings/Finding-*.md` by filename (fallback path).
+Use the list of `.findings/Finding-*.md` file paths reported by the implementation subagent in its result. Files already in `.findings/` may be left over from earlier runs, so trust only the reported list. If the implementation subagent's summary omitted the list, ask it once for the paths it created; never delete or sweep `.findings/` to tell old findings from new.
 
 **If no finding files exist:** proceed to Phase 4.
 
@@ -174,6 +173,6 @@ Revise Specification to address the deviations, then re-run the pipeline.
 5. **Default to simple.** When scope is ambiguous, proceed with implementation. The implementation's Spec Deviation Protocol is the safety net.
 6. **Pass context faithfully.** Every subagent prompt must include enough context for the subagent to work independently - the implementation subagent needs the full task description, the Tester needs the full implementation summary.
 7. **One pipeline run, one task.** Do not batch multiple issues or features into a single pipeline run.
-8. **Clean before run.** The implementation subagent's delegation prompt begins with `rm -rf .findings/` so the implementation subagent executes the cleanup itself. Findings are ephemeral - scoped to a single pipeline run, not persistent state.
+8. **Findings are never deleted.** A finding is identified by the path the implementation subagent reports, not by its presence in `.findings/`. Do not delete files there and do not instruct a subagent to.
 9. **No post-processing verification.** After the tester subagent returns, do NOT run additional terminal commands.
 10. **Read each artifact once.** The implementation summary, the tester's labeled status lines, and the reported `.findings/` paths are the handoff. Once a plan, finding, or source file is in your context, do not read it again. An unchanged file returns nothing new, and every re-read costs a full context round trip. Read a path a second time only after a subagent reports writing to it. To check one line or one symbol, search the file's content with the search tool in your toolbox rather than pulling the whole file into context. To locate a file whose exact name or directory you do not know, search by filename; never probe for a path by reading it.

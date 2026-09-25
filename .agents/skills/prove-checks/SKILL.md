@@ -69,8 +69,8 @@ Grep the job or script for `continue-on-error`, `|| true`, `set +e`, `|| exit 0`
 
 Break the thing on purpose and confirm the check turns red:
 
-- Revert the fix, or point the check at the pre-fix revision. Copy the file aside before you break it and restore from that copy; never with `git checkout --`, `git restore` or `git reset`, which take every uncommitted change in the tree with them.
-- Run the control in an isolated scratch copy; a throwaway worktree is optional. An interrupted control must not leave broken files in the working checkout or reach another session's changes.
+- Revert the fix, or point the check at the pre-fix revision. Copy the file into a `mktemp -d` directory outside the repository before you break it and restore from that copy; never with `git checkout --`, `git restore` or `git reset`, which take every uncommitted change in the tree with them.
+- Run the control in an isolated scratch copy outside the repository; a throwaway worktree is optional. An interrupted control must not leave broken files in the working checkout or reach another session's changes.
 - Leave the broken copy in place until the loop closes, then delete it once. Recreating it after every failed attempt repeats setup without improving isolation.
 - Blank the secret, delete the fixture, or feed the old value.
 - Corrupt one field the assertion is supposed to notice.
