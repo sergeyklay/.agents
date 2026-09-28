@@ -1,4 +1,4 @@
-<!-- markdownlint-configure-file {"MD033": {"allowed_elements": ["p", "div"]}, "MD041": false} -->
+<!-- markdownlint-configure-file {"MD033": {"allowed_elements": ["p", "div", "code"]}, "MD041": false} -->
 
 <p align="center">
   <code>.agents</code>
