@@ -192,6 +192,27 @@ PROBE
   done
 }
 
+@test "the hook rejects a rule named by letters alone" {
+  for comment in 'Non-null only when rule LS-DOCUMENT fires' \
+    "Implements rule LS's sightingFor step" 'a later sighting (rule LS) when' \
+    'Rule DR holds here' 'rules LS and DR apply'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_flagged 'spec-criteria reference' || fail "for: $comment"
+  done
+}
+
+# RFC 2119 keywords and the rule's own identifier follow "rule" in plain prose.
+@test "the hook allows a keyword or an acronym that is not a rule name" {
+  for comment in 'the rule ID must be unique' 'this rule MAY be skipped' \
+    'the rule NOT applied' 'the rule API returns it' 'the firewall rule ACCEPT' \
+    'a rule MUST hold' 'the rule set grows' 'rule IDs are stable'; do
+    go_comment_probe "$comment"
+    run run_hook "$PROBE"
+    assert_clean || fail "for: $comment"
+  done
+}
+
 @test "the hook does not let a range confirm a plan label family" {
   write_probe probe.go <<'PROBE'
 package p
