@@ -1,7 +1,7 @@
-<!-- markdownlint-configure-file {"MD033": {"allowed_elements": ["p", "img", "div"]}, "MD041": false} -->
+<!-- markdownlint-configure-file {"MD033": {"allowed_elements": ["p", "div", "code"]}, "MD041": false} -->
 
 <p align="center">
-  <img src="docs/assets/banner.png" alt=".agents — From idea to shipped code: plan, build, verify, and ship with shared context, skills, commands, and agents." width="100%">
+  <code>.agents</code>
 </p>
 
 <div align="center">

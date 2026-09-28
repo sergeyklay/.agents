@@ -67,6 +67,13 @@ BEGIN {
   PLAN_LABEL = PLAN_LABEL "|(^|[^[:alnum:]_])" PLAN_ID "[[:space:]]+(step|phase|stage|reconciliation|probe|property|invariant|rule)s?([^[:alnum:]_]|$)"
   PLAN_RANGE = "(^|[^[:alnum:]_])" PLAN_ID "[[:space:]]+(to|through)[[:space:]]+" PLAN_ID "([^[:alnum:]_]|$)"
 
+  # A spec may name a rule by letters alone (rule LS, rule LS-DOCUMENT). Four
+  # letters or more is a keyword or a target (MUST, ACCEPT), and the words
+  # below follow "rule" in prose without naming one.
+  LETTER_RULE = "(^|[^[:alnum:]_])[Rr]ules?[[:space:]]+[(]?[A-Z][A-Z][A-Z]?([^[:alnum:]_]|$)"
+  split("ID API MAY NOT", words, " ")
+  for (i in words) NOT_A_RULE_NAME[words[i]] = 1
+
   VERIFICATION_PROPERTY = "(verification[[:space:]]+property[[:space:]]+[0-9]|property[[:space:]]+[0-9][[:space:]]+of[[:space:]]+the[[:space:]]+verification)"
 
   # Every other single letter is fixture issue data here, and no pattern
@@ -214,6 +221,16 @@ function cites_plan_family(c,   id) {
   return 0
 }
 
+function names_letter_rule(c,   name) {
+  while (match(c, LETTER_RULE)) {
+    name = substr(c, RSTART, RLENGTH)
+    c = substr(c, RSTART + RLENGTH)
+    match(name, /[A-Z][A-Z][A-Z]?/)
+    if (!(substr(name, RSTART, RLENGTH) in NOT_A_RULE_NAME)) return 1
+  }
+  return 0
+}
+
 function classify(c) {
   if (c ~ RFC_CITATION) return ""
   if (tolower(c) ~ SEQ_LABEL) return "sequence/section label"
@@ -221,6 +238,7 @@ function classify(c) {
   if (c ~ SPEC_PREFIX) return "spec-criteria reference"
   if (c ~ ATTESTED_ID) return "spec-criteria reference"
   if (c ~ PLAN_LABEL || c ~ PLAN_RANGE || cites_plan_family(c)) return "spec-criteria reference"
+  if (names_letter_rule(c)) return "spec-criteria reference"
   if (tolower(c) ~ VERIFICATION_PROPERTY) return "spec-criteria reference"
   if (c ~ TEST_TYPE) return "test-type reference"
   if (c ~ DOC_REF) return "internal doc/ADR reference"
@@ -249,6 +267,7 @@ function classify(c) {
   echo "                             and a bare ID a test claims: verifies V5, pins P9"
   echo "                             and a plan label: D1 to D3, the D4 step, property P5,"
   echo "                             then every (D2), D2's or D2 in that file"
+  echo "                             and a rule named by letters: rule LS, rule LS-DOCUMENT"
   echo "                             and numbered verification properties"
   echo "  - test-type refs:          I-1, U-1, Q-1, S-1"
   echo "  - spec artefact + number:  Table 3.1-B, Table-3, Appendix 2, Figure 4, Spec-706"
