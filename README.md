@@ -1,10 +1,8 @@
 <!-- markdownlint-configure-file {"MD033": {"allowed_elements": ["p", "div", "code"]}, "MD041": false} -->
 
-<p align="center">
-  <code>.agents</code>
-</p>
-
 <div align="center">
+
+<h1><code>.agents</code></h1>
 
 My personal, curated set of artifacts for AI coding agents that I actually use day-to-day, permissively licensed for others to adapt. One set of rules, skills, and agents that follows me across every AI coding tool.
 
