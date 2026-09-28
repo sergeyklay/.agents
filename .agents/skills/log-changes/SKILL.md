@@ -139,6 +139,7 @@ Structural rules:
 - Dates in ISO 8601 (`YYYY-MM-DD`).
 - Comparison links at the bottom for every version.
 - Empty categories are omitted (no `### Removed` if nothing was removed).
+- Each bullet is one physical line, tracker reference included: no hard wrap, however long the line gets and however the neighbouring bullets are wrapped. Rendered Markdown reflows the text anyway, and a wrapped bullet splits one entry across diff lines. Leave existing bullets as they are.
 
 Dated release sections are shipped history and are not edited when logging new work. New entries go under `## [Unreleased]` only.
 
@@ -184,6 +185,7 @@ To cut a release:
 - [ ] No git-log copy-paste - entries are human-readable.
 - [ ] Entries identify the subsystem where helpful.
 - [ ] Tracker references are full URLs, not bare keys or plain `#NNN`.
+- [ ] Every bullet you wrote is a single line that ends with its reference; no continuation line starts with `(` or `[`.
 - [ ] When an issue/task exists, the bullet references the issue/task only - not also the PR.
 - [ ] **If the project's tracker is not GitHub Issues:** no `https://github.com/OWNER/REPO/issues/NNN` links are present in the changelog.
 

@@ -65,11 +65,10 @@ For trackers not listed above (Asana, Shortcut, Pivotal, etc.):
 
 ## Multi-reference format (any tracker)
 
-One reference per line inside the parens:
+All references share one pair of parens, separated by `, `, on the bullet's own line:
 
 ```
-([KEY-42](https://example.atlassian.net/browse/KEY-42),
-[KEY-43](https://example.atlassian.net/browse/KEY-43))
+- API: Exports now include filtered rows only. ([KEY-42](https://example.atlassian.net/browse/KEY-42), [KEY-43](https://example.atlassian.net/browse/KEY-43))
 ```
 
-Single reference stays on the same line: `([KEY-42](https://example.atlassian.net/browse/KEY-42))`.
+Never break the line before the parens or between references, even when the line is long.
