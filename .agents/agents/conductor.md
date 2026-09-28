@@ -20,7 +20,7 @@ Determine what was provided and choose a route.
 | Input | Route | Action |
 |---|---|---|
 | Path to a `.specs/Spec-*.md` file, no `.plans/Plan-*.md` provided | **Spec-driven** | This pipeline does not create plans. Recommend **Create Specification First** or ask the user to create the plan first. STOP EXECUTION. |
-| Path to a `.plans/Plan-*.md` file | **Plan-driven** | Read the plan. Proceed to Phase 2 with the plan as the primary input. |
+| Path to a `.plans/Plan-*.md` file | **Plan-driven** | Read the plan. Take the spec path from the input or, failing that, from the plan's `Source spec:` header line; Phases 2 and 4 hand it on. Proceed to Phase 2 with the plan as the primary input. |
 | GitHub issue URL or `#N` shorthand | **Issue-driven** | Run `gh issue view <ref> --json title,body,labels`. When no tracker-fetch tool is available in your toolbox, delegate the fetch to a general-purpose subagent and require it to return the title, body, labels, and full comment thread verbatim as its final message. Assess scope (see below). |
 | Jira issue ID or URL | **Issue-driven** | Fetch via the `getJiraIssue` MCP tool. Assess scope (see below). |
 | Raw feature description or bug report | **Description-driven** | Assess scope (see below). |
@@ -47,7 +47,7 @@ Delegate to the BEST implementation subagent. You MUST determine which implement
 Your prompt to the implementation subagent must include:
 
 1. **The implementation input** - one of:
-   - The plan file path (plan-driven): _"Execute the plan at `{path}` strictly phase by phase."_. If specification is provided in addition to the plan, include the spec path and instruction: _"Refer to the specification at `{spec_path}` as needed, but follow the plan strictly. If you encounter any contradictions between the plan and the spec, follow your Spec Deviation Protocol."_
+   - The plan file path (plan-driven): _"Execute the plan at `{path}` strictly phase by phase."_. When a spec path was found in Phase 1, include it and the instruction: _"The specification at `{spec_path}` is your reference for behavior; the plan sets the order of work. Read the spec in full before starting, resolve every terse or ambiguous plan step from it, and check each phase against it. Where a plan step contradicts the spec, follow your Spec Deviation Protocol."_
    - The issue title, body, and labels (issue-driven): _"Implement the following issue. No plan exists - analyze the request, identify required changes, and implement atomically."_
    - The raw description (description-driven): same as issue-driven
 2. The instruction to ground the implementation in project context before writing any code, in this reading order: (a) agent-instruction files the project ships (`AGENTS.md`) for boundary rules; (b) if `docs/` exists, the documentation index (`docs/README.md`, or the closest equivalent: `docs/index.md`, `docs/SUMMARY.md`, `docs/DIGEST.md`) for orientation; (c) architecture or product documents the index references (e.g. `docs/architecture.md`, `docs/PRD.md`) only for the sections the feature actually touches; (d) decision records (`docs/decisions/`, `docs/adr/`, `adr/`, `ADR/`) when the implementation touches a previously decided area; (e) language and code-style rules the project ships under `.agents/rules/`, `.github/instructions/`, `.copilot/instructions/`, `.claude/rules/`, or referenced from the agent-instruction file. Skip tiers the project does not ship; do not load files that do not exist.
@@ -103,7 +103,7 @@ Then prompt the tester subagent with:
 
 1. The implementation subagent's implementation summary - quoted **verbatim**
 2. The instruction to load and follow the available testing skill and rules
-3. The instruction to study the relevant spec sections and the actual implementation source files
+3. The spec path, when one exists, with the instruction to derive expected behavior from the spec rather than from the implementation, and to study the actual implementation source files
 4. The instruction to apply the Testing Analyze Protocol before writing any test
 5. The instruction to verify with whichever project commands are relevant to the stack (tests pass, types check, code formatted, lint clean, build succeeds, race detector clean, etc.), and to **return the final exit status of each command run** in the subagent result on its own labeled line in the form `<check>=pass|fail`. The set of labels is determined by the project's stack and tooling, not by this prompt: typical JS/TS projects emit `typecheck`, `test`, `format`, `lint`, `build`; typical Go projects emit `test`, `lint`, `vet`, `build`, `race`; typical Python projects emit `typecheck`, `test`, `lint`, `format`. The tester emits a labeled line only for checks it actually ran. You WILL parse whatever labeled lines the tester emits directly into the Phase 5 summary; you do NOT re-run the commands and you do NOT require a fixed set of labels.
 

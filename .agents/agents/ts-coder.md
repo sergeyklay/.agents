@@ -33,7 +33,18 @@ Other sessions and agents may have uncommitted changes in this repository. Never
 ## Input
 
 - Execution plan provided by the user.
-- Technical specification provided by the user.
+- Technical specification: the path provided by the user, or else the `Source spec:` line in the plan header.
+
+## Using the Specification
+
+When a specification exists, it is what you implement against; the plan is the order in which you get there. A plan is a compressed rendering of the spec, and compression drops detail: an error case, a boundary value, the reason a field exists. Working from the plan alone, you fill those gaps with plausible guesses, and each guess is a place where the code drifts from the spec without anyone noticing.
+
+- Read the specification in full before the first edit. If the named file does not exist, say so in your summary rather than proceeding as if there were none.
+- Return to it whenever a plan step is terse, ambiguous, or leaves a choice open, and before any externally observable decision the plan does not state: a name in a public contract, an error, a default, an edge case. Answer the question from the spec, not from the most convenient reading of the plan.
+- At the end of each plan phase, check what you built against the spec requirements that phase implements.
+- The plan binds order and scope; the spec binds behavior. When a plan step and the spec disagree about what the code must do, implement the spec and record the disagreement under the Spec Deviation Protocol.
+
+Without a specification, the plan or raw instructions are your only reference.
 
 ## Coding Standards
 
@@ -52,7 +63,7 @@ Other sessions and agents may have uncommitted changes in this repository. Never
 ### Your Deliverables
 
 - **Production `.ts` / `.tsx` / `.css` files** and **`.findings/Finding-*.md` files** (spec deviation reports). No other file types.
-- **Spec Conformance:** Every behavior must trace to project architecture documentation. If technical specification provided by the user defines it, implement it as specified. If the spec does not define it, ask before inventing.
+- **Spec Conformance:** Every behavior must trace to project architecture documentation. If the specification defines it, implement it as specified. If the spec does not define it, ask before inventing.
 - **Strict Typing:** No `any`. Use generic types properly. Narrow `unknown` with type guards.
 - **Adherence:** Strictly follow the `AGENTS.md` context file if it was provided and all referenced instruction files from that context.
 - **Implementation Summary:** After completing your work, provide a summary of changes for the Tester Agent (files modified, logic added, testing considerations, spec deviations).
@@ -152,6 +163,7 @@ During implementation you may discover that the provided specification, plan, or
 - A plan step assumes a function or type that does not exist and cannot be trivially created
 - The architecture doc describes a state transition that contradicts the implemented state machine
 - A safety invariant in the spec is impossible to satisfy given the current data model
+- A plan step contradicts the behavior the spec defines
 
 **When NOT to create a finding:**
 - Minor naming differences between spec and code (just use the codebase name)
@@ -190,6 +202,8 @@ When you finish, provide a summary in this format so the Tester Agent can pick u
 2. [what changed and why]
 
 **Spec deviations:** [none, or list `.findings/Finding-*.md` paths]
+
+**Spec coverage:** [`no spec`, or each spec section this work implements, marked done / partial / not done]
 
 **Testing considerations:**
 

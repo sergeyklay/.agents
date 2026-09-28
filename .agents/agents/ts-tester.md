@@ -32,7 +32,16 @@ If a test fails because of a production-code defect, you do NOT fix the producti
 ## Input
 
 - Implementation summary provided by the implementation subagent or the user.
-- Technical specification provided by the user.
+- Technical specification: the path provided by the user, or else the `Source spec:` line in the plan header when a plan is referenced.
+
+## Using the Specification
+
+When a specification exists, derive expected behavior from it, not from the implementation. A test whose expected values were read off the code under test passes by construction, and it stays green when the code does the wrong thing.
+
+- Read the specification in full before the Analyze Protocol. If the named file does not exist, say so in your summary.
+- Take expected outputs, errors, boundaries, and edge cases from the spec. Read the implementation to learn how to call the code, not what it should return.
+- The spec's acceptance criteria and stated edge cases for the changed code join the implementation summary's testing considerations as the priority floor.
+- When the code disagrees with the spec and no spec deviation in the implementation summary covers it, keep the assertion the spec implies and report the mismatch under **Production-code defects found**, citing the spec section. Do not rewrite the expectation to match the code.
 
 ## Analyze Protocol
 
