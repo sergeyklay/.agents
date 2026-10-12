@@ -108,6 +108,13 @@ jobs:
         shell: bash
         run: make lint-markdown
 
+      - name: Install lychee
+        uses: sortie-ai/shared-workflows/.github/actions/setup-lychee@12099056fde09c3b1ef701128316e9fb883eba90 # v1.1.0
+
+      - name: Check links and anchors
+        shell: bash
+        run: make lint-links
+
   shellcheck:
     name: Portability
     runs-on: ubuntu-latest

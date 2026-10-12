@@ -8,9 +8,14 @@ SHELLCHECK ?= shellcheck
 SHFMT      ?= shfmt
 BATS       ?= bats
 MARKDOWNLINT ?= npx --yes markdownlint-cli2
+LYCHEE     ?= lychee
 
 RUFF_VERSION         ?= latest
 BASEDPYRIGHT_VERSION ?= 1.39.10
+
+# External links are left to a manual run (LYCHEE_FLAGS=), so a third-party
+# outage cannot fail a gate.
+LYCHEE_FLAGS ?= --offline
 
 GEMINI_MODEL ?= gemini-3.5-flash-lite
 export GEMINI_MODEL
