@@ -16,3 +16,5 @@ tools:
 model: opus
 color: purple
 effort: high
+experimental:
+  cacheTtl: 1h
