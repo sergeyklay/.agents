@@ -10,6 +10,8 @@ These rules govern all prose in this project: architecture documents, ADRs, issu
 
 **One term per concept.** Choose a name for each domain concept and use it everywhere. Do not alternate between synonyms for variety. If the spec calls it a "workspace key," never call it a "directory name" or "folder identifier" in the same document.
 
+**Never count inventory.** Do not state how many items a set holds: tables, columns, members, call sites, rules, tabs, rows, files, jobs, tests, steps in a list, seeded records. Write "a closed union", "the rules below", "every role", "the remaining members", never "74 members", "Four rules", "seven contacts", "two tabs". Nobody updates a count when the code or the seed changes, so every count is technical debt that turns into a false statement. When you edit a file that already carries such counts, remove them in the same change. A value that is the subject of the sentence stays: a threshold, a default, a limit, a price, a timeout, a version, a date ("7 AM", "14 days", "10 MB", "$50").
+
 **Active voice by default.** "The adapter normalizes labels" - not "Labels are normalized by the adapter." Passive voice is acceptable when the actor is irrelevant or unknown: "Errors are logged to stderr."
 
 **Write for the reader who will implement this.** Assume the audience is a TypeScript/React engineer familiar with component architecture, async patterns, and state management. Do not explain Promises, hooks, or the React rendering model from first principles. Do explain project-specific invariants, non-obvious constraints, and decisions that deviate from common practice.
