@@ -4,7 +4,7 @@
 
 **Intent:** [1-2 sentences explaining the business or technical goal - the "Why"]
 
-**Related Issues:** [#123, PROJ-456, etc. - Remove this line if none]
+**Related Issues:** [`Closes #123` when merging completes the issue, `Part of #123` when the PR serves only that issue but leaves work on it, `#123` otherwise, PROJ-456 as plain text - Remove this line if none]
 
 ### 🧭 Reviewer Guide
 

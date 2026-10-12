@@ -3,7 +3,7 @@ name: create-pr
 description: "Use when asked to create a pull request, open a PR, or submit changes for review. Handles branch verification, change analysis, title and description generation, and gh pr create. Do NOT use for committing, pushing without PR, or reviewing existing PRs"
 metadata:
   author: Serghei Iakovlev
-  version: "1.3"
+  version: "1.4"
   category: vcs
 ---
 
@@ -40,7 +40,47 @@ From the diff and commits, identify:
 - **Breaking changes**: `!` in commits or BREAKING CHANGE footer
 - **Migrations**: database or schema changes
 
-### Step 3: Generate title
+### Step 3: Resolve the linked issue
+
+Two separate questions decide what the PR takes from an issue:
+
+| Question | When yes |
+| -------- | -------- |
+| **Belongs**: does every change in the PR serve this one issue, and nothing else? | Copy the issue's labels, milestone and projects to the PR |
+| **Completes**: once merged, is nothing left to do on the issue? | Link it under Development with a closing keyword |
+
+A PR can belong to an issue without completing it: one step of a larger task. A PR that serves several issues, or mixes in unrelated changes, belongs to none of them and gets neither.
+
+Take the first candidate found:
+
+1. An issue named in the arguments: `#123`, `owner/repo#123`, or its URL.
+2. A closing footer in the branch's commits: `Closes #123`, `Fixes #123`, `Resolves #123`.
+3. An issue number in the branch name, as in `fix/123-null-user`.
+
+```bash
+gh issue view <number> --json number,title,state,body,labels,milestone,projectItems
+```
+
+Answer both questions from the issue body and the change from Step 2. Ask the user when there are several candidates, the issue is closed, or either answer is unclear. A wrong "completes" closes the issue on merge. A non-GitHub key such as `PROJ-456` carries no metadata; write it under Related Issues as plain text.
+
+When the PR belongs to the issue:
+
+- Copy labels and the milestone only from an issue in the same repository. Both are repository-scoped.
+- Trust an empty `projectItems` only after checking the token: it comes back empty, without an error, when the token lacks the `project` scope.
+
+  ```bash
+  gh auth status --active --json hosts --jq '.hosts[][].scopes'
+  ```
+
+  Without `project`, skip projects and tell the user to run `gh auth refresh -s project`.
+
+Under Related Issues:
+
+- Completes: `Closes #123`, or `Closes owner/repo#123` for another repository. The keyword is the only way to fill Development from the CLI, since no API links a PR manually, and GitHub honours it only when the base is the default branch.
+- Belongs but does not complete: `Part of #123`. No closing keyword, so merging leaves the issue open and Development stays empty.
+- Otherwise: plain `#123`.
+
+### Step 4: Generate title
 
 Conventional Commits format: `<type>[scope]: <description>`
 
@@ -59,7 +99,7 @@ feat(messages): add server-only synthetic mailbox archive parser (BP-1234)
 feat(messages): add server-only synthetic mailbox archive parser
 ```
 
-### Step 4: Generate description
+### Step 5: Generate description
 
 Open `assets/pull_request_template.md` and read it before writing a line of the body. That file is the only definition of the shape: reproduce every heading it carries verbatim, at the level and with the emoji it gives them, and fill each one. Add no section the template does not define.
 
@@ -97,7 +137,7 @@ Complexity guide:
 | Medium | Multiple related files, new feature with tests        |
 | High   | Cross-cutting, migrations, breaking changes, security |
 
-### Step 5: Create PR
+### Step 6: Create PR
 
 ```bash
 DEFAULT=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
@@ -109,15 +149,27 @@ gh pr create \
 
 For drafts, add `--draft`.
 
+When the PR belongs to an issue (Step 3), add one `--label '<name>'` per label and `--milestone '<title>'`, omitting any that are empty. Add projects after creation, so that a project failure cannot block the PR:
+
+```bash
+gh pr edit <number> --add-project '<project title>'
+```
+
+When updating an existing PR, apply the same metadata with `gh pr edit --add-label`, `--milestone` and `--add-project`.
+
 MANDATORY: Use single quotes for `--body` to avoid shell interpolation. **NEVER** use double quotes, which can cause variables or special characters in the description to be misinterpreted by the shell.
 
-### Step 6: Verify
+### Step 7: Verify
 
 ```bash
 gh pr view --web
 ```
 
-Report: PR number, URL, title, base/head branches.
+```bash
+gh pr view --json labels,milestone,projectItems,closingIssuesReferences
+```
+
+Report: PR number, URL, title, base/head branches, and the issue metadata that was set. Name every field that could not be set, and why.
 
 ## Error Recovery
 
