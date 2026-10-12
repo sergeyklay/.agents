@@ -3,7 +3,6 @@
 ## Contents
 
 - [Core Principles](#core-principles)
-- [Configure Authentication](#configure-authentication)
 - [Structure Template](#structure-template)
 - [Voice and Tone](#voice-and-tone)
 - [Anti-Patterns](#anti-patterns)
