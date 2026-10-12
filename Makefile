@@ -96,10 +96,14 @@ lint-markdown: ## Lint README and docs with markdownlint-cli2
 	@git ls-files -z -- 'README.md' ':(glob)docs/*.md' ':(glob)docs/**/*.md' | xargs -0 \
 		$(MARKDOWNLINT) --
 
+.PHONY: lint-links
+lint-links: ## Check links and anchors in every tracked Markdown file (LYCHEE_FLAGS= adds external links)
+	@git ls-files -z -- '*.md' | xargs -0 $(LYCHEE) --no-progress $(LYCHEE_FLAGS) --
+
 ##@ Gates
 
 .PHONY: check
-check: validate test typecheck lint lint-shell fmt-shell lint-markdown install-test runtime-test ## Run every CI gate from ci.yml locally
+check: validate test typecheck lint lint-shell fmt-shell lint-markdown lint-links install-test runtime-test ## Run every CI gate from ci.yml locally
 
 .PHONY: install-test
 install-test: ## Run the installer test suite with bats

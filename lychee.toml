@@ -1,0 +1,10 @@
+# Read by "make lint-links" and by the CI workflow, so a local run and CI
+# check the same things.
+
+include_fragments = "full"
+
+# Skills teach with placeholder and illustrative links that have no target.
+exclude = [
+  '/skills/compare-it/assets/URL$',
+  '/skills/make-docs/(reference|explanation)/',
+]

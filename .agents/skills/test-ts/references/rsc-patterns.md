@@ -8,7 +8,7 @@ All test files in this section MUST use `// @vitest-environment node`.
 
 ## Table of contents
 
-1. [next/navigation](#1-nextnnavigation)
+1. [next/navigation](#1-nextnavigation)
 2. [next/headers](#2-nextheaders)
 3. [next/cache](#3-nextcache)
 4. [Auth.js session](#4-authjs-session)
