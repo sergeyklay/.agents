@@ -110,7 +110,7 @@ Cheapness alone does not admit an edit. Create the ticket regardless of size whe
 - **Privacy.** Never include usernames, API keys, internal URLs, tokens, or personal information, regardless of whether the project is private or read-restricted. Jira is observed by people outside the immediate authoring team.
 - **Self-contained.** A reader who has never seen this work must understand the ticket from the body alone.
 - **Cite source by file:line.** When the ticket refers to existing code, constants, or behaviour, anchor each claim to a path and line range (e.g. `path/to/module.ts:123-145`). File:line citations turn the ticket into a self-auditable record.
-- **Preserve verbatim quotes.** When the ticket originates from a specific operator, reviewer, or customer report, include the exact wording in the Context section. Paraphrasing loses the reporter's mental model and removes the literal phrase a future searcher will type.
+- **Quote reports, not the chat.** Quote a customer, reviewer, or incident report verbatim in Context; a searcher types that phrase. Never quote or narrate the conversation with the person directing the work: restate their decisions as formal requirements.
 - **No hard wrapping mid-sentence.** Write each paragraph as a single line; Jira handles flow at render time. Hard-wrapping mid-paragraph creates spurious paragraph breaks in wiki markup and noisy diffs on edit.
 - **Bugs describe problems, not solutions.** Steps to reproduce, Expected, Observed describe the problem. When the reporter investigated and has a concrete fix in mind, it goes into the optional `Proposed solution` section as a suggestion, not as a mandate that bypasses Requirements.
 - **Requirements.** Required for `Story` and `Bug`. Optional for `Task`, `Spike`, `Epic`, `Sub-task` (include when a concrete completion signal exists). Write each requirement in MUST / MUST NOT form. Each is independently verifiable. Reserve MAY for genuinely optional outcomes.
@@ -230,7 +230,7 @@ Before executing `createJiraIssue`, verify:
 - [ ] Body matches the type's template; bracketed sections dropped if empty
 - [ ] Requirements present for Bug and Story, in MUST / MUST NOT form
 - [ ] Source-code references cite file path and line range
-- [ ] Verbatim quote preserved in Context when the ticket originated from a specific report
+- [ ] Third-party report quoted verbatim in Context; no chat quotes or narration
 - [ ] Self-checks present for non-trivial Bug and Story tickets (Automated + Manual)
 - [ ] Parent set for Sub-task (and for Story/Task/Bug if the user named an Epic)
 - [ ] No usernames, keys, internal URLs, tokens, or personal information in the body
