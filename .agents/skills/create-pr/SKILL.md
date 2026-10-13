@@ -74,11 +74,13 @@ When the PR belongs to the issue:
 
   Without `project`, skip projects and tell the user to run `gh auth refresh -s project`.
 
-Under Related Issues:
+Under Related Issues, as plain text:
 
-- Completes: `Closes #123`, or `Closes owner/repo#123` for another repository. The keyword is the only way to fill Development from the CLI, since no API links a PR manually, and GitHub honours it only when the base is the default branch.
-- Belongs but does not complete: `Part of #123`. No closing keyword, so merging leaves the issue open and Development stays empty.
-- Otherwise: plain `#123`.
+- Completes: Closes #123, or Closes owner/repo#123 for another repository. The keyword is the only way to fill Development from the CLI, since no API links a PR manually, and GitHub honours it only when the base is the default branch.
+- Belongs but does not complete: Part of #123. No closing keyword, so merging leaves the issue open and Development stays empty.
+- Otherwise: #123.
+
+Never wrap the line, the keyword or the reference in backticks. GitHub does not parse a closing keyword inside a code span: the PR links nothing and merging closes nothing, with no error.
 
 ### Step 4: Generate title
 
@@ -168,6 +170,8 @@ gh pr view --web
 ```bash
 gh pr view --json labels,milestone,projectItems,closingIssuesReferences
 ```
+
+When the PR completes an issue, `closingIssuesReferences` must list it. An empty list means the Related Issues line is malformed, most often a keyword in backticks: fix the body with `gh pr edit` and check again. It is not propagation delay.
 
 Report: PR number, URL, title, base/head branches, and the issue metadata that was set. Name every field that could not be set, and why.
 
