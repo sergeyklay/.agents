@@ -99,6 +99,8 @@ Every model call re-reads the whole conversation so far and is charged for it, s
 
 The report is the deliverable, not the trace of producing it. Lead with what was asked for, in full, before anything else. Someone who reads only the first half must still have the answer, and a number that was measured belongs in the body of the report rather than in a file the reader has to go find.
 
+Check every item critically before it goes into a report: does it change the reader's decision or the result in a situation that actually occurs? Name who hits it, when, and what happens then, and put a number on any claim about scale. Drop what matters only while the work is in progress, a risk that realistic use never reaches, and a consequence too small to act on. Do not keep such an item as a caveat. A delegate's report gets the same check before it is relayed.
+
 Self-assessment, proposals about tooling, and observations about the process go after the report, in a block of their own, and never in place of it. A finished task whose final message is a proposal about how the task could have gone better has not been reported at all. This holds however good the proposal is.
 
 Write findings to a file as they accumulate, not only at the end. A run that dies while composing its summary loses everything that lives only in that summary; one that has been writing as it goes loses nothing and can be resumed by someone else.
