@@ -25,6 +25,7 @@ esac
 case "$file" in
 *.go | *.ts | *.tsx | *.js | *.jsx | *.mjs | *.cjs) marker='//' ;;
 *.py | *.pyi | *.bats | *.bash | *.sh | *.mk | */Makefile) marker='#' ;;
+*.sql) marker='--' ;;
 *) exit 0 ;;
 esac
 [ -f "$file" ] || exit 0
@@ -46,6 +47,7 @@ BEGIN {
   FENCE_SINGLE = SQ SQ SQ
   QUOTES = "\"" SQ
   if (marker == "//") QUOTES = QUOTES "`"
+  BLOCK_COMMENTS = (marker == "//" || marker == "--")
 
   SEQ_LABEL = "(^|[^[:alnum:]])(step|phase|check|rule|section|part|case|pass|stage|round|scenario)[[:space:]]+[0-9]"
   SPEC_NOUN = "(^|[^[:alnum:]])(Table|Tables|Appendix|Figure|Diagram|Criterion|Criteria|Requirement|Spec)[-[:space:]]+[0-9]"
@@ -149,7 +151,7 @@ function scan(s,   i, n, ch, three) {
     } else if (substr(s, i, length(marker)) == marker) {
       add_comment(substr(s, i + length(marker)))
       i = n + 1
-    } else if (marker == "//" && substr(s, i, 2) == "/*") {
+    } else if (BLOCK_COMMENTS && substr(s, i, 2) == "/*") {
       open_span = "*/"
       span_kind = "comment"
       i += 2
