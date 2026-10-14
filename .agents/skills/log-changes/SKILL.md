@@ -3,7 +3,7 @@ name: log-changes
 description: "Use before creating, drafting, editing, or reviewing changelog entries (CHANGELOG.md or the project's equivalent), including when this is a subtask of implementing a feature, fixing a bug, or preparing a release and the user did not explicitly ask for this skill. Also use for requests to 'document this change' or 'add a dedicated entry' in the changelog, 'update the change log', and diffs or pull requests that touch the changelog. Do NOT use for commit messages, user guides, or release notes outside the changelog."
 metadata:
   author: Serghei Iakovlev
-  version: "1.6"
+  version: "1.7"
   category: documentation
 ---
 
@@ -13,7 +13,7 @@ The changelog records notable changes to the distributed software. Every entry m
 
 Write for the project's consumers, not its implementers. Infer the audience and public product surface from usage documentation: a library's supported API can be the product, while an application's internal functions are not. Readers must understand what changed without reading source code or opening the linked issue. Default to one concise sentence stating the outcome. A changelog announces a change; documentation explains how to use it. A short sentence count does not excuse a long list of reasons, conditions, or caveats. Mention a critical compatibility consequence or limitation briefly and link to documentation for instructions.
 
-Format authority: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
+Two formats are supported: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), the default, and the **highlights format** in [references/highlights-format.md](references/highlights-format.md). Versions follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) or a calendar scheme. Step 1 detects both; never assume them.
 
 ## Project constants
 
@@ -36,6 +36,8 @@ Use the detected values everywhere a project key, tracker URL, or GitHub URL is 
 ### Step 1: Read the current changelog
 
 Read the project's changelog (normally root CHANGELOG.md) and its current diff first; preserve existing entries, including uncommitted work. Use the project's established path throughout this workflow. If it has no changelog, create CHANGELOG.md from `assets/changelog-template.md` (see Step 5).
+
+**Detect the format and version scheme before writing anything.** Read the preamble, any comment addressed to agents, and the headings under `[Unreleased]` and the newest release. `### Highlights` or `### Improvements and fixes` means the highlights format: follow [references/highlights-format.md](references/highlights-format.md), which replaces Steps 4 to 6. `### Added`, `### Fixed` and the other Keep a Changelog categories mean Keep a Changelog. A file that switched formats keeps older releases in the old one; the preamble and the newest release decide, and older sections are never converted. When they disagree, ask once. State the detected format in your report.
 
 ### Step 2: Gather changes
 
@@ -114,7 +116,7 @@ upgrading, would I need to know this?" If the answer is no, leave it out.
 
 ### Step 4: Classify each change
 
-Place every surviving entry under exactly one category:
+Keep a Changelog only. Place every surviving entry under exactly one category:
 
 | Category       | When to use                                                                  |
 | -------------- | ---------------------------------------------------------------------------- |
@@ -149,7 +151,7 @@ When a deliberate edit does span released sections - a policy change such as pur
 
 ### Step 6: Determine the version bump
 
-When cutting a release, choose the version number:
+When cutting a release, choose the version number. Under a calendar scheme, follow the version rule in [references/highlights-format.md](references/highlights-format.md); this table is for Semantic Versioning:
 
 | Bump      | Trigger                                               |
 | --------- | ----------------------------------------------------- |
@@ -165,6 +167,7 @@ To cut a release:
 
 ### Step 7: Verify
 
+- [ ] The format matches the one detected in Step 1, and a highlights-format section passes the checks in [references/highlights-format.md](references/highlights-format.md).
 - [ ] Every entry passes the filter from Step 3 (no noise).
 - [ ] The current task's distinct outcome has a dedicated entry; any grouping follows Step 2 and any explicit dedicated-entry request is honored.
 - [ ] Existing entries and their references are unchanged unless their revision was explicitly authorized; being uncommitted or from the same session is not permission.
