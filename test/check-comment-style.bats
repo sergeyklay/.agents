@@ -931,6 +931,68 @@ PROBE
   assert_clean
 }
 
+@test "a SQL file is checked" {
+  write_probe probe.sql <<'PROBE'
+-- Step 1: create the table
+CREATE TABLE t (id int);
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'sequence/section label'
+}
+
+@test "the hook reads a SQL comment after a statement" {
+  write_probe probe.sql <<'PROBE'
+CREATE TABLE t (id int); -- see ADR-3
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'internal doc/ADR reference'
+}
+
+@test "the hook reads a SQL block comment that spans lines" {
+  write_probe probe.sql <<'PROBE'
+/*
+ * Table 3.1-B is the source.
+ */
+CREATE TABLE t (id int);
+PROBE
+  run run_hook "$PROBE"
+  assert_flagged 'spec-criteria reference'
+}
+
+@test "the hook rejects a SQL banner" {
+  for banner in '-- ===== Tables =====' '----------------------------'; do
+    printf '%s\nCREATE TABLE t (id int);\n' "$banner" >"$BATS_TEST_TMPDIR/probe.sql"
+    run run_hook "$BATS_TEST_TMPDIR/probe.sql"
+    assert_flagged 'banner decoration' || return 1
+  done
+}
+
+# A doubled quote is how SQL escapes one, so it must close nothing early.
+@test "the hook reads no comment out of a dash pair inside a SQL string" {
+  write_probe probe.sql <<'PROBE'
+SELECT '-- Step 1' AS a, 'it''s -- Phase 2' AS b, "-- Step 3" AS c;
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
+@test "a single dash opens no comment in SQL" {
+  write_probe probe.sql <<'PROBE'
+SELECT total - Phase 2 FROM t;
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
+@test "a clean SQL comment blocks nothing" {
+  write_probe probe.sql <<'PROBE'
+-- The partial index keeps the hot rows small.
+CREATE INDEX t_live ON t (id) WHERE deleted_at IS NULL;
+PROBE
+  run run_hook "$PROBE"
+  assert_clean
+}
+
 @test "a hash opens no comment in a slash-marker language" {
   write_probe probe.go <<'PROBE'
 package p
