@@ -1,12 +1,12 @@
 {
   "dependencies": {
     "pg": "^8.23.1",
-    "zod": "^4.6.6"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26",
     "@types/pg": "^8.20.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
-    "dotenv": "^18.0.7"
+    "dotenv": "^18.0.8"
   }
 }
