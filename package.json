@@ -6,7 +6,7 @@
   "devDependencies": {
     "@types/node": "^26",
     "@types/pg": "^8.20.0",
-    "@modelcontextprotocol/sdk": "^1.32.1",
-    "dotenv": "^18.0.8"
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "dotenv": "^18.0.9"
   }
 }
