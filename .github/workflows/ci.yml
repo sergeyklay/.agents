@@ -44,7 +44,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
@@ -69,7 +69,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
@@ -90,7 +90,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
@@ -109,7 +109,7 @@ jobs:
         run: make lint-markdown
 
       - name: Install lychee
-        uses: sortie-ai/shared-workflows/.github/actions/setup-lychee@12099056fde09c3b1ef701128316e9fb883eba90 # v1.1.0
+        uses: sortie-ai/shared-workflows/.github/actions/setup-lychee@6d471deb70b0fee52d42366fb84f76b95d8f957a # v1.2.0
 
       - name: Check links and anchors
         shell: bash
@@ -235,7 +235,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: false

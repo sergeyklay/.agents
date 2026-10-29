@@ -16,7 +16,7 @@ jobs:
     if: >
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.actor.login == 'dependabot[bot]'
-    uses: sortie-ai/shared-workflows/.github/workflows/dependabot-merge.yml@12099056fde09c3b1ef701128316e9fb883eba90 # v1.1.0
+    uses: sortie-ai/shared-workflows/.github/workflows/dependabot-merge.yml@6d471deb70b0fee52d42366fb84f76b95d8f957a # v1.2.0
     with:
       ci-workflow-name: CI
       merge-method: squash
